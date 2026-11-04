@@ -9,27 +9,90 @@
   </head>
   <body>
     <header class="topo">
-      <div class="marca">
+      <button class="marca" id="ir-inicio" type="button" aria-label="Ir para o início">
         <span class="marca-icone" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Zm0 2.3L5.2 8 12 11.7 18.8 8 12 4.3ZM5 9.6v6.8l6 3.3v-6.8L5 9.6Zm8 10.1 6-3.3V9.6l-6 3.3v6.8Z" fill="currentColor"/></svg>
         </span>
-        <div>
-          <h1>Ferramentas 3D</h1>
-          <p class="subtitulo" id="versao"></p>
-        </div>
-      </div>
+        <span class="marca-texto">
+          <span class="nome-app">Ferramentas 3D</span>
+          <span class="subtitulo" id="versao"></span>
+        </span>
+      </button>
 
-      <nav class="abas" role="tablist">
-        <button class="aba ativa" role="tab" data-aba="calculadora" aria-selected="true">Calculadora</button>
-        <button class="aba" role="tab" data-aba="visualizador" aria-selected="false">Visualizar 3D</button>
-      </nav>
+      <div class="trilha" id="trilha" hidden>
+        <button class="voltar" id="voltar" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+          Início
+        </button>
+        <span class="trilha-sep" aria-hidden="true">/</span>
+        <span class="trilha-atual" id="titulo-tela"></span>
+      </div>
 
       <button class="tema" id="alternar-tema" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema">
         <span id="icone-tema" aria-hidden="true">☾</span>
       </button>
     </header>
 
-    <main class="tela" id="tela-calculadora">
+    <main class="tela inicio" id="tela-inicio">
+      <div class="inicio-conteudo">
+        <section class="hero">
+          <div class="hero-texto">
+            <p class="sobretitulo">Seu estúdio de impressão 3D</p>
+            <h1 class="saudacao" id="saudacao">Olá</h1>
+            <p class="hero-descricao">Calcule preços e confira modelos. Em breve: orçamentos, clientes e estoque, no mesmo lugar.</p>
+          </div>
+          <button class="botao-primario" id="atalho-calculadora" type="button">
+            Calcular um preço
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </section>
+
+        <section class="resumo" aria-label="Resumo">
+          <div class="cartao-resumo">
+            <span>Prontas para usar</span>
+            <strong id="qtd-disponiveis">0</strong>
+            <small>ferramentas disponíveis</small>
+          </div>
+          <div class="cartao-resumo">
+            <span>Em desenvolvimento</span>
+            <strong id="qtd-em-breve">0</strong>
+            <small>chegam por atualização automática</small>
+          </div>
+          <div class="cartao-resumo">
+            <span>Versão instalada</span>
+            <strong id="versao-resumo">—</strong>
+            <small>atualiza sozinho pelo GitHub</small>
+          </div>
+        </section>
+
+        <div class="barra-ferramentas">
+          <div class="filtros" role="group" aria-label="Filtrar ferramentas">
+            <button class="filtro ativo" type="button" data-filtro="todas" aria-pressed="true">Todas <span id="cont-todas"></span></button>
+            <button class="filtro" type="button" data-filtro="disponiveis" aria-pressed="false">Disponíveis <span id="cont-disponiveis"></span></button>
+            <button class="filtro" type="button" data-filtro="em-breve" aria-pressed="false">Em breve <span id="cont-em-breve"></span></button>
+          </div>
+          <label class="busca">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+            <input id="busca" type="search" placeholder="Buscar ferramentas…" aria-label="Buscar ferramentas" autocomplete="off" />
+            <kbd>Ctrl K</kbd>
+          </label>
+        </div>
+
+        <section class="secao" id="secao-disponiveis" aria-labelledby="titulo-disponiveis">
+          <h2 class="titulo-secao" id="titulo-disponiveis">Prontas para usar</h2>
+          <div class="grade grade-prontas" id="grade-disponiveis"></div>
+        </section>
+
+        <section class="secao" id="secao-em-breve" aria-labelledby="titulo-em-breve">
+          <h2 class="titulo-secao" id="titulo-em-breve">Em breve</h2>
+          <div class="grade grade-breve" id="grade-em-breve"></div>
+        </section>
+
+        <p class="vazio" id="vazio" hidden>Nenhuma ferramenta encontrada para essa busca.</p>
+      </div>
+    </main>
+
+    <main class="tela oculta" id="tela-calculadora">
       <section class="painel formulario" aria-labelledby="titulo-form">
         <h2 id="titulo-form">Dados do lote</h2>
 
@@ -150,6 +213,8 @@
         <p class="ajuda pequeno">Dimensões assumem que o STL está em milímetros, como o padrão dos fatiadores.</p>
       </aside>
     </main>
+
+    <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>
   </body>

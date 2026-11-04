@@ -80,12 +80,20 @@ app.whenReady().then(() => {
     // Modo de teste: tira uma captura da tela em PNG e fecha. Não é usado no dia a dia.
     if (process.env.FERRAMENTAS_CAPTURA) {
       const fs = require("node:fs");
+      const altura = Number(process.env.FERRAMENTAS_ALTURA);
+      if (altura > 0) janela.setSize(1180, altura);
       setTimeout(async () => {
         const aba = process.env.FERRAMENTAS_ABA;
         if (aba) {
+          await janela.webContents.executeJavaScript(`window.irPara(${JSON.stringify(aba)})`);
+        }
+        // Só muda o tema na tela da captura, sem salvar a preferência do usuário.
+        const tema = process.env.FERRAMENTAS_TEMA;
+        if (tema) {
           await janela.webContents.executeJavaScript(
-            `document.querySelector('[data-aba="${aba}"]').click()`,
+            `document.documentElement.dataset.theme = ${JSON.stringify(tema)}`,
           );
+          await new Promise((r) => setTimeout(r, 400));
         }
         const stl = process.env.FERRAMENTAS_STL;
         if (stl) {

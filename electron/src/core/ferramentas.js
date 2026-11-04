@@ -1,0 +1,36 @@
+// Catálogo de ferramentas exibido na tela inicial.
+// "tela" só existe nas disponíveis: é o id da tela que o card abre.
+export const FERRAMENTAS = [
+  {
+    id: "calculadora",
+    titulo: "Calculadora 3D",
+    descricao: "Custo, lucro e preço de venda de cada peça, com a composição do custo do lote.",
+    categoria: "Produção",
+    disponivel: true,
+    tela: "calculadora",
+  },
+  {
+    id: "visualizador",
+    titulo: "Visualizar 3D",
+    descricao: "Abra um STL, gire o modelo e veja medidas, volume e triângulos.",
+    categoria: "Produção",
+    disponivel: true,
+    tela: "visualizador",
+  },
+  { id: "orcamentos", titulo: "Orçamentos", descricao: "Monte pedidos com produtos calculados e gere PDF.", categoria: "Vendas", disponivel: false },
+  { id: "clientes", titulo: "Clientes e histórico", descricao: "Cadastre contatos e veja os pedidos de cada um.", categoria: "Vendas", disponivel: false },
+  { id: "produtos", titulo: "Produtos", descricao: "Guarde preço, peso e medidas para reaproveitar.", categoria: "Vendas", disponivel: false },
+  { id: "taxas", titulo: "Descontos e taxas", descricao: "Simule descontos, taxas de cartão e comissões.", categoria: "Vendas", disponivel: false },
+  { id: "etiquetas", titulo: "Etiquetas", descricao: "Etiquetas de produtos e pedidos com QR code.", categoria: "Vendas", disponivel: false },
+  { id: "filamentos", titulo: "Estoque de filamentos", descricao: "Rolos, cores, preços e saldo em gramas.", categoria: "Produção", disponivel: false },
+  { id: "comparador", titulo: "Comparador de custos", descricao: "Compare materiais e configurações de impressão.", categoria: "Produção", disponivel: false },
+  { id: "encaixes", titulo: "Encaixes e tolerâncias", descricao: "Folgas e medidas para peças que se encaixam.", categoria: "Produção", disponivel: false },
+  { id: "medidas", titulo: "Medidas e escala", descricao: "Converta unidades e calcule redimensionamentos.", categoria: "Produção", disponivel: false },
+  { id: "ficha", titulo: "Ficha de impressão", descricao: "Registre configurações para repetir um trabalho.", categoria: "Produção", disponivel: false },
+  { id: "falhas", titulo: "Falhas de impressão", descricao: "Problemas, fotos e soluções para consultar depois.", categoria: "Produção", disponivel: false },
+  { id: "biblioteca", titulo: "Biblioteca de projetos", descricao: "Organize STL, 3MF, SVG e fotos por projeto.", categoria: "Arquivos", disponivel: false },
+  { id: "svg", titulo: "Conversor SVG", descricao: "Vetorize imagens e ajuste contornos.", categoria: "Arquivos", disponivel: false },
+  { id: "fotos", titulo: "Preparador de fotos", descricao: "Corte, redimensione e comprima imagens.", categoria: "Arquivos", disponivel: false },
+  { id: "organizador", titulo: "Organizador de arquivos", descricao: "Renomeie arquivos em lote com prévia.", categoria: "Arquivos", disponivel: false },
+  { id: "backup", titulo: "Backup e restauração", descricao: "Exporte seus dados e recupere com segurança.", categoria: "Arquivos", disponivel: false },
+];

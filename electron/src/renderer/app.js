@@ -9,6 +9,9 @@ import {
   pecasParaPagarImpressora,
 } from "../core/calculadora.js";
 import { Racional } from "../core/racional.js";
+import { FERRAMENTAS } from "../core/ferramentas.js";
+import { contarFerramentas, filtrarFerramentas, saudacao } from "../core/inicio.js";
+import { icone } from "./icones.js";
 import { iniciarVisualizador } from "./viewer3d.js";
 
 const $ = (id) => document.getElementById(id);
@@ -51,20 +54,151 @@ $("alternar-tema").addEventListener("click", () => {
   aplicarTema(document.documentElement.dataset.theme === "escuro" ? "claro" : "escuro");
 });
 
-// ---------- Abas ----------
-const abas = document.querySelectorAll(".aba");
-abas.forEach((aba) => {
-  aba.addEventListener("click", () => {
-    abas.forEach((a) => {
-      const ativa = a === aba;
-      a.classList.toggle("ativa", ativa);
-      a.setAttribute("aria-selected", String(ativa));
-    });
-    $("tela-calculadora").classList.toggle("oculta", aba.dataset.aba !== "calculadora");
-    $("tela-visualizador").classList.toggle("oculta", aba.dataset.aba !== "visualizador");
-    if (aba.dataset.aba === "visualizador") iniciarVisualizador();
-  });
+// ---------- Navegação entre telas ----------
+const TELAS = {
+  inicio: { elemento: "tela-inicio", titulo: "" },
+  calculadora: { elemento: "tela-calculadora", titulo: "Calculadora 3D" },
+  visualizador: { elemento: "tela-visualizador", titulo: "Visualizar 3D" },
+};
+
+function irPara(tela) {
+  if (!TELAS[tela]) tela = "inicio";
+  for (const [nome, info] of Object.entries(TELAS)) {
+    $(info.elemento).classList.toggle("oculta", nome !== tela);
+  }
+  $("trilha").hidden = tela === "inicio";
+  $("titulo-tela").textContent = TELAS[tela].titulo;
+  if (tela === "inicio") atualizarSaudacao();
+  if (tela === "visualizador") iniciarVisualizador();
+  $(TELAS[tela].elemento).scrollTop = 0;
+}
+window.irPara = irPara; // usado também pelo modo de captura de tela dos testes
+
+$("ir-inicio").addEventListener("click", () => irPara("inicio"));
+$("voltar").addEventListener("click", () => irPara("inicio"));
+$("atalho-calculadora").addEventListener("click", () => irPara("calculadora"));
+
+// Ctrl+K: volta ao início e foca a busca. Esc na busca limpa o texto.
+document.addEventListener("keydown", (ev) => {
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "k") {
+    ev.preventDefault();
+    irPara("inicio");
+    $("busca").focus();
+    $("busca").select();
+  }
 });
+
+// ---------- Tela inicial ----------
+let filtroAtual = "todas";
+let temporizadorAviso = null;
+
+function mostrarAviso(texto) {
+  const aviso = $("aviso");
+  aviso.textContent = texto;
+  aviso.classList.add("visivel");
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), 2600);
+}
+
+function atualizarSaudacao() {
+  $("saudacao").textContent = saudacao(new Date().getHours());
+}
+
+function classeCategoria(categoria) {
+  return `cat-${categoria.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()}`;
+}
+
+function criarElemento(tag, classe, texto) {
+  const el = document.createElement(tag);
+  if (classe) el.className = classe;
+  if (texto !== undefined) el.textContent = texto;
+  return el;
+}
+
+function cartaoPronto(f) {
+  const cartao = criarElemento("button", `cartao-ferramenta ${classeCategoria(f.categoria)}`);
+  cartao.type = "button";
+  cartao.setAttribute("aria-label", `Abrir ${f.titulo}`);
+
+  const topo = criarElemento("div", "ferramenta-topo");
+  const icon = criarElemento("span", "ferramenta-icone");
+  icon.innerHTML = icone(f.id, 24);
+  topo.append(icon, criarElemento("span", "selo selo-pronta", "Disponível"));
+
+  const rodape = criarElemento("div", "ferramenta-rodape");
+  const abrir = criarElemento("span", "abrir", "Abrir ");
+  abrir.insertAdjacentHTML("beforeend", icone("seta", 16));
+  rodape.append(criarElemento("span", "categoria", f.categoria), abrir);
+
+  cartao.append(topo, criarElemento("h3", "", f.titulo), criarElemento("p", "", f.descricao), rodape);
+  cartao.addEventListener("click", () => irPara(f.tela));
+  return cartao;
+}
+
+function cartaoEmBreve(f) {
+  const cartao = criarElemento("button", `cartao-breve ${classeCategoria(f.categoria)}`);
+  cartao.type = "button";
+  cartao.setAttribute("aria-label", `${f.titulo}, em breve`);
+
+  const icon = criarElemento("span", "ferramenta-icone");
+  icon.innerHTML = icone(f.id, 20);
+
+  const texto = criarElemento("span", "breve-texto");
+  const titulo = criarElemento("span", "breve-titulo");
+  titulo.append(criarElemento("span", "", f.titulo), criarElemento("span", "selo selo-breve", "Em breve"));
+  texto.append(titulo, criarElemento("span", "breve-descricao", f.descricao));
+
+  cartao.append(icon, texto);
+  cartao.addEventListener("click", () =>
+    mostrarAviso(`${f.titulo} está em desenvolvimento e chega por uma atualização.`),
+  );
+  return cartao;
+}
+
+function renderizarFerramentas() {
+  const lista = filtrarFerramentas(FERRAMENTAS, { filtro: filtroAtual, busca: $("busca").value });
+  const prontas = lista.filter((f) => f.disponivel);
+  const emBreve = lista.filter((f) => !f.disponivel);
+
+  $("grade-disponiveis").replaceChildren(...prontas.map(cartaoPronto));
+  $("grade-em-breve").replaceChildren(...emBreve.map(cartaoEmBreve));
+  $("secao-disponiveis").hidden = prontas.length === 0;
+  $("secao-em-breve").hidden = emBreve.length === 0;
+  $("vazio").hidden = lista.length > 0;
+}
+
+function iniciarHome() {
+  const contagem = contarFerramentas(FERRAMENTAS);
+  $("qtd-disponiveis").textContent = contagem.disponiveis;
+  $("qtd-em-breve").textContent = contagem.emBreve;
+  $("versao-resumo").textContent = __VERSAO__;
+  $("cont-todas").textContent = contagem.total;
+  $("cont-disponiveis").textContent = contagem.disponiveis;
+  $("cont-em-breve").textContent = contagem.emBreve;
+
+  document.querySelectorAll(".filtro").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      filtroAtual = botao.dataset.filtro;
+      document.querySelectorAll(".filtro").forEach((b) => {
+        const ativo = b === botao;
+        b.classList.toggle("ativo", ativo);
+        b.setAttribute("aria-pressed", String(ativo));
+      });
+      renderizarFerramentas();
+    });
+  });
+
+  $("busca").addEventListener("input", renderizarFerramentas);
+  $("busca").addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") {
+      $("busca").value = "";
+      renderizarFerramentas();
+    }
+  });
+
+  atualizarSaudacao();
+  renderizarFerramentas();
+}
 
 // ---------- Cálculo ----------
 function percentual(parte, total) {
@@ -198,3 +332,5 @@ $("versao").textContent = `Versão ${__VERSAO__}`;
 aplicarTema(temaSalvo() ?? (matchMedia("(prefers-color-scheme: light)").matches ? "claro" : "escuro"));
 preencherPadroes();
 atualizarResultado();
+iniciarHome();
+irPara("inicio");

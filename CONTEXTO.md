@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.3.1**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.4.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -57,15 +57,18 @@ Toda alteração vira uma release nova, sem pedir confirmação a cada vez:
 - Usar como referência das funcionalidades e da home. Não copiar código sem revisar.
 - A home da versão Codex tem saudação, cards de resumo, busca, filtros e 17 ferramentas (5 disponíveis).
 
-## Próximo passo em andamento: a home
-Decisão já tomada com o Pedro:
-- A home vira o ponto de entrada. Calculadora e visualizador abrem a partir dos cards, com botão para voltar.
-- Saudação pelo horário, cards de resumo só com o que existe, busca e filtros (Todas, Disponíveis, Em breve).
-- Disponíveis: Calculadora 3D e Visualizar 3D. As demais ferramentas da lista do Codex aparecem como "Em breve".
+## Home (pronta na v0.4.0)
+- A home é o ponto de entrada. Calculadora e visualizador abrem pelos cards, e a barra "← Início / ferramenta" no topo volta.
+- Saudação pelo horário, resumo (prontas, em desenvolvimento, versão), busca sem acento (Ctrl+K) e filtros (Todas, Disponíveis, Em breve).
+- Catálogo em `electron/src/core/ferramentas.js`: para liberar uma ferramenta, marcar `disponivel: true`, dar uma `tela` e registrar a tela em `TELAS` no `app.js`.
+- Lógica testada em `electron/src/core/inicio.js`. Ícones em `electron/src/renderer/icones.js`.
+
+## Testes e modo de captura
+- `vite` precisa estar nas devDependencies: o `.npmrc` usa `legacy-peer-deps` e não instala dependências "peer" sozinho. Sem ele, o vitest não roda.
+- Modo de captura (só para testes): `FERRAMENTAS_CAPTURA=<png>`, com `FERRAMENTAS_ABA`, `FERRAMENTAS_TEMA`, `FERRAMENTAS_STL` e `FERRAMENTAS_ALTURA` opcionais. O tema da captura não é salvo.
 
 ## Pendências
-- Home (acima).
-- Tema claro ainda não conferido visualmente.
+- Próxima ferramenta a liberar (sugestão: Produtos ou Orçamentos, que dependem de salvar dados localmente).
 - Ícone do aplicativo (hoje é o padrão do Electron).
 - Não há assinatura digital no instalador, então o Windows pode mostrar aviso de editor desconhecido.
 - Auto-update validado ponta a ponta: 0.3.0 → 0.3.1.
