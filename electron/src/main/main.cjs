@@ -391,6 +391,8 @@ app.whenReady().then(() => {
         }
         const imagem = await janela.webContents.capturePage();
         fs.writeFileSync(process.env.FERRAMENTAS_CAPTURA, imagem.toPNG());
+        // O roteiro de teste pode deixar um resultado no título da página.
+        fs.writeFileSync(`${process.env.FERRAMENTAS_CAPTURA}.txt`, await janela.webContents.executeJavaScript("document.title"));
         app.quit();
       }, 2000);
       return;

@@ -612,6 +612,68 @@
       </div>
     </main>
 
+    <main class="tela oculta pagina" id="tela-detector">
+      <div class="pagina-conteudo estreito">
+        <h1 class="titulo-pagina">Detector de IA</h1>
+        <p class="ajuda md-intro">Procura no arquivo marcas deixadas por geradores de imagem: credenciais de conteúdo (C2PA), a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração. Os pixels não são analisados, e a imagem não sai do seu computador.</p>
+        <div class="zona-arquivo" id="ia-zona" tabindex="0" role="button" aria-label="Escolher imagens">
+          <p><strong>Arraste imagens aqui</strong></p>
+          <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
+          <input type="file" id="ia-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
+        </div>
+        <div class="acoes-form">
+          <button class="botao-texto" id="ia-limpar" type="button" hidden>Limpar resultados</button>
+        </div>
+        <div class="ia-resultados" id="ia-resultados"></div>
+      </div>
+    </main>
+
+    <main class="tela oculta pagina" id="tela-svg">
+      <div class="pagina-conteudo largo">
+        <h1 class="titulo-pagina">Conversor SVG</h1>
+        <p class="ajuda md-intro">Transforma uma imagem (logotipo, desenho, silhueta) em vetor SVG, que pode ser ampliado sem perder qualidade e usado em cortes, gravações e modelos 3D.</p>
+        <div class="zona-arquivo" id="svg-zona" tabindex="0" role="button" aria-label="Escolher imagem">
+          <p><strong>Arraste uma imagem aqui</strong></p>
+          <p class="ajuda">ou clique para escolher · PNG, JPEG ou WebP</p>
+          <input type="file" id="svg-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+        </div>
+
+        <div class="svg-trabalho" id="svg-trabalho" hidden>
+          <aside class="painel svg-opcoes">
+            <p class="cliente-sub" id="svg-nome"></p>
+            <label class="campo">
+              <span>Modo</span>
+              <select id="svg-modo" class="seletor largo-total">
+                <option value="cores">Cores (logotipos e ilustrações)</option>
+                <option value="silhueta">Silhueta (preto, sem fundo)</option>
+              </select>
+            </label>
+            <label class="campo" id="campo-svg-cores">
+              <span>Número de cores: <strong id="svg-cores-valor"></strong></span>
+              <input type="range" id="svg-cores" min="2" max="16" step="1" value="6" />
+            </label>
+            <label class="campo">
+              <span>Detalhe</span>
+              <select id="svg-detalhe" class="seletor largo-total">
+                <option value="baixo">Baixo (formas simples)</option>
+                <option value="medio" selected>Médio</option>
+                <option value="alto">Alto (mais fiel, arquivo maior)</option>
+              </select>
+            </label>
+            <label class="md-opcao" id="campo-svg-fundo"><input type="checkbox" id="svg-fundo" checked /> Remover fundo de cor única</label>
+            <label class="md-opcao"><input type="checkbox" id="svg-suavizar" /> Suavizar (reduz ruído de fotos)</label>
+            <p class="ajuda" id="svg-info"></p>
+            <p class="ajuda" id="svg-estado" role="status"></p>
+            <button class="botao-primario largo" id="svg-salvar" type="button" disabled>Salvar SVG…</button>
+          </aside>
+          <div class="svg-previas">
+            <figure class="svg-previa"><figcaption>Original</figcaption><img id="svg-original" alt="Imagem original" /></figure>
+            <figure class="svg-previa xadrez"><figcaption>Vetor (SVG)</figcaption><img id="svg-resultado" alt="Resultado em SVG" /></figure>
+          </div>
+        </div>
+      </div>
+    </main>
+
     <main class="tela oculta pagina" id="tela-grupo">
       <div class="pagina-conteudo">
         <div class="grupo-capa" id="grupo-capa">

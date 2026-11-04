@@ -12,7 +12,7 @@ export const GRUPOS = [
   {
     id: "ferramentas",
     titulo: "Ferramentas",
-    descricao: "Visualização 3D, metadados e backup.",
+    descricao: "Conversão, análise e organização.",
     foto: "assets/grupo-ferramentas.jpg",
   },
   {
@@ -68,6 +68,24 @@ export const FERRAMENTAS = [
     categoria: "Ferramentas",
     disponivel: true,
     tela: "visualizador",
+  },
+  {
+    id: "svg",
+    grupo: "ferramentas",
+    titulo: "Conversor SVG",
+    descricao: "Transforme imagens em vetores.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "svg",
+  },
+  {
+    id: "detector",
+    grupo: "ferramentas",
+    titulo: "Detector de IA",
+    descricao: "Procure sinais de imagem gerada por IA.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "detector",
   },
   {
     id: "metadados",

@@ -21,6 +21,16 @@ await build({
   logLevel: "warning",
 });
 
+// Worker do Conversor SVG (arquivo separado, carregado com new Worker()).
+await build({
+  entryPoints: [join(raiz, "src", "renderer", "svg-worker.js")],
+  bundle: true,
+  format: "iife",
+  target: "chrome120",
+  outfile: join(saida, "svg-worker.js"),
+  logLevel: "warning",
+});
+
 for (const arquivo of ["index.html", "styles.css"]) {
   await copyFile(join(raiz, "src", "renderer", arquivo), join(saida, arquivo));
 }

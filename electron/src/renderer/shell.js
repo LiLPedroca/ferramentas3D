@@ -16,6 +16,8 @@ const TELAS = {
   clientes: { elemento: "tela-clientes" },
   orcamentos: { elemento: "tela-orcamentos" },
   metadados: { elemento: "tela-metadados" },
+  detector: { elemento: "tela-detector" },
+  svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
 };
