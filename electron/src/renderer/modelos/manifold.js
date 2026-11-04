@@ -18,6 +18,20 @@ export function carregarManifold(opcoes = {}) {
   return motor;
 }
 
+// Na tela: os bytes do .wasm vêm do processo principal (canal modelos:wasm).
+let motorTela = null;
+export function motorDaTela() {
+  motorTela ??= (async () => {
+    const resposta = await window.modelos.lerMotor();
+    if (!resposta.ok) throw new Error(resposta.erro);
+    return carregarManifold({ wasmBinary: resposta.dados });
+  })().catch((erro) => {
+    motorTela = null;
+    throw new Error(`Não foi possível iniciar o motor de geometria. ${erro.message ?? ""}`.trim());
+  });
+  return motorTela;
+}
+
 // Executa "trabalho" liberando no fim todos os objetos do WASM criados com guardar().
 export function comEscopo(M, trabalho) {
   const criados = [];
@@ -103,6 +117,47 @@ export function pontoNoLaco(laco, t) {
   const b = laco[1];
   const c = distancia(a, b) || 1;
   return { ponto: a, normal: [(b[1] - a[1]) / c, -(b[0] - a[0]) / c] };
+}
+
+// Prende a argola na borda externa da base, na posição "t" (0 a 1) ou, sem ela, no ponto da borda
+// mais perto de "pontoPadrao". Recusa posições que furem a arte ou fiquem mal ligadas.
+// o: { furo, parede } em mm. Devolve { base, perimetro, argola: { t, centro, raio, furo } }.
+export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao) {
+  const C = M.CrossSection;
+  const perimetro = contornoExterno(base);
+  const posicao = t ?? maisPertoNoLaco(perimetro, pontoPadrao).t;
+  const ancora = pontoNoLaco(perimetro, posicao);
+  const raio = o.furo / 2 + o.parede;
+  const afastamento = raio - Math.min(o.parede, 2);
+  const centro = [ancora.ponto[0] + ancora.normal[0] * afastamento, ancora.ponto[1] + ancora.normal[1] * afastamento];
+  const disco = guardar(C.circle(raio, 96).translate(centro));
+  const furo = guardar(C.circle(o.furo / 2, 80).translate(centro));
+  if (guardar(arte.intersect(furo)).area() > 0.001) throw new Error("A argola ficou sobre o desenho. Arraste-a para outra posição na borda.");
+  if (guardar(disco.intersect(guardar(base.offset(-0.5)))).area() < 1) throw new Error("A ligação da argola ficou fina. Arraste-a para outra posição na borda.");
+  const nova = guardar(guardar(base.add(disco)).subtract(furo));
+  if (nova.decompose().map(guardar).length !== 1) throw new Error("A argola precisa ficar ligada à base. Escolha outra posição.");
+  if (guardar(arte.subtract(nova)).area() > 0.01) throw new Error("Há partes sem apoio. Aumente a borda ou mude a argola de lugar.");
+  return { base: nova, perimetro, argola: { t: posicao, centro, raio, furo: o.furo / 2, afastamento } };
+}
+
+// Acha o tamanho da arte que deixa a peça com a largura total "alvo" (bordas e argola ficam em mm).
+// gerarCom(larguraDaArte) devolve um resultado com dimensoes[0]. Método da secante.
+export function resolverLargura(alvo, chute, gerarCom) {
+  const tolerancia = 0.005;
+  let wa = Math.max(1, chute);
+  let ra = gerarCom(wa);
+  let wb = Math.max(1, (wa * alvo) / ra.dimensoes[0]);
+  for (let i = 0; i < 12 && Math.abs(alvo - ra.dimensoes[0]) >= tolerancia; i++) {
+    if (!(wb > 0.5) || wb > 400) break;
+    const rb = gerarCom(wb);
+    const inclinacao = (wb - wa) / (rb.dimensoes[0] - ra.dimensoes[0]);
+    const proxima = wb + (alvo - rb.dimensoes[0]) * (Number.isFinite(inclinacao) && inclinacao > 0 ? inclinacao : 1);
+    wa = wb;
+    ra = rb;
+    wb = proxima;
+  }
+  if (Math.abs(alvo - ra.dimensoes[0]) > 0.05) throw new Error("A largura total não comporta esta estrutura. Aumente a largura ou reduza a borda e a argola.");
+  return ra;
 }
 
 // Liga partes soltas de uma seção com pontes arredondadas (o menor caminho entre elas).

@@ -1,7 +1,7 @@
 // Chaveiro de nome: base (contorno, cápsula ou retangular) com argola + texto em relevo, em duas
 // partes fechadas (duas cores). Geometria em milímetros com o Manifold: o texto é unido pela regra
 // "nonzero" das fontes, a base é um contorno de verdade e a argola é unida à base.
-import { comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolido, pontoNoLaco, unirIlhas } from "./manifold.js";
+import { comEscopo, malhaDoSolido, prenderArgola, resolverLargura, unirIlhas } from "./manifold.js";
 
 export const ESTILOS_BASE = ["contorno", "capsula", "retangular"];
 
@@ -193,33 +193,29 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto) {
     }
 
     // argola na borda externa, na posição pedida (ou no meio do lado esquerdo)
-    const perimetro = contornoExterno(base);
-    const t = o.argola ?? maisPertoNoLaco(perimetro, [-1e4, (cx.min[1] + cx.max[1]) / 2]).t;
-    const ancora = pontoNoLaco(perimetro, t);
-    const raio = o.furo / 2 + o.parede;
-    const sobreposicao = Math.min(o.parede, 2);
-    const centro = [ancora.ponto[0] + ancora.normal[0] * (raio - sobreposicao), ancora.ponto[1] + ancora.normal[1] * (raio - sobreposicao)];
-    const disco = guardar(C.circle(raio, 96).translate(centro));
-    const furo = guardar(C.circle(o.furo / 2, 80).translate(centro));
-    if (guardar(texto.intersect(furo)).area() > 0.001) throw new Error("A argola ficou sobre o texto. Arraste-a para outra posição na borda.");
-    if (guardar(disco.intersect(guardar(base.offset(-0.5)))).area() < 1) throw new Error("A ligação da argola ficou fina. Arraste-a para outra posição na borda.");
-    base = guardar(guardar(base.add(disco)).subtract(furo));
-    if (base.decompose().map(guardar).length !== 1) throw new Error("A argola precisa ficar ligada à base. Escolha outra posição.");
-    if (guardar(texto.subtract(base)).area() > 0.005) throw new Error("Há texto sem apoio. Aumente a borda ou mude a argola de lugar.");
+    const presa = prenderArgola(M, guardar, base, texto, o, o.argola, [-1e4, (cx.min[1] + cx.max[1]) / 2]);
+    base = presa.base;
     if (o.base < 1.6 || o.borda < 1.6 || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
 
     const solidoBase = guardar(base.extrude(o.base));
     const solidoTexto = guardar(guardar(texto.extrude(o.relevo)).translate([0, 0, o.base]));
     const cb = base.bounds();
+    const lacosBase = base.toPolygons();
+    const lacosTexto = texto.toPolygons();
     return {
       malhas: [
         { nome: "Base e argola", cor: o.corBase, ...malhaDoSolido(solidoBase, "base") },
         { nome: "Texto", cor: o.corTexto, ...malhaDoSolido(solidoTexto, "texto") },
       ],
-      lacosBase: base.toPolygons(),
-      lacosTexto: texto.toPolygons(),
-      perimetro,
-      argola: { t, centro, raio, furo: o.furo / 2 },
+      // para a prévia 2D: camadas de baixo para cima
+      camadas: [
+        { lacos: lacosBase, cor: o.corBase },
+        { lacos: lacosTexto, cor: o.corTexto },
+      ],
+      lacosBase,
+      lacosTexto,
+      perimetro: presa.perimetro,
+      argola: presa.argola,
       caixa: { min: cb.min, max: cb.max },
       dimensoes: [cb.max[0] - cb.min[0], cb.max[1] - cb.min[1], o.base + o.relevo],
       avisos,
@@ -228,23 +224,10 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto) {
 }
 
 // Gera a peça com a LARGURA TOTAL pedida (base e argola incluídas). Borda, espessuras e argola
-// continuam em mm; só o texto muda de tamanho. Método da secante: converge em poucas voltas.
+// continuam em mm; só o texto muda de tamanho.
 export function gerarChaveiro(M, fonte, entrada) {
   const o = validarOpcoesChaveiro(entrada);
-  const alvo = o.largura;
-  const tolerancia = 0.005;
-  let wa = Math.max(5, alvo - 2 * o.borda - 2 * (o.furo / 2 + o.parede));
-  let ra = gerarComLarguraDoTexto(M, fonte, o, wa);
-  let wb = Math.max(1, (wa * alvo) / ra.dimensoes[0]);
-  for (let i = 0; i < 12 && Math.abs(alvo - ra.dimensoes[0]) >= tolerancia; i++) {
-    if (!(wb > 0.5) || wb > 400) break;
-    const rb = gerarComLarguraDoTexto(M, fonte, o, wb);
-    const inclinacao = (wb - wa) / (rb.dimensoes[0] - ra.dimensoes[0]);
-    const proxima = wb + (alvo - rb.dimensoes[0]) * (Number.isFinite(inclinacao) && inclinacao > 0 ? inclinacao : 1);
-    wa = wb;
-    ra = rb;
-    wb = proxima;
-  }
-  if (Math.abs(alvo - ra.dimensoes[0]) > 0.05) throw new Error("A largura total não comporta esta estrutura. Aumente a largura ou reduza a borda e a argola.");
-  return { ...ra, opcoes: o };
+  const chute = Math.max(5, o.largura - 2 * o.borda - 2 * (o.furo / 2 + o.parede));
+  const r = resolverLargura(o.largura, chute, (w) => gerarComLarguraDoTexto(M, fonte, o, w));
+  return { ...r, opcoes: o };
 }

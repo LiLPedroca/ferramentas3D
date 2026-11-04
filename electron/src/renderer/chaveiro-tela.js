@@ -4,7 +4,8 @@ import { gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } fro
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { CATEGORIAS_FONTES, carregarFonte, familiaCss, FONTES } from "./modelos/fontes.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
-import { carregarManifold, maisPertoNoLaco, pontoNoLaco } from "./modelos/manifold.js";
+import { motorDaTela } from "./modelos/manifold.js";
+import { criarPrevia2d } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
@@ -38,8 +39,7 @@ let modo = "2d";
 let previa3d = null;
 let temporizador = null;
 let geracao = 0;
-let arrasto = null; // { t, centro } enquanto a argola é arrastada
-const vista = { zoom: 1 };
+let previa2d = null;
 
 const fator = () => (unidade === "cm" ? 10 : 1);
 const formatar = (mm, casas = 2) => (mm / fator()).toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -151,7 +151,7 @@ async function gerar() {
   const minha = ++geracao;
   const pedido = { ...opcoes };
   try {
-    const [M, fonte] = await Promise.all([motor(), carregarFonte(pedido.fonte)]);
+    const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(pedido.fonte)]);
     if (minha !== geracao) return;
     const resultado = gerarChaveiro(M, fonte, pedido);
     modelo = resultado;
@@ -166,20 +166,7 @@ async function gerar() {
     habilitar(false);
   }
   mostrarMedidas();
-  desenhar();
-}
-
-let motorPronto = null;
-function motor() {
-  motorPronto ??= (async () => {
-    const resposta = await window.modelos.lerMotor();
-    if (!resposta.ok) throw new Error(resposta.erro);
-    return carregarManifold({ wasmBinary: resposta.dados });
-  })().catch((erro) => {
-    motorPronto = null;
-    throw new Error(`Não foi possível iniciar o motor de geometria. ${erro.message ?? ""}`.trim());
-  });
-  return motorPronto;
+  previa2d.mostrar(modelo);
 }
 
 function habilitar(pronto) {
@@ -194,180 +181,40 @@ function mostrarMedidas() {
   $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade}`;
 }
 
-// ---------- Prévia 2D ----------
-const canvas = () => $("ch-2d");
-
-// transformação mm → pixels (Y para cima no modelo, para baixo na tela)
-function transformacao() {
-  const c = canvas();
-  const { min, max } = modelo.caixa;
-  const margem = 18;
-  const largura = max[0] - min[0] + margem;
-  const altura = max[1] - min[1] + margem;
-  const escala = Math.min(c.width / largura, c.height / altura) * vista.zoom;
-  const cx = (min[0] + max[0]) / 2;
-  const cy = (min[1] + max[1]) / 2;
-  return {
-    escala,
-    paraTela: ([x, y]) => [c.width / 2 + (x - cx) * escala, c.height / 2 - (y - cy) * escala],
-    paraModelo: (px, py) => [cx + (px - c.width / 2) / escala, cy - (py - c.height / 2) / escala],
-  };
-}
-
-function caminho(ctx, lacos, paraTela) {
-  ctx.beginPath();
-  for (const laco of lacos) {
-    laco.forEach((p, i) => {
-      const [x, y] = paraTela(p);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.closePath();
-  }
-}
-
-// posição do centro da argola para um ponto t da borda (mesma regra da geometria)
-function centroDaArgola(t) {
-  const { ponto, normal } = pontoNoLaco(modelo.perimetro, t);
-  const d = modelo.argola.raio - Math.min(modelo.opcoes.parede, 2);
-  return [ponto[0] + normal[0] * d, ponto[1] + normal[1] * d];
-}
-
-function desenhar() {
-  const c = canvas();
-  const ctx = c.getContext("2d");
-  const r = c.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) {
-    c.width = Math.round(r.width * dpr);
-    c.height = Math.round(r.height * dpr);
-  }
-  ctx.clearRect(0, 0, c.width, c.height);
-  if (!modelo || modo !== "2d") return;
-  const { paraTela, escala } = transformacao();
-  ctx.fillStyle = modelo.opcoes.corBase;
-  caminho(ctx, modelo.lacosBase, paraTela);
-  ctx.fill("evenodd");
-  ctx.strokeStyle = "rgba(127,127,127,0.35)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = modelo.opcoes.corTexto;
-  caminho(ctx, modelo.lacosTexto, paraTela);
-  ctx.fill("nonzero");
-  // alça da argola: círculo tracejado arrastável
-  const centro = arrasto ? arrasto.centro : modelo.argola.centro;
-  const [x, y] = paraTela(centro);
-  ctx.setLineDash([6 * dpr, 5 * dpr]);
-  ctx.strokeStyle = "#5b8def";
-  ctx.lineWidth = 2 * dpr;
-  ctx.beginPath();
-  ctx.arc(x, y, (modelo.argola.raio + 1.2) * escala, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  if (arrasto) {
-    ctx.fillStyle = "rgba(91,141,239,0.25)";
-    ctx.beginPath();
-    ctx.arc(x, y, modelo.argola.raio * escala, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function pontoDoEvento(e) {
-  const r = canvas().getBoundingClientRect();
-  const dpr = canvas().width / r.width;
-  return transformacao().paraModelo((e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr);
-}
-
-function sobreArgola(p) {
-  if (!modelo) return false;
-  const [cx, cy] = modelo.argola.centro;
-  return Math.hypot(p[0] - cx, p[1] - cy) <= modelo.argola.raio * 1.6 + 1;
-}
-
-function ligarArrasto() {
-  const c = canvas();
-  c.addEventListener("pointerdown", (e) => {
-    if (!modelo || modo !== "2d" || !sobreArgola(pontoDoEvento(e))) return;
-    c.setPointerCapture(e.pointerId);
-    arrasto = { t: modelo.argola.t, centro: modelo.argola.centro };
-    status("Posicione a argola. A peça é refeita ao soltar.");
-    desenhar();
-  });
-  c.addEventListener("pointermove", (e) => {
-    if (!modelo || modo !== "2d") return;
-    const p = pontoDoEvento(e);
-    if (!arrasto) {
-      c.style.cursor = sobreArgola(p) ? "grab" : "";
-      return;
-    }
-    c.style.cursor = "grabbing";
-    const t = maisPertoNoLaco(modelo.perimetro, p).t;
-    arrasto = { t, centro: centroDaArgola(t) };
-    desenhar();
-  });
-  const soltar = async (e, cancelar = false) => {
-    if (!arrasto) return;
-    const { t } = arrasto;
-    arrasto = null;
-    c.style.cursor = "";
-    if (c.hasPointerCapture?.(e.pointerId)) c.releasePointerCapture(e.pointerId);
-    if (cancelar) {
-      desenhar();
-      return;
-    }
-    // tenta a nova posição; se ela não servir, a argola fica onde estava e o aviso explica
-    const anterior = opcoes.argola;
-    opcoes = { ...opcoes, argola: Math.round(t * 1e5) / 1e5 };
+// A argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.
+async function argolaSolta(t) {
+  const anterior = opcoes.argola;
+  opcoes = { ...opcoes, argola: t };
+  await gerar();
+  if ($("ch-status").classList.contains("erro")) {
+    const motivo = $("ch-status").textContent;
+    opcoes = { ...opcoes, argola: anterior };
     await gerar();
-    if ($("ch-status").classList.contains("erro")) {
-      const motivo = $("ch-status").textContent;
-      opcoes = { ...opcoes, argola: anterior };
-      await gerar();
-      status(motivo, true);
-    } else lembrar();
-  };
-  c.addEventListener("pointerup", (e) => soltar(e));
-  c.addEventListener("pointercancel", (e) => soltar(e, true));
-  c.addEventListener(
-    "wheel",
-    (e) => {
-      if (modo !== "2d") return;
-      e.preventDefault();
-      zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15);
-    },
-    { passive: false },
-  );
-  new ResizeObserver(desenhar).observe(c);
+    status(motivo, true);
+  } else lembrar();
 }
 
-// ---------- Prévia 3D e zoom ----------
+// ---------- Prévia 2D/3D e zoom ----------
 function mudarModo(novo) {
   modo = novo;
   $("ch-ver-2d").setAttribute("aria-pressed", String(modo === "2d"));
   $("ch-ver-3d").setAttribute("aria-pressed", String(modo === "3d"));
-  canvas().hidden = modo !== "2d";
+  previa2d.ativar(modo === "2d");
   $("ch-3d").hidden = modo !== "3d";
   if (modo === "3d") {
     previa3d ??= criarPrevia($("ch-3d"));
     if (partes) previa3d.mostrar(partes);
   }
-  desenhar();
 }
 
 function zoom(f) {
   if (modo === "3d") previa3d?.zoom(f);
-  else {
-    vista.zoom = Math.min(8, Math.max(0.3, vista.zoom / f));
-    desenhar();
-  }
+  else previa2d.zoom(f);
 }
 
 function ajustar() {
   if (modo === "3d") previa3d?.enquadrar();
-  else {
-    vista.zoom = 1;
-    desenhar();
-  }
+  else previa2d.ajustar();
 }
 
 // ---------- Fontes ----------
@@ -492,7 +339,10 @@ export function iniciarChaveiro() {
   $("ch-zoom-menos").addEventListener("click", () => zoom(1.25));
   $("ch-zoom-mais").addEventListener("click", () => zoom(0.8));
   $("ch-ajustar").addEventListener("click", ajustar);
-  ligarArrasto();
+  previa2d = criarPrevia2d($("ch-2d"), {
+    aoComecar: () => status("Posicione a argola. A peça é refeita ao soltar."),
+    aoSoltar: argolaSolta,
+  });
 
   $("ch-3mf").addEventListener("click", () => salvar("3mf"));
   $("ch-stl").addEventListener("click", () => salvar("stl"));

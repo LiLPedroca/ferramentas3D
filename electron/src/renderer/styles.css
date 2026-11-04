@@ -2703,10 +2703,12 @@ textarea:focus {
   gap: 6px;
 }
 
+.ch-palco,
 #ch-palco {
   min-height: 380px;
 }
 
+.ch-palco canvas[hidden],
 #ch-palco canvas[hidden],
 .ch-3d[hidden] {
   display: none;
@@ -2717,6 +2719,7 @@ textarea:focus {
   inset: 0;
 }
 
+.ch-canvas,
 #ch-2d {
   position: absolute;
   inset: 0;
@@ -2773,4 +2776,11 @@ textarea:focus {
 .fontes-item[aria-pressed="true"] {
   color: var(--acento-forte);
   background: color-mix(in srgb, var(--acento) 14%, transparent);
+}
+
+.ch-forma.circulo {
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
 }

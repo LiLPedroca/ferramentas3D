@@ -422,6 +422,13 @@ function registrarDados() {
   );
 }
 
+// Modo de captura (testes): continua desenhando mesmo com a janela encoberta ou a tela bloqueada.
+if (process.env.FERRAMENTAS_CAPTURA) {
+  app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+  app.commandLine.appendSwitch("disable-renderer-backgrounding");
+  app.commandLine.appendSwitch("disable-background-timer-throttling");
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   registrarDados();
@@ -435,7 +442,13 @@ app.whenReady().then(() => {
       const altura = Number(process.env.FERRAMENTAS_ALTURA) || 0;
       const largura = Number(process.env.FERRAMENTAS_LARGURA) || 0;
       if (altura > 0 || largura > 0) janela.setSize(largura || 1180, altura || 780);
-      setTimeout(async () => {
+      // se o roteiro falhar, grava o erro no .txt e fecha (em vez de ficar parado)
+      const falhou = (erro) => {
+        fs.writeFileSync(`${process.env.FERRAMENTAS_CAPTURA}.txt`, `ERRO NA CAPTURA: ${erro?.stack ?? erro}`);
+        app.quit();
+      };
+      setTimeout(() => capturar().catch(falhou), 2000);
+      const capturar = async () => {
         const aba = process.env.FERRAMENTAS_ABA;
         if (aba) {
           await janela.webContents.executeJavaScript(`window.irPara(${JSON.stringify(aba)})`);
@@ -475,7 +488,7 @@ app.whenReady().then(() => {
         // O roteiro de teste pode deixar um resultado no título da página.
         fs.writeFileSync(`${process.env.FERRAMENTAS_CAPTURA}.txt`, await janela.webContents.executeJavaScript("document.title"));
         app.quit();
-      }, 2000);
+      };
       return;
     }
     configurarAtualizacao(janela);

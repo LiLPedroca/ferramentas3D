@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.14.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.15.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -113,7 +113,13 @@ O Pedro mandou um vídeo do Chaveiro de nome do Codex e pediu igual. Feito:
 - 3MF (`exportar.js`) agora leva `Metadata/model_settings.config` com o filamento (extruder) de cada parte, para Anycubic Slicer Next/Orca/Bambu abrirem cada parte no filamento certo. Vale também para Logo e Palavras (slots 1, 2, 3… na ordem). Não leva `project_settings` (para não mexer nos perfis do usuário).
 - Testes (`tests/chaveiro.test.js`): largura exata nos 3 estilos, argola ao longo da borda, base de contorno com um só contorno externo, **todas as 29 fontes × 3 estilos com malhas fechadas e orientadas**, 3MF com model_settings.
 
-Próximo possível: levar a base de contorno e a argola posicionável ao Chaveiro de logo (o Codex faz em `keychain/logo.mjs` com `joinIslands` + `attachEyelet`, que equivalem ao nosso `unirIlhas` e à argola do chaveiro de nome). Conferir com o Pedro no Anycubic se os filamentos 1 e 2 já vêm certos.
+## Chaveiro de logo refeito (v0.15.0, 04/11/2026)
+- Partes comuns em `modelos/manifold.js`: `prenderArgola` (argola na borda, recusas com explicação), `resolverLargura` (largura total pela secante), `motorDaTela` (carrega o WASM pela tela). Prévia 2D comum em `modelos/previa2d.js` (camadas coloridas + argola arrastável; usada pelo nome e pelo logo). Os resultados trazem `camadas`, `perimetro`, `argola` e `caixa` para ela.
+- `modelos/logo.js`: `coresDoSvg(svg)` (SVG do vetorizador → contornos por cor; junta tons quase iguais do serrilhado, `juntarCoresParecidas`) e `gerarLogo(M, svgOuCores, opcoes)`: cores sem sobreposição (cada cor menos as anteriores), borda alisada (abre/fecha 0,15 mm), fragmentos < 0,4 mm² saem, base contorno (com pontes)/círculo/retangular, argola em cima por padrão e arrastável, largura total exata (20 a 150 mm).
+- Tela `logo-tela.js` no mesmo padrão do chaveiro de nome (abas Logo/Base/Argola, paleta da base, Estrutura, 2D/3D, zoom). No 3MF a base vai no filamento 1 e cada cor no seguinte.
+- Modo de captura: agora grava "ERRO NA CAPTURA" no `.txt` se o roteiro falhar e continua desenhando com a janela encoberta/tela bloqueada (sem isso o `capturePage` ficava parado para sempre).
+
+Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos; o vetorizador ainda deixa a borda de logos redondos um pouco irregular.
 
 Para testar telas: o modo de captura (`FERRAMENTAS_*`, ver "Testes e modo de captura") com roteiros JS. Node em `C:\Program Files\nodejs` (adicionar ao PATH), git em `C:\Program Files\Git\cmd\git.exe`, gh em `C:\Program Files\GitHub CLI\gh.exe` (já logado).
 
