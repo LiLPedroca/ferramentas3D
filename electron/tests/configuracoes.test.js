@@ -42,6 +42,15 @@ describe("modelo de configurações", () => {
     expect(() => aplicarAlteracao({}, { orcamento: { validadeDias: "0" } })).toThrow(/Validade/);
   });
 
+  it("valida o fatiador escolhido", () => {
+    const ok = aplicarAlteracao({}, { fatiador: { nome: "Bambu Studio", caminho: "C:\\Program Files\\Bambu Studio\\bambu-studio.exe" } });
+    expect(ok.fatiador.nome).toBe("Bambu Studio");
+    expect(aplicarAlteracao({}, { fatiador: { caminho: "C:\\Apps\\orca-slicer.exe" } }).fatiador.nome).toBe("orca-slicer");
+    expect(() => aplicarAlteracao({}, { fatiador: { caminho: "C:\\Apps\\script.bat" } })).toThrow(/Fatiador/);
+    expect(() => aplicarAlteracao({}, { fatiador: { caminho: "\\\\servidor\\x.exe" } })).toThrow(/Fatiador/);
+    expect(aplicarAlteracao({}, { fatiador: { caminho: "" } }).fatiador).toEqual({ nome: "", caminho: "" });
+  });
+
   it("recusa nome longo ou com caracteres de controle", () => {
     expect(() => aplicarAlteracao({}, { nome: "x".repeat(81) })).toThrow(/80/);
     expect(() => aplicarAlteracao({}, { nome: "a\u0007b" })).toThrow(/inválidos/);

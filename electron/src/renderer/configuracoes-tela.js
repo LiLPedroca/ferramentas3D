@@ -1,6 +1,12 @@
 // Tela de Configurações: seu nome, dados da empresa, padrões do orçamento e pasta de dados.
 import { formatarDocumento, formatarTelefone } from "../core/formatos.js";
-import { estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
+import { abrirSeletorFatiador } from "./fatiador-ui.js";
+import { aoMudarConfig, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
+
+function mostrarFatiador(config) {
+  const f = config.fatiador;
+  $("c-fatiador-atual").textContent = f?.caminho ? `${f.nome} · ${f.caminho}` : "Nenhum fatiador escolhido ainda.";
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -58,5 +64,7 @@ async function abrirPasta() {
 export function iniciarConfiguracoes() {
   $("form-config").addEventListener("submit", salvar);
   $("abrir-pasta-dados").addEventListener("click", abrirPasta);
+  $("c-escolher-fatiador").addEventListener("click", () => abrirSeletorFatiador());
+  aoMudarConfig(mostrarFatiador);
   registrarAoAbrir("configuracoes", preencher);
 }

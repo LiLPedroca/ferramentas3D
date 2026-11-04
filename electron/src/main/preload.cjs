@@ -16,6 +16,17 @@ contextBridge.exposeInMainWorld("arquivos", {
   abrirPasta: (caminho) => ipcRenderer.invoke("arquivos:abrir-pasta", caminho),
 });
 
+contextBridge.exposeInMainWorld("modelos", {
+  lerFonte: (nome) => ipcRenderer.invoke("fontes:ler", nome),
+  salvar: (bytes, nome, extensao) => ipcRenderer.invoke("modelos:salvar", bytes, nome, extensao),
+});
+
+contextBridge.exposeInMainWorld("fatiador", {
+  detectar: () => ipcRenderer.invoke("fatiador:detectar"),
+  procurar: () => ipcRenderer.invoke("fatiador:procurar"),
+  abrir: (bytes, nome, extensao) => ipcRenderer.invoke("fatiador:abrir", bytes ?? null, nome ?? null, extensao ?? null),
+});
+
 contextBridge.exposeInMainWorld("backup", {
   resumo: () => ipcRenderer.invoke("backup:resumo"),
   exportar: () => ipcRenderer.invoke("backup:exportar"),

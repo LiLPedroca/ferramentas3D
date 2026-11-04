@@ -53,6 +53,20 @@ function orcamentoDe(o, estrito) {
   };
 }
 
+// Fatiador escolhido: nome e caminho absoluto de um .exe (ou vazio).
+function fatiadorDe(f, estrito) {
+  const v = f && typeof f === "object" ? f : {};
+  const validar = () => {
+    const caminho = String(v.caminho ?? "").trim();
+    if (!caminho) return { nome: "", caminho: "" };
+    if (caminho.length > 400 || !/^[A-Za-z]:\\.+\.exe$/i.test(caminho) || /[\x00-\x1f]/.test(caminho)) {
+      throw new ConfiguracaoInvalida("Fatiador: escolha o programa (.exe) do fatiador.");
+    }
+    return { nome: texto(v.nome, "Nome do fatiador", 60) || caminho.split("\\").pop().replace(/\.exe$/i, ""), caminho };
+  };
+  return estrito ? validar() : ou(validar, { nome: "", caminho: "" });
+}
+
 // Lê o que estiver gravado, ignorando campos estranhos ou inválidos (nunca falha).
 function normalizarGravado(dados) {
   const d = dados && typeof dados === "object" ? dados : {};
@@ -61,6 +75,7 @@ function normalizarGravado(dados) {
     nomePerguntado: d.nomePerguntado === true,
     empresa: empresaDe(d.empresa, false),
     orcamento: orcamentoDe(d.orcamento, false),
+    fatiador: fatiadorDe(d.fatiador, false),
   };
 }
 
@@ -73,6 +88,7 @@ function aplicarAlteracao(atual, alteracao) {
   if ("nomePerguntado" in a) novo.nomePerguntado = a.nomePerguntado === true;
   if ("empresa" in a) novo.empresa = empresaDe(a.empresa, true);
   if ("orcamento" in a) novo.orcamento = orcamentoDe(a.orcamento, true);
+  if ("fatiador" in a) novo.fatiador = fatiadorDe(a.fatiador, true);
   return novo;
 }
 

@@ -1802,6 +1802,116 @@ kbd {
   color: #e8a93a;
 }
 
+/* ---------- Modelos personalizados ---------- */
+.modelo-trabalho {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.modelo-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modelo-opcoes .campo {
+  margin-bottom: 12px;
+}
+
+.modelo-opcoes .linha {
+  margin-bottom: 0;
+}
+
+.titulo-pagina.pequeno {
+  margin-bottom: 14px;
+  font-size: 20px;
+}
+
+.campo.cor input[type="color"] {
+  width: 100%;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  background: var(--superficie-2);
+  cursor: pointer;
+}
+
+.modelo-previa {
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.palco-modelo {
+  position: relative;
+  flex: 1;
+  min-height: 460px;
+  background: radial-gradient(circle at 50% 35%, var(--superficie-2), var(--fundo));
+}
+
+.palco-modelo canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.modelo-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--borda);
+}
+
+.modelo-rodape .acoes-form {
+  margin-top: 0;
+}
+
+/* Seletor do fatiador */
+.fatiador-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.fatiador-opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.fatiador-opcao:has(input:checked) {
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 10%, transparent);
+}
+
+.fatiador-opcao input {
+  accent-color: var(--acento);
+}
+
+.fatiador-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fatiador-texto .cliente-sub {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* Janela de boas-vindas */
 #form-boas-vindas {
   display: flex;

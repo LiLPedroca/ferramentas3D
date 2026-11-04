@@ -18,6 +18,7 @@ const TELAS = {
   metadados: { elemento: "tela-metadados" },
   detector: { elemento: "tela-detector" },
   stl: { elemento: "tela-stl" },
+  chaveiro: { elemento: "tela-chaveiro" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
@@ -78,7 +79,7 @@ function itemMenu(destino, texto, nomeIcone, classe = "") {
   return botao;
 }
 
-const ICONE_GRUPO = { financeiro: "orcamentos", ferramentas: "medidas", modelos: "visualizador" };
+const ICONE_GRUPO = { financeiro: "orcamentos", ferramentas: "medidas", modelos: "chaveiro" };
 
 function montarMenu() {
   const itens = [itemMenu("inicio", "Início", "inicio")];

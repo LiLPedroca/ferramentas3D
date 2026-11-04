@@ -6,6 +6,7 @@ const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
 const { criarServicoFavoritos } = require("./favoritos.cjs");
+const { abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
@@ -272,6 +273,79 @@ function registrarDados() {
       return { pasta: pastaDestino, salvos };
     }),
   );
+  // ---------- Modelos 3D: fontes, salvar e abrir no fatiador ----------
+  const pastaFontes = path.join(__dirname, "..", "..", "build", "renderer", "assets", "fontes");
+  ipcMain.handle(
+    "fontes:ler",
+    comTela(async (_e, nome) => {
+      if (typeof nome !== "string" || !/^[A-Za-z0-9]{2,40}$/.test(nome)) throw new ErroValidacao("Fonte inválida.");
+      return new Uint8Array(await require("node:fs/promises").readFile(path.join(pastaFontes, `${nome}-Regular.ttf`)));
+    }),
+  );
+
+  const nomeModelo = (nome, extensao) => {
+    const base = String(nome ?? "modelo").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 _-]+/g, "").trim().slice(0, 60) || "modelo";
+    return `${base}.${extensao}`;
+  };
+  const conferirModelo = (bytes, extensao) => {
+    if (!(bytes instanceof Uint8Array) || bytes.length === 0 || bytes.length > 300 * 1024 * 1024) throw new ErroValidacao("Modelo inválido.");
+    if (!["3mf", "stl"].includes(extensao)) throw new ErroValidacao("Formato inválido.");
+  };
+
+  ipcMain.handle(
+    "modelos:salvar",
+    comTela(async (e, bytes, nome, extensao) => {
+      conferirModelo(bytes, extensao);
+      const arquivo = nomeModelo(nome, extensao);
+      let destino;
+      if (process.env.FERRAMENTAS_SALVAR_DESTINO) destino = path.join(process.env.FERRAMENTAS_SALVAR_DESTINO, arquivo);
+      else {
+        const escolha = await dialog.showSaveDialog(janelaDe(e), {
+          title: "Salvar modelo",
+          defaultPath: path.join(app.getPath("documents"), arquivo),
+          filters: [{ name: extensao.toUpperCase(), extensions: [extensao] }],
+        });
+        if (escolha.canceled || !escolha.filePath) return null;
+        destino = escolha.filePath;
+      }
+      await require("node:fs/promises").writeFile(destino, bytes);
+      return destino;
+    }),
+  );
+
+  ipcMain.handle("fatiador:detectar", comTela(() => detectarFatiadores()));
+  ipcMain.handle(
+    "fatiador:procurar",
+    comTela(async (e) => {
+      const escolha = await dialog.showOpenDialog(janelaDe(e), {
+        title: "Escolher o programa do fatiador",
+        properties: ["openFile"],
+        filters: [{ name: "Programas", extensions: ["exe"] }],
+      });
+      if (escolha.canceled || !escolha.filePaths[0]) return null;
+      const caminho = escolha.filePaths[0];
+      return { nome: path.basename(caminho, path.extname(caminho)), caminho };
+    }),
+  );
+  // Abre o fatiador escolhido; com bytes, grava o modelo numa pasta temporária e abre nele.
+  ipcMain.handle(
+    "fatiador:abrir",
+    comTela(async (_e, bytes, nome, extensao) => {
+      const { fatiador } = await configuracoes.ler();
+      if (!fatiador.caminho) throw new ErroValidacao("SEM_FATIADOR");
+      let arquivo = null;
+      if (bytes) {
+        conferirModelo(bytes, extensao);
+        const pastaTemp = path.join(app.getPath("temp"), "ProgramaFerramentas3D");
+        await require("node:fs/promises").mkdir(pastaTemp, { recursive: true });
+        arquivo = path.join(pastaTemp, nomeModelo(nome, extensao));
+        await require("node:fs/promises").writeFile(arquivo, bytes);
+      }
+      await abrirFatiador(fatiador.caminho, arquivo);
+      return fatiador.nome;
+    }),
+  );
+
   ipcMain.handle(
     "arquivos:abrir-pasta",
     comTela(async (_e, caminho) => {

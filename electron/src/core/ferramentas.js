@@ -61,6 +61,15 @@ export const FERRAMENTAS = [
     tela: "clientes",
   },
   {
+    id: "chaveiro",
+    grupo: "modelos",
+    titulo: "Chaveiro de nome",
+    descricao: "Texto, base e argola personalizados.",
+    categoria: "Modelos personalizados",
+    disponivel: true,
+    tela: "chaveiro",
+  },
+  {
     id: "visualizador",
     grupo: "ferramentas",
     titulo: "Visualizar 3D",
