@@ -3,6 +3,10 @@ import { formatarDocumento, formatarTelefone, iniciais, linkWhatsApp } from "../
 import { normalizar } from "../core/inicio.js";
 import { icone } from "./icones.js";
 import { confirmar, mostrarAviso } from "./shell.js";
+import { abrirEditor as abrirOrcamento, listarOrcamentos, numeroOrcamento, reais } from "./orcamentos.js";
+import modeloOrcamento from "../core/orcamento.cjs";
+
+const { ROTULOS_SITUACAO, calcularTotais } = modeloOrcamento;
 
 const $ = (id) => document.getElementById(id);
 
@@ -87,8 +91,34 @@ export function abrirEditor(c) {
   $("erro-cliente").textContent = "";
   $("excluir-cliente").hidden = !c;
   atualizarWhatsApp();
+  mostrarHistorico(c);
   $("dialogo-cliente").showModal();
   $("cl-nome").focus();
+}
+
+// Orçamentos feitos para este cliente (mais recentes primeiro).
+async function mostrarHistorico(c) {
+  const secao = $("cl-historico");
+  secao.hidden = !c;
+  if (!c) return;
+  const lista = (await listarOrcamentos()).filter((o) => o.cliente?.id === c.id);
+  const itens = lista.map((o) => {
+    const linha = el("button", "historico-item");
+    linha.type = "button";
+    linha.append(
+      el("span", "orc-numero", numeroOrcamento(o.numero)),
+      el("span", "cliente-sub", new Date(o.criadoEm).toLocaleDateString("pt-BR")),
+      el("span", "orc-total", reais(calcularTotais(o).total)),
+      el("span", `chip-situacao ${o.situacao}`, ROTULOS_SITUACAO[o.situacao]),
+    );
+    linha.addEventListener("click", () => {
+      $("dialogo-cliente").close();
+      abrirOrcamento(o);
+    });
+    return linha;
+  });
+  if (itens.length === 0) itens.push(el("p", "ajuda", "Nenhum orçamento para este cliente ainda."));
+  $("cl-historico-lista").replaceChildren(...itens);
 }
 
 async function salvar(ev) {
@@ -155,6 +185,11 @@ export function iniciarClientes() {
   });
   $("cl-documento").addEventListener("blur", () => {
     $("cl-documento").value = formatarDocumento($("cl-documento").value) || $("cl-documento").value;
+  });
+  $("cl-novo-orcamento").addEventListener("click", () => {
+    const id = editandoId;
+    $("dialogo-cliente").close();
+    abrirOrcamento(undefined, { clienteId: id });
   });
   $("cl-whatsapp").addEventListener("click", () => {
     const link = linkWhatsApp($("cl-telefone").value);

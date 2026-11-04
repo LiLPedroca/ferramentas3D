@@ -1105,6 +1105,284 @@ kbd {
   padding: 20px 22px 6px;
 }
 
+/* ---------- Orçamentos ---------- */
+.linha-orcamento {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 100px 130px 104px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--borda);
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.linha-orcamento:last-child {
+  border-bottom: 0;
+}
+
+.linha-orcamento:hover {
+  background: var(--superficie-2);
+}
+
+.orc-numero {
+  color: var(--texto-suave);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.orc-cliente {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orc-data {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.orc-total {
+  font-weight: 650;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip-situacao {
+  justify-self: end;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  --cor-situacao: var(--texto-suave);
+  background: color-mix(in srgb, var(--cor-situacao) 16%, transparent);
+  color: var(--cor-situacao);
+}
+
+.chip-situacao.enviado {
+  --cor-situacao: var(--acento-forte);
+}
+
+.chip-situacao.aprovado {
+  --cor-situacao: var(--verde);
+}
+
+.chip-situacao.recusado {
+  --cor-situacao: var(--erro);
+}
+
+.pagina-conteudo.largo {
+  max-width: 1180px;
+}
+
+.editor-orcamento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.orc-cabecalho {
+  margin-bottom: 8px;
+}
+
+.orc-cabecalho .ajuda {
+  margin: 4px 0 0;
+}
+
+.largo-total {
+  width: 100%;
+}
+
+.item-orcamento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px 120px 110px 34px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.item-orcamento input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+}
+
+.item-orcamento input:focus {
+  outline: none;
+  border-color: var(--acento);
+}
+
+.cabecalho-itens {
+  margin-bottom: 6px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.direita,
+.item-total {
+  text-align: right;
+}
+
+.item-total {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-remover {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.item-remover:hover {
+  background: color-mix(in srgb, var(--erro) 14%, transparent);
+  color: var(--erro);
+}
+
+.acoes-itens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.resumo-orcamento {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resumo-orcamento .campo {
+  margin-bottom: 0;
+}
+
+.totais-orcamento {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--borda);
+}
+
+.totais-orcamento div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.totais-orcamento dt {
+  color: var(--texto-suave);
+}
+
+.totais-orcamento dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.totais-orcamento .total {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borda);
+}
+
+.totais-orcamento .total dt {
+  color: var(--texto);
+  font-weight: 650;
+}
+
+.totais-orcamento .total dd {
+  color: var(--acento-forte);
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.totais-orcamento.lucro {
+  padding-top: 10px;
+  font-size: 13px;
+}
+
+.negativo {
+  color: var(--erro) !important;
+}
+
+.botao-secundario.largo {
+  width: 100%;
+  margin-top: 0;
+}
+
+.subtitulo-config {
+  margin: 24px 0 2px !important;
+  padding-top: 18px;
+  border-top: 1px solid var(--borda);
+}
+
+/* Histórico de orçamentos no cadastro do cliente */
+.historico-cliente {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borda);
+}
+
+.historico-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.historico-titulo {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.historico-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.historico-item {
+  display: grid;
+  grid-template-columns: 64px 1fr 110px 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historico-item:hover {
+  background: var(--superficie-2);
+}
+
 /* Janela de boas-vindas */
 #form-boas-vindas {
   display: flex;

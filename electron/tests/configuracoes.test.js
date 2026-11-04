@@ -10,18 +10,36 @@ const { criarServicoConfiguracoes, responderConfig } = servicoMod;
 
 describe("modelo de configurações", () => {
   it("normaliza o que estiver gravado sem falhar", () => {
-    expect(normalizarGravado(undefined)).toEqual({ nome: "", nomePerguntado: false });
-    expect(normalizarGravado({ nome: "  Pedro   Henrique ", nomePerguntado: true })).toEqual({
+    expect(normalizarGravado(undefined)).toMatchObject({ nome: "", nomePerguntado: false });
+    expect(normalizarGravado({ nome: "  Pedro   Henrique ", nomePerguntado: true })).toMatchObject({
       nome: "Pedro Henrique",
       nomePerguntado: true,
     });
     expect(normalizarGravado({ nome: "x".repeat(200) }).nome).toBe("");
+    // empresa com telefone estranho: ignora só o campo ruim
+    const n = normalizarGravado({ empresa: { nome: "Estúdio", telefone: "12" } });
+    expect(n.empresa).toMatchObject({ nome: "Estúdio", telefone: "" });
+    expect(n.orcamento.validadeDias).toBe(7);
   });
 
   it("aplica só os campos enviados", () => {
     const atual = { nome: "Pedro", nomePerguntado: true };
-    expect(aplicarAlteracao(atual, { nome: "Ana" })).toEqual({ nome: "Ana", nomePerguntado: true });
-    expect(aplicarAlteracao(atual, { outro: 1 })).toEqual(atual);
+    expect(aplicarAlteracao(atual, { nome: "Ana" })).toMatchObject({ nome: "Ana", nomePerguntado: true });
+    expect(aplicarAlteracao(atual, { outro: 1 })).toMatchObject(atual);
+  });
+
+  it("valida dados da empresa e padrões do orçamento", () => {
+    const novo = aplicarAlteracao(
+      {},
+      {
+        empresa: { nome: "Estúdio 3D", telefone: "(11) 91234-5678", email: "OI@Estudio.com", documento: "11.222.333/0001-81" },
+        orcamento: { validadeDias: "15", formaPagamento: "Pix ou cartão" },
+      },
+    );
+    expect(novo.empresa).toMatchObject({ telefone: "11912345678", email: "oi@estudio.com", documento: "11222333000181" });
+    expect(novo.orcamento).toMatchObject({ validadeDias: 15, formaPagamento: "Pix ou cartão" });
+    expect(() => aplicarAlteracao({}, { empresa: { email: "x@" } })).toThrow(/E-mail/);
+    expect(() => aplicarAlteracao({}, { orcamento: { validadeDias: "0" } })).toThrow(/Validade/);
   });
 
   it("recusa nome longo ou com caracteres de controle", () => {
@@ -41,9 +59,9 @@ describe("serviço de configurações (arquivo)", () => {
 
   it("começa vazio, salva e lê de volta", async () => {
     const s = criarServicoConfiguracoes(pasta);
-    expect(await s.ler()).toEqual({ nome: "", nomePerguntado: false });
+    expect(await s.ler()).toMatchObject({ nome: "", nomePerguntado: false });
     await s.salvar({ nome: "Pedro", nomePerguntado: true });
-    expect(await criarServicoConfiguracoes(pasta).ler()).toEqual({ nome: "Pedro", nomePerguntado: true });
+    expect(await criarServicoConfiguracoes(pasta).ler()).toMatchObject({ nome: "Pedro", nomePerguntado: true });
   });
 
   it("preserva campos desconhecidos de versões futuras", async () => {

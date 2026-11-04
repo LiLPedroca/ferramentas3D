@@ -3,6 +3,23 @@ const path = require("node:path");
 const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron");
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
 const { criarServicoClientes } = require("./clientes.cjs");
+const { criarServicoOrcamentos } = require("./orcamentos.cjs");
+const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
+const { ErroValidacao } = require("../core/validacao.cjs");
+
+// Converte HTML em PDF numa janela invisível, sem scripts e sem acesso a nada local.
+async function htmlParaPdf(html) {
+  const janela = new BrowserWindow({
+    show: false,
+    webPreferences: { javascript: false, sandbox: true, contextIsolation: true, nodeIntegration: false },
+  });
+  try {
+    await janela.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    return await janela.webContents.printToPDF({ printBackground: true, pageSize: "A4", preferCSSPageSize: true });
+  } finally {
+    janela.destroy();
+  }
+}
 const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
@@ -140,7 +157,39 @@ function registrarDados() {
   const negado = { ok: false, erro: "Origem não autorizada." };
 
   // Cadastros em lista: <nome>:listar, <nome>:salvar, <nome>:excluir.
-  const cadastros = { clientes: criarServicoClientes(pasta) };
+  const clientes = criarServicoClientes(pasta);
+  const orcamentos = criarServicoOrcamentos(pasta, { clientes });
+  const cadastros = { clientes, orcamentos };
+
+  // PDF do orçamento: pergunta onde salvar e abre o arquivo pronto.
+  // FERRAMENTAS_PDF_DESTINO (testes) salva direto nessa pasta, sem perguntar nem abrir.
+  ipcMain.handle("orcamentos:pdf", async (e, id) => {
+    if (!daTela(e) || typeof id !== "string") return negado;
+    return responder(
+      (async () => {
+        const orcamento = (await orcamentos.listar()).find((o) => o.id === id);
+        if (!orcamento) throw new ErroValidacao("Este orçamento não existe mais.");
+        const config = await configuracoes.ler();
+        const nome = nomeArquivoPdf(orcamento);
+        let destino;
+        if (process.env.FERRAMENTAS_PDF_DESTINO) {
+          destino = path.join(process.env.FERRAMENTAS_PDF_DESTINO, nome);
+        } else {
+          const escolha = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
+            title: "Salvar orçamento em PDF",
+            defaultPath: path.join(app.getPath("documents"), nome),
+            filters: [{ name: "PDF", extensions: ["pdf"] }],
+          });
+          if (escolha.canceled || !escolha.filePath) return null;
+          destino = escolha.filePath;
+        }
+        const pdf = await htmlParaPdf(gerarHtmlOrcamento(orcamento, config.empresa));
+        await require("node:fs/promises").writeFile(destino, pdf);
+        if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
+        return destino;
+      })(),
+    );
+  });
   for (const [nome, servico] of Object.entries(cadastros)) {
     ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(servico.listar()) : negado));
     ipcMain.handle(`${nome}:salvar`, (e, valores, id) =>

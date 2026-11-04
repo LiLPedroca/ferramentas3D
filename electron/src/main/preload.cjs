@@ -13,6 +13,7 @@ const cadastro = (nome) => ({
 
 contextBridge.exposeInMainWorld("dados", {
   clientes: cadastro("clientes"),
+  orcamentos: { ...cadastro("orcamentos"), pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id) },
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
   config: {
     ler: () => ipcRenderer.invoke("config:ler"),

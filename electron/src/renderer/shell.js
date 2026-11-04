@@ -14,6 +14,8 @@ const TELAS = {
   visualizador: { elemento: "tela-visualizador" },
   produtos: { elemento: "tela-produtos" },
   clientes: { elemento: "tela-clientes" },
+  orcamentos: { elemento: "tela-orcamentos" },
+  orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
 };
 for (const f of FERRAMENTAS) {
   if (TELAS[f.tela]) Object.assign(TELAS[f.tela], { titulo: f.titulo, pai: `grupo:${f.grupo}` });

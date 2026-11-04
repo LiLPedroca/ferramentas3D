@@ -2,7 +2,8 @@
 "use strict";
 
 const { Documento } = require("./armazenamento.cjs");
-const { ConfiguracaoInvalida, aplicarAlteracao, normalizarGravado } = require("../core/configuracoes.cjs");
+const { aplicarAlteracao, normalizarGravado } = require("../core/configuracoes.cjs");
+const { ErroValidacao } = require("../core/validacao.cjs");
 
 function criarServicoConfiguracoes(pasta) {
   const documento = new Documento(pasta, "configuracoes");
@@ -24,7 +25,7 @@ async function responderConfig(promessa) {
   try {
     return { ok: true, dados: await promessa };
   } catch (erro) {
-    const mensagem = erro instanceof ConfiguracaoInvalida ? erro.message : `Não foi possível concluir: ${erro.message}`;
+    const mensagem = erro instanceof ErroValidacao ? erro.message : `Não foi possível concluir: ${erro.message}`;
     return { ok: false, erro: mensagem };
   }
 }

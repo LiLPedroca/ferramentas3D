@@ -6,7 +6,7 @@ export const GRUPOS = [
   {
     id: "financeiro",
     titulo: "Gestão financeira",
-    descricao: "Calculadora, produtos e clientes.",
+    descricao: "Calculadora, orçamentos, clientes e produtos.",
     foto: "assets/grupo-financeiro.jpg",
   },
   {
@@ -34,6 +34,15 @@ export const FERRAMENTAS = [
     tela: "calculadora",
   },
   {
+    id: "orcamentos",
+    grupo: "financeiro",
+    titulo: "Orçamentos",
+    descricao: "Monte pedidos e gere o PDF para o cliente.",
+    categoria: "Gestão financeira",
+    disponivel: true,
+    tela: "orcamentos",
+  },
+  {
     id: "produtos",
     grupo: "financeiro",
     titulo: "Produtos",
@@ -46,7 +55,7 @@ export const FERRAMENTAS = [
     id: "clientes",
     grupo: "financeiro",
     titulo: "Clientes",
-    descricao: "Contatos, documento e cidade dos seus clientes.",
+    descricao: "Contatos e histórico de orçamentos.",
     categoria: "Gestão financeira",
     disponivel: true,
     tela: "clientes",

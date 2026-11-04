@@ -378,6 +378,13 @@
             <span>Observações</span>
             <textarea id="cl-obs" maxlength="500" rows="3" placeholder="Preferências, endereço de entrega…"></textarea>
           </label>
+          <section class="historico-cliente" id="cl-historico" hidden>
+            <div class="historico-topo">
+              <span class="historico-titulo">Orçamentos deste cliente</span>
+              <button type="button" class="botao-texto" id="cl-novo-orcamento">+ Novo orçamento</button>
+            </div>
+            <div class="historico-lista" id="cl-historico-lista"></div>
+          </section>
         </div>
         <p class="erro dialogo-erro" id="erro-cliente" role="alert"></p>
         <footer class="dialogo-rodape">
@@ -389,6 +396,144 @@
         </footer>
       </form>
     </dialog>
+
+    <main class="tela oculta pagina" id="tela-orcamentos">
+      <div class="pagina-conteudo">
+        <div class="produtos-topo">
+          <div>
+            <h1 class="titulo-pagina">Orçamentos</h1>
+            <p class="ajuda" id="orcamentos-resumo"></p>
+          </div>
+          <div class="produtos-acoes">
+            <label class="busca">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="busca-orcamentos" type="search" placeholder="Buscar orçamento…" aria-label="Buscar orçamento" autocomplete="off" />
+            </label>
+            <select id="filtro-situacao" class="seletor" aria-label="Filtrar por situação">
+              <option value="">Todas as situações</option>
+              <option value="rascunho">Rascunho</option>
+              <option value="enviado">Enviado</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="recusado">Recusado</option>
+            </select>
+            <button class="botao-primario" id="novo-orcamento" type="button">+ Novo orçamento</button>
+          </div>
+        </div>
+
+        <p class="erro" id="erro-orcamentos" role="alert"></p>
+        <div class="lista-clientes" id="lista-orcamentos"></div>
+
+        <div class="vazio-produtos" id="vazio-orcamentos" hidden>
+          <span class="vazio-icone" id="vazio-orcamentos-icone"></span>
+          <h2>Nenhum orçamento ainda</h2>
+          <p>Monte orçamentos com seus produtos ou itens avulsos, aplique desconto e frete, e gere o PDF para enviar ao cliente.</p>
+          <div class="vazio-botoes">
+            <button class="botao-primario" id="vazio-novo-orcamento" type="button">Criar orçamento</button>
+          </div>
+        </div>
+        <p class="vazio" id="sem-resultado-orcamentos" hidden>Nenhum orçamento encontrado com esse filtro.</p>
+      </div>
+    </main>
+
+    <main class="tela oculta pagina" id="tela-orcamento">
+      <div class="pagina-conteudo largo">
+        <div class="editor-orcamento">
+          <section class="painel">
+            <div class="orc-cabecalho">
+              <div>
+                <h1 class="titulo-pagina" id="o-titulo">Novo orçamento</h1>
+                <p class="ajuda" id="o-data"></p>
+              </div>
+            </div>
+
+            <fieldset class="grupo">
+              <legend>Cliente</legend>
+              <div class="linha">
+                <label class="campo">
+                  <span>Cadastro</span>
+                  <select id="o-cliente" class="seletor largo-total"></select>
+                </label>
+                <label class="campo" id="campo-cliente-nome" hidden>
+                  <span>Nome do cliente</span>
+                  <div class="entrada"><input id="o-cliente-nome" maxlength="120" autocomplete="off" /></div>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="grupo">
+              <legend>Itens</legend>
+              <div class="item-orcamento cabecalho-itens" id="o-itens-cabecalho" hidden>
+                <span>Descrição</span><span>Qtd.</span><span>Valor unit. (R$)</span><span class="direita">Total</span><span></span>
+              </div>
+              <div id="o-itens"></div>
+              <p class="ajuda" id="o-itens-vazio">Adicione produtos do seu catálogo ou itens avulsos.</p>
+              <div class="acoes-itens">
+                <select id="o-add-produto" class="seletor" aria-label="Adicionar produto"></select>
+                <button class="botao-secundario" id="o-add-item" type="button">+ Item avulso</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="grupo">
+              <legend>Condições</legend>
+              <div class="linha">
+                <label class="campo">
+                  <span>Desconto</span>
+                  <div class="entrada"><input id="o-desconto" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div>
+                </label>
+                <label class="campo">
+                  <span>Frete</span>
+                  <div class="entrada"><input id="o-frete" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div>
+                </label>
+              </div>
+              <div class="linha">
+                <label class="campo">
+                  <span>Validade</span>
+                  <div class="entrada"><input id="o-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div>
+                </label>
+                <label class="campo">
+                  <span>Prazo de produção</span>
+                  <div class="entrada"><input id="o-prazo" maxlength="80" placeholder="Ex.: 5 dias úteis" autocomplete="off" /></div>
+                </label>
+              </div>
+              <label class="campo">
+                <span>Forma de pagamento</span>
+                <div class="entrada"><input id="o-pagamento" maxlength="160" placeholder="Ex.: Pix, cartão ou 50% de sinal" autocomplete="off" /></div>
+              </label>
+              <label class="campo">
+                <span>Observações</span>
+                <textarea id="o-obs" maxlength="1000" rows="3"></textarea>
+              </label>
+            </fieldset>
+          </section>
+
+          <aside class="painel resumo-orcamento">
+            <label class="campo">
+              <span>Situação</span>
+              <select id="o-situacao" class="seletor largo-total">
+                <option value="rascunho">Rascunho</option>
+                <option value="enviado">Enviado</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="recusado">Recusado</option>
+              </select>
+            </label>
+            <dl class="totais-orcamento">
+              <div><dt>Subtotal</dt><dd id="o-subtotal">R$ 0,00</dd></div>
+              <div><dt>Desconto</dt><dd id="o-res-desconto">R$ 0,00</dd></div>
+              <div><dt>Frete</dt><dd id="o-res-frete">R$ 0,00</dd></div>
+              <div class="total"><dt>Total</dt><dd id="o-total">R$ 0,00</dd></div>
+            </dl>
+            <dl class="totais-orcamento lucro" id="o-bloco-lucro" hidden>
+              <div><dt>Custo dos itens</dt><dd id="o-custo"></dd></div>
+              <div><dt>Lucro estimado</dt><dd id="o-lucro"></dd></div>
+            </dl>
+            <p class="erro" id="erro-orcamento" role="alert"></p>
+            <button class="botao-primario largo" id="o-salvar" type="button">Salvar</button>
+            <button class="botao-secundario largo" id="o-pdf" type="button">Salvar e gerar PDF</button>
+            <button class="botao-texto perigo" id="o-excluir" type="button" hidden>Excluir orçamento</button>
+          </aside>
+        </div>
+      </div>
+    </main>
 
     <main class="tela oculta pagina" id="tela-grupo">
       <div class="pagina-conteudo">
@@ -411,6 +556,59 @@
             <span>Seu nome</span>
             <div class="entrada"><input id="c-nome" maxlength="80" autocomplete="given-name" placeholder="Como você quer ser chamado" /></div>
           </label>
+
+          <h2 class="subtitulo-config">Sua empresa</h2>
+          <p class="ajuda">Aparece no cabeçalho dos orçamentos em PDF.</p>
+          <label class="campo">
+            <span>Nome da empresa ou marca</span>
+            <div class="entrada"><input id="c-emp-nome" maxlength="120" autocomplete="organization" /></div>
+          </label>
+          <div class="linha">
+            <label class="campo">
+              <span>Telefone / WhatsApp</span>
+              <div class="entrada"><input id="c-emp-telefone" inputmode="tel" autocomplete="off" /></div>
+            </label>
+            <label class="campo">
+              <span>E-mail</span>
+              <div class="entrada"><input id="c-emp-email" type="email" maxlength="120" autocomplete="off" /></div>
+            </label>
+          </div>
+          <div class="linha">
+            <label class="campo">
+              <span>CPF ou CNPJ</span>
+              <div class="entrada"><input id="c-emp-documento" inputmode="numeric" autocomplete="off" /></div>
+            </label>
+            <label class="campo">
+              <span>Cidade</span>
+              <div class="entrada"><input id="c-emp-cidade" maxlength="80" autocomplete="off" /></div>
+            </label>
+          </div>
+          <label class="campo">
+            <span>Site ou Instagram</span>
+            <div class="entrada"><input id="c-emp-site" maxlength="120" autocomplete="off" placeholder="Ex.: @minhaloja3d" /></div>
+          </label>
+
+          <h2 class="subtitulo-config">Padrões do orçamento</h2>
+          <p class="ajuda">Preenchidos automaticamente em cada orçamento novo.</p>
+          <div class="linha">
+            <label class="campo">
+              <span>Validade</span>
+              <div class="entrada"><input id="c-orc-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div>
+            </label>
+            <label class="campo">
+              <span>Prazo de produção</span>
+              <div class="entrada"><input id="c-orc-prazo" maxlength="80" autocomplete="off" placeholder="Ex.: 5 dias úteis" /></div>
+            </label>
+          </div>
+          <label class="campo">
+            <span>Forma de pagamento</span>
+            <div class="entrada"><input id="c-orc-pagamento" maxlength="160" autocomplete="off" /></div>
+          </label>
+          <label class="campo">
+            <span>Observações</span>
+            <textarea id="c-orc-obs" maxlength="1000" rows="3"></textarea>
+          </label>
+
           <p class="erro" id="erro-config" role="alert"></p>
           <div class="acoes-form">
             <button class="botao-primario" type="submit">Salvar</button>
