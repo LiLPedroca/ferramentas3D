@@ -1,6 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { FERRAMENTAS } from "../src/core/ferramentas.js";
-import { contarFerramentas, filtrarFerramentas, normalizar, saudacao } from "../src/core/inicio.js";
+import { FERRAMENTAS, GRUPOS } from "../src/core/ferramentas.js";
+import {
+  boasVindas,
+  contarFerramentas,
+  filtrarFerramentas,
+  gruposVisiveis,
+  normalizar,
+  saudacao,
+} from "../src/core/inicio.js";
+
+describe("boas-vindas", () => {
+  it("usa só o primeiro nome", () => {
+    expect(boasVindas("  Pedro Henrique ")).toBe("Bem-vindo, Pedro!");
+    expect(boasVindas("")).toBe("Bem-vindo!");
+    expect(boasVindas(undefined)).toBe("Bem-vindo!");
+  });
+});
+
+describe("grupos", () => {
+  it("esconde grupo sem ferramenta pronta", () => {
+    const grupos = [{ id: "a" }, { id: "b" }];
+    const ferramentas = [
+      { id: "x", grupo: "a", disponivel: true },
+      { id: "y", grupo: "b", disponivel: false },
+    ];
+    const visiveis = gruposVisiveis(grupos, ferramentas);
+    expect(visiveis.map((g) => g.id)).toEqual(["a"]);
+    expect(visiveis[0].ferramentas.map((f) => f.id)).toEqual(["x"]);
+  });
+
+  it("toda ferramenta real pertence a um grupo existente", () => {
+    const ids = new Set(GRUPOS.map((g) => g.id));
+    for (const f of FERRAMENTAS) expect(ids.has(f.grupo)).toBe(true);
+  });
+});
 
 // Lista de exemplo, independente do catálogo real.
 const EXEMPLO = [

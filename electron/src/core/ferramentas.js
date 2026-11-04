@@ -1,29 +1,54 @@
-// Ferramentas mostradas na tela inicial. Só entram aqui as que já funcionam.
-// "tela" é o id da tela que o card abre (registrada em TELAS, no app.js).
-// Ideias para as próximas estão no CONTEXTO.md, não na interface.
+// Grupos e ferramentas da tela inicial. Só entram ferramentas que já funcionam;
+// um grupo sem ferramenta pronta não aparece.
+// "tela" é o id da tela que a ferramenta abre (registrada no app).
+
+export const GRUPOS = [
+  {
+    id: "financeiro",
+    titulo: "Gestão financeira",
+    descricao: "Calculadora e catálogo de produtos.",
+    foto: "assets/grupo-financeiro.jpg",
+  },
+  {
+    id: "ferramentas",
+    titulo: "Ferramentas",
+    descricao: "Visualização e análise de modelos.",
+    foto: "assets/grupo-ferramentas.jpg",
+  },
+  {
+    id: "modelos",
+    titulo: "Modelos personalizados",
+    descricao: "Da sua ideia a uma peça única.",
+    foto: "assets/grupo-modelos.jpg",
+  },
+];
+
 export const FERRAMENTAS = [
   {
     id: "calculadora",
+    grupo: "financeiro",
     titulo: "Calculadora 3D",
     descricao: "Custo e preço de venda por peça.",
-    categoria: "Produção",
+    categoria: "Gestão financeira",
     disponivel: true,
     tela: "calculadora",
   },
   {
-    id: "visualizador",
-    titulo: "Visualizar 3D",
-    descricao: "Abra um STL e veja medidas e volume.",
-    categoria: "Produção",
-    disponivel: true,
-    tela: "visualizador",
-  },
-  {
     id: "produtos",
+    grupo: "financeiro",
     titulo: "Produtos",
     descricao: "Seu catálogo com preço, peso e foto.",
-    categoria: "Vendas",
+    categoria: "Gestão financeira",
     disponivel: true,
     tela: "produtos",
+  },
+  {
+    id: "visualizador",
+    grupo: "ferramentas",
+    titulo: "Visualizar 3D",
+    descricao: "Abra um STL e veja medidas e volume.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "visualizador",
   },
 ];

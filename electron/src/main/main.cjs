@@ -2,6 +2,7 @@
 const path = require("node:path");
 const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron");
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
+const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
 let autoUpdater = null;
@@ -131,8 +132,19 @@ const daTela = (evento) => evento.senderFrame?.url?.startsWith("file://");
 function registrarDados() {
   const pasta = process.env.FERRAMENTAS_DADOS || path.join(app.getPath("userData"), "dados");
   const produtos = criarServicoProdutos(pasta);
-
+  const configuracoes = criarServicoConfiguracoes(pasta);
   const negado = { ok: false, erro: "Origem não autorizada." };
+
+  ipcMain.handle("config:ler", (e) => (daTela(e) ? responderConfig(configuracoes.ler()) : negado));
+  ipcMain.handle("config:salvar", (e, alteracao) =>
+    daTela(e) ? responderConfig(configuracoes.salvar(alteracao)) : negado,
+  );
+  ipcMain.handle("dados:abrir-pasta", async (e) => {
+    if (!daTela(e)) return negado;
+    await require("node:fs/promises").mkdir(pasta, { recursive: true });
+    const erro = await shell.openPath(pasta);
+    return erro ? { ok: false, erro: `Não foi possível abrir a pasta: ${erro}` } : { ok: true, dados: pasta };
+  });
 
   ipcMain.handle("atualizacao:verificar", (e) => (daTela(e) ? verificarManualmente() : { estado: "erro" }));
 

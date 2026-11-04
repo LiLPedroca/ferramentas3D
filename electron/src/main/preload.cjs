@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld("atualizacao", {
 });
 
 contextBridge.exposeInMainWorld("dados", {
+  abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
+  config: {
+    ler: () => ipcRenderer.invoke("config:ler"),
+    salvar: (alteracao) => ipcRenderer.invoke("config:salvar", alteracao),
+  },
   produtos: {
     listar: () => ipcRenderer.invoke("produtos:listar"),
     salvar: (valores, id) => ipcRenderer.invoke("produtos:salvar", valores, id ?? null),

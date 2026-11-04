@@ -1,7 +1,7 @@
 // Gera build/renderer: junta o JavaScript da tela (com Three.js) em um arquivo só
 // e copia o HTML e o CSS. O Electron carrega esses arquivos com file://.
 import { build } from "esbuild";
-import { copyFile, mkdir, readFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,5 +24,6 @@ await build({
 for (const arquivo of ["index.html", "styles.css"]) {
   await copyFile(join(raiz, "src", "renderer", arquivo), join(saida, arquivo));
 }
+await cp(join(raiz, "src", "renderer", "assets"), join(saida, "assets"), { recursive: true });
 
 console.log(`Renderer gerado em ${saida} (versão ${pacote.version})`);

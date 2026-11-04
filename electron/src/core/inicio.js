@@ -27,6 +27,19 @@ export function filtrarFerramentas(lista, { filtro = "todas", busca = "" } = {})
   });
 }
 
+// "Bem-vindo, Pedro!" usando só o primeiro nome. Sem nome: "Bem-vindo!".
+export function boasVindas(nome) {
+  const primeiro = String(nome ?? "").trim().split(/\s+/)[0];
+  return primeiro ? `Bem-vindo, ${primeiro}!` : "Bem-vindo!";
+}
+
+// Grupos com pelo menos uma ferramenta pronta, cada um com a sua lista.
+export function gruposVisiveis(grupos, ferramentas) {
+  return grupos
+    .map((g) => ({ ...g, ferramentas: ferramentas.filter((f) => f.grupo === g.id && f.disponivel) }))
+    .filter((g) => g.ferramentas.length > 0);
+}
+
 export function contarFerramentas(lista) {
   const disponiveis = lista.filter((f) => f.disponivel).length;
   return { total: lista.length, disponiveis, emBreve: lista.length - disponiveis };
