@@ -66,7 +66,7 @@ export function criarPrevia(container) {
       grade.position.set(centro.x, centro.y, 0);
       if (primeiraVez) {
         const alcance = Math.max(tamanho.x, tamanho.y, 10);
-        camera.position.set(centro.x - alcance * 0.15, centro.y - alcance * 1.1, alcance * 0.95);
+        camera.position.set(centro.x - alcance * 0.2, centro.y - alcance * 1.45, alcance * 1.25);
         primeiraVez = false;
       }
       controles.target.copy(centro);

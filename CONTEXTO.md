@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.12.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.13.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -79,9 +79,13 @@ Etapas (marcar [x] ao publicar):
 - [x] 5. Detector de IA (indícios locais: C2PA, XMP, EXIF, PNG) + Conversor SVG. (v0.10.0)
 - [x] 6. Caçador de STL (busca em vários sites + favoritos locais). (v0.11.0)
 - [x] 7. Meu fatiador + Chaveiro de nome (texto 3D com base e argola, exporta 3MF/STL). (v0.12.0)
-- [ ] 8. Chaveiro de logo + Palavras decorativas. (v0.13.0)
+- [x] 8. Chaveiro de logo + Palavras decorativas. (v0.13.0)
 
-Último progresso: 2026-11-04 02:03 (etapa 7 publicada).
+**Plano concluído em 2026-11-04 02:15.** Todas as etapas publicadas (v0.6.0 a v0.13.0).
+
+Último progresso: 2026-11-04 02:15 (etapa 8 publicada; plano concluído).
+
+Etapa 8: `renderer/modelos/logo.js` (SVG do vetorizador → SVGLoader → uma parte por cor sobre disco ou retângulo com argola; contornos simplificados), `renderer/modelos/palavras.js` (até 3 linhas; "placa" = base + relevo, "letreiro" = letras grossas + barra), telas `logo-tela.js` e `palavras-tela.js`. Exportação: `malhaIndexada` também corrige junções em T (vértice no meio de aresta, comum quando um furo encosta na borda), garantindo malha fechada no 3MF e no STL. Testes com happy-dom (`// @vitest-environment happy-dom`) para o que usa DOMParser (logo, com um SVG real em `tests/dados/logo-teste.svg`).
 
 Etapa 7 (modelos 3D): `renderer/modelos/geometria.js` (letras pelo opentype.js letra a letra, sem o motor de composição que falha em algumas fontes; sólido/furo pela regra "nonzero" das fontes: furo é o contorno no sentido oposto, peças sobrepostas se somam; base em meia-lua com furo da argola), `modelos/exportar.js` (STL binário e 3MF com uma parte por cor; vértices unidos só pela posição para a malha sair fechada), `modelos/chaveiro.js`, `modelos/previa3d.js` (prévia Z para cima), `modelos/fontes.js` (12 fontes OFL/Apache em `renderer/assets/fontes`, lidas pelo canal `fontes:ler`). Testes garantem malhas fechadas em todas as fontes. Meu fatiador: `src/main/fatiador.cjs` (detecta Bambu, Orca, Prusa, Creality Print, Cura, Anycubic, Elegoo em Program Files e LOCALAPPDATA\Programs; abre com o arquivo), escolha salva em `configuracoes.fatiador`; `renderer/fatiador-ui.js`. Na máquina do Pedro foi detectado o Anycubic Slicer Next. "Abrir no fatiador" grava o 3MF em %TEMP%\ProgramaFerramentas3D.
 

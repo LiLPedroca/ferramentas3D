@@ -1874,6 +1874,50 @@ kbd {
   margin-top: 0;
 }
 
+.pl-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* o texto ocupa a linha inteira; fonte e altura ficam embaixo */
+.pl-linha > .entrada:first-child {
+  grid-column: 1 / -1;
+}
+
+.pl-linha .seletor {
+  min-width: 0;
+  padding: 8px;
+  font-size: 12.5px;
+}
+
+.pl-linha .entrada {
+  padding: 0 8px;
+}
+
+.modelo-opcoes .pl-linha + .linha {
+  margin-top: 8px;
+}
+
+.cores-logo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 10px;
+}
+
+.amostra-cor {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+}
+
+#tela-logo .zona-arquivo {
+  margin-bottom: 16px;
+}
+
 /* Seletor do fatiador */
 .fatiador-lista {
   display: flex;

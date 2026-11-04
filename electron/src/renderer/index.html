@@ -813,6 +813,145 @@
       </div>
     </main>
 
+    <main class="tela oculta pagina" id="tela-logo">
+      <div class="pagina-conteudo largo">
+        <div class="zona-arquivo" id="lg-zona" tabindex="0" role="button" aria-label="Escolher imagem do logo">
+          <p><strong>Arraste o logo aqui</strong></p>
+          <p class="ajuda">ou clique para escolher · PNG, JPEG ou WebP. Funciona melhor com poucas cores e fundo liso.</p>
+          <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+        </div>
+        <div class="modelo-trabalho" id="lg-trabalho" hidden>
+          <aside class="painel modelo-opcoes">
+            <h1 class="titulo-pagina pequeno">Chaveiro de logo</h1>
+            <p class="cliente-sub" id="lg-nome"></p>
+            <label class="campo">
+              <span>Cores do logo: <strong id="lg-cores-valor">3</strong></span>
+              <input type="range" id="lg-cores" min="1" max="6" step="1" value="3" />
+            </label>
+            <div class="cores-logo" id="lg-cores-lista"></div>
+            <label class="md-opcao"><input type="checkbox" id="lg-fundo" checked /> Remover o fundo da imagem</label>
+            <label class="campo">
+              <span>Formato da base</span>
+              <select id="lg-formato" class="seletor largo-total">
+                <option value="circulo">Círculo</option>
+                <option value="retangulo">Retângulo com argola na ponta</option>
+              </select>
+            </label>
+            <div class="linha">
+              <label class="campo">
+                <span>Largura do logo</span>
+                <div class="entrada"><input id="lg-largura" inputmode="decimal" value="35" /><em>mm</em></div>
+              </label>
+              <label class="campo">
+                <span>Relevo</span>
+                <div class="entrada"><input id="lg-relevo" inputmode="decimal" value="1" /><em>mm</em></div>
+              </label>
+            </div>
+            <div class="linha">
+              <label class="campo">
+                <span>Base</span>
+                <div class="entrada"><input id="lg-base" inputmode="decimal" value="3" /><em>mm</em></div>
+              </label>
+              <label class="campo">
+                <span>Margem</span>
+                <div class="entrada"><input id="lg-margem" inputmode="decimal" value="3" /><em>mm</em></div>
+              </label>
+            </div>
+            <div class="linha">
+              <label class="campo">
+                <span>Furo da argola</span>
+                <div class="entrada"><input id="lg-furo" inputmode="decimal" value="4,5" /><em>mm</em></div>
+              </label>
+              <label class="campo cor">
+                <span>Cor da base</span>
+                <input type="color" id="lg-cor-base" value="#1f2937" />
+              </label>
+            </div>
+            <p class="erro" id="lg-erro" role="alert"></p>
+          </aside>
+          <section class="painel modelo-previa">
+            <div class="palco-modelo" id="lg-palco"></div>
+            <div class="modelo-rodape">
+              <span class="cliente-sub" id="lg-medidas"></span>
+              <div class="acoes-form">
+                <button class="botao-secundario" id="lg-stl" type="button" disabled>Salvar STL</button>
+                <button class="botao-secundario" id="lg-3mf" type="button" disabled>Salvar 3MF (multicor)</button>
+                <button class="botao-primario" id="lg-fatiador" type="button" disabled>Abrir no fatiador</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <main class="tela oculta pagina" id="tela-palavras">
+      <div class="pagina-conteudo largo">
+        <div class="modelo-trabalho">
+          <aside class="painel modelo-opcoes">
+            <h1 class="titulo-pagina pequeno">Palavras decorativas</h1>
+            <label class="campo">
+              <span>Estilo</span>
+              <select id="pl-modo" class="seletor largo-total">
+                <option value="placa">Placa (texto em relevo sobre base)</option>
+                <option value="letreiro">Letreiro (letras unidas, para ficar em pé)</option>
+              </select>
+            </label>
+            <div class="pl-linha">
+              <div class="entrada"><input id="pl-texto-1" maxlength="30" value="Lar" aria-label="Linha 1" placeholder="Linha 1" autocomplete="off" /></div>
+              <select id="pl-fonte-1" class="seletor" aria-label="Fonte da linha 1"></select>
+              <div class="entrada"><input id="pl-altura-1" inputmode="decimal" value="20" aria-label="Altura da linha 1" /><em>mm</em></div>
+            </div>
+            <div class="pl-linha">
+              <div class="entrada"><input id="pl-texto-2" maxlength="30" value="doce lar" aria-label="Linha 2" placeholder="Linha 2 (opcional)" autocomplete="off" /></div>
+              <select id="pl-fonte-2" class="seletor" aria-label="Fonte da linha 2"></select>
+              <div class="entrada"><input id="pl-altura-2" inputmode="decimal" value="12" aria-label="Altura da linha 2" /><em>mm</em></div>
+            </div>
+            <div class="pl-linha">
+              <div class="entrada"><input id="pl-texto-3" maxlength="30" aria-label="Linha 3" placeholder="Linha 3 (opcional)" autocomplete="off" /></div>
+              <select id="pl-fonte-3" class="seletor" aria-label="Fonte da linha 3"></select>
+              <div class="entrada"><input id="pl-altura-3" inputmode="decimal" value="10" aria-label="Altura da linha 3" /><em>mm</em></div>
+            </div>
+            <div class="linha">
+              <label class="campo">
+                <span id="pl-rotulo-espessura">Espessura da placa</span>
+                <div class="entrada"><input id="pl-espessura" inputmode="decimal" value="3" /><em>mm</em></div>
+              </label>
+              <label class="campo" id="campo-pl-relevo">
+                <span>Relevo</span>
+                <div class="entrada"><input id="pl-relevo" inputmode="decimal" value="2" /><em>mm</em></div>
+              </label>
+            </div>
+            <label class="campo">
+              <span>Espaço entre linhas</span>
+              <div class="entrada"><input id="pl-espaco" inputmode="decimal" value="4" /><em>mm</em></div>
+            </label>
+            <div class="linha">
+              <label class="campo cor">
+                <span id="pl-rotulo-cor-base">Cor da placa</span>
+                <input type="color" id="pl-cor-base" value="#1f2937" />
+              </label>
+              <label class="campo cor">
+                <span id="pl-rotulo-cor-texto">Cor do texto</span>
+                <input type="color" id="pl-cor-texto" value="#f8fafc" />
+              </label>
+            </div>
+            <p class="erro" id="pl-erro" role="alert"></p>
+          </aside>
+          <section class="painel modelo-previa">
+            <div class="palco-modelo" id="pl-palco"></div>
+            <div class="modelo-rodape">
+              <span class="cliente-sub" id="pl-medidas"></span>
+              <div class="acoes-form">
+                <button class="botao-secundario" id="pl-stl" type="button" disabled>Salvar STL</button>
+                <button class="botao-secundario" id="pl-3mf" type="button" disabled>Salvar 3MF (2 cores)</button>
+                <button class="botao-primario" id="pl-fatiador" type="button" disabled>Abrir no fatiador</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
     <dialog class="dialogo dialogo-medio" id="dialogo-fatiador" aria-labelledby="titulo-dialogo-fatiador">
       <header class="dialogo-topo">
         <h2 id="titulo-dialogo-fatiador">Meu fatiador</h2>

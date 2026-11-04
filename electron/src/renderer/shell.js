@@ -19,6 +19,8 @@ const TELAS = {
   detector: { elemento: "tela-detector" },
   stl: { elemento: "tela-stl" },
   chaveiro: { elemento: "tela-chaveiro" },
+  logo: { elemento: "tela-logo" },
+  palavras: { elemento: "tela-palavras" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },

@@ -5,7 +5,7 @@ import * as THREE from "three";
 // ---------- Contornos ----------
 // Tira pontos repetidos seguidos e o ponto final igual ao inicial (geram triângulos degenerados
 // e deixam a malha com arestas abertas).
-function limparPontos(pts, tolerancia = 1e-6) {
+export function limparPontos(pts, tolerancia = 1e-6) {
   const limpos = [];
   for (const p of pts) {
     const ultimo = limpos[limpos.length - 1];
@@ -50,6 +50,35 @@ function poligonosDoCaminho(caminho, segmentosCurva = 8) {
   }
   fechar();
   return poligonos;
+}
+
+// Remove pontos alinhados com os vizinhos, inclusive "espinhos" (o contorno vai e volta pelo mesmo
+// caminho), que geram paredes sobrepostas e deixam a malha aberta. Comum em contornos vetorizados.
+export function simplificarContorno(pts, tolerancia = 1e-4) {
+  let lista = limparPontos(pts, tolerancia);
+  let mudou = true;
+  while (mudou && lista.length > 3) {
+    mudou = false;
+    const nova = [];
+    for (let i = 0; i < lista.length; i++) {
+      const a = nova.length ? nova[nova.length - 1] : lista[lista.length - 1];
+      const b = lista[i];
+      const c = lista[(i + 1) % lista.length];
+      const abx = b.x - a.x;
+      const aby = b.y - a.y;
+      const bcx = c.x - b.x;
+      const bcy = c.y - b.y;
+      const cruz = abx * bcy - aby * bcx;
+      const escala = Math.hypot(abx, aby) * Math.hypot(bcx, bcy);
+      if (Math.abs(cruz) <= tolerancia * Math.max(escala, 1e-12)) {
+        mudou = true; // b está na reta de a até c (ou é a ponta de um espinho): sai
+        continue;
+      }
+      nova.push(b);
+    }
+    lista = limparPontos(nova, tolerancia);
+  }
+  return lista;
 }
 
 const areaComSinal = (pts) => {
@@ -167,6 +196,62 @@ export function baseComArgola(caixa, { margem = 3, furo = 4.5, parede = 2.5, rai
   forma.holes.push(buraco);
 
   return { forma, caixa: { minX: esquerda - metade, maxX: direita, minY: cy - metade, maxY: cy + metade } };
+}
+
+// Disco em volta do conteúdo, com o furo da argola dentro da borda de cima.
+// raioDoConteudo (opcional): distância do centro ao ponto mais afastado do conteúdo. Sem ele, usa
+// a meia diagonal da caixa (que sobra bastante em conteúdos redondos).
+export function baseCircularComArgola(caixa, { margem = 3, furo = 4.5, parede = 2, raioDoConteudo } = {}) {
+  const cx = (caixa.minX + caixa.maxX) / 2;
+  const cy = (caixa.minY + caixa.maxY) / 2;
+  const raioConteudo = (raioDoConteudo ?? Math.hypot(caixa.maxX - caixa.minX, caixa.maxY - caixa.minY) / 2) + margem;
+  const raio = raioConteudo + furo + 2 * parede;
+  const forma = new THREE.Shape();
+  forma.absarc(cx, cy, raio, 0, Math.PI * 2, false);
+  const buraco = new THREE.Path();
+  buraco.absarc(cx, cy + raioConteudo + parede + furo / 2, furo / 2, 0, Math.PI * 2, true);
+  forma.holes.push(buraco);
+  return { forma, caixa: { minX: cx - raio, maxX: cx + raio, minY: cy - raio, maxY: cy + raio } };
+}
+
+// Placa de cantos arredondados em volta do conteúdo (sem argola).
+export function placaArredondada(caixa, { margem = 4, raio = 4 } = {}) {
+  const x0 = caixa.minX - margem;
+  const x1 = caixa.maxX + margem;
+  const y0 = caixa.minY - margem;
+  const y1 = caixa.maxY + margem;
+  const r = Math.min(raio, (x1 - x0) / 2, (y1 - y0) / 2);
+  const forma = new THREE.Shape();
+  forma.moveTo(x0 + r, y0);
+  forma.lineTo(x1 - r, y0);
+  forma.quadraticCurveTo(x1, y0, x1, y0 + r);
+  forma.lineTo(x1, y1 - r);
+  forma.quadraticCurveTo(x1, y1, x1 - r, y1);
+  forma.lineTo(x0 + r, y1);
+  forma.quadraticCurveTo(x0, y1, x0, y1 - r);
+  forma.lineTo(x0, y0 + r);
+  forma.quadraticCurveTo(x0, y0, x0 + r, y0);
+  return { forma, caixa: { minX: x0, maxX: x1, minY: y0, maxY: y1 } };
+}
+
+// Retângulo simples (barra de ligação das letras).
+export function retangulo(x0, y0, x1, y1) {
+  const forma = new THREE.Shape();
+  forma.moveTo(x0, y0);
+  forma.lineTo(x1, y0);
+  forma.lineTo(x1, y1);
+  forma.lineTo(x0, y1);
+  forma.lineTo(x0, y0);
+  return forma;
+}
+
+// Move os pontos de formas (e furos) no plano.
+export function moverFormas(formas, dx, dy) {
+  return formas.map((f) => {
+    const nova = new THREE.Shape(f.getPoints(12).map((p) => new THREE.Vector2(p.x + dx, p.y + dy)));
+    nova.holes = f.holes.map((h) => new THREE.Path(h.getPoints(12).map((p) => new THREE.Vector2(p.x + dx, p.y + dy))));
+    return nova;
+  });
 }
 
 // ---------- Extrusão ----------

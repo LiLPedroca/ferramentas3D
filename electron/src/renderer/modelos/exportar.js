@@ -5,7 +5,7 @@ import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 // partes: [{ nome, cor: "#rrggbb", geometria: THREE.BufferGeometry }]
 export function gerarStl(partes) {
-  const triangulos = partes.reduce((s, p) => s + (p.geometria.index ? p.geometria.index.count : p.geometria.attributes.position.count) / 3, 0);
+  const triangulos = partes.reduce((s, p) => s + malhaIndexada(p.geometria).index.count / 3, 0);
   const buffer = new ArrayBuffer(84 + 50 * triangulos);
   const visao = new DataView(buffer);
   const cabecalho = "Programa Ferramentas 3D";
@@ -13,7 +13,8 @@ export function gerarStl(partes) {
   visao.setUint32(80, triangulos, true);
   let o = 84;
   for (const { geometria } of partes) {
-    const g = geometria.index ? geometria.toNonIndexed() : geometria;
+    // mesma malha corrigida do 3MF, em triângulos soltos
+    const g = malhaIndexada(geometria).toNonIndexed();
     const pos = g.attributes.position;
     for (let i = 0; i < pos.count; i += 3) {
       const a = [pos.getX(i), pos.getY(i), pos.getZ(i)];
@@ -43,7 +44,72 @@ export function malhaIndexada(geometria) {
   const solta = geometria.index ? geometria.toNonIndexed() : geometria;
   const soPosicao = new BufferGeometry();
   soPosicao.setAttribute("position", solta.attributes.position.clone());
-  return mergeVertices(soPosicao, 1e-4);
+  const unida = mergeVertices(soPosicao, 1e-4);
+  const indices = corrigirJuncoesT(unida.attributes.position, Array.from(unida.index.array));
+  unida.setIndex(indices);
+  return unida;
+}
+
+// Junção em T: um vértice cai no meio da aresta de outro triângulo (acontece quando um furo encosta
+// na borda do contorno). Divide esse triângulo em leque pelos vértices da aresta, fechando a malha.
+export function corrigirJuncoesT(pos, indices, tolerancia = 1e-4) {
+  const ponto = (i) => [pos.getX(i), pos.getY(i), pos.getZ(i)];
+  for (let rodada = 0; rodada < 8; rodada++) {
+    const contagem = new Map();
+    const chave = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+    for (let t = 0; t < indices.length; t += 3) {
+      for (let k = 0; k < 3; k++) {
+        const c = chave(indices[t + k], indices[t + ((k + 1) % 3)]);
+        contagem.set(c, (contagem.get(c) ?? 0) + 1);
+      }
+    }
+    const abertas = [...contagem.entries()].filter(([, n]) => n === 1).map(([c]) => c.split("-").map(Number));
+    if (abertas.length === 0) return indices;
+    const candidatos = [...new Set(abertas.flat())];
+
+    // para cada aresta aberta, os vértices que caem dentro dela (ordenados ao longo da aresta)
+    const divisoes = new Map();
+    for (const [a, b] of abertas) {
+      const pa = ponto(a);
+      const pb = ponto(b);
+      const d = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]];
+      const comp2 = d[0] ** 2 + d[1] ** 2 + d[2] ** 2;
+      if (comp2 < tolerancia ** 2) continue;
+      const dentro = [];
+      for (const v of candidatos) {
+        if (v === a || v === b) continue;
+        const pv = ponto(v);
+        const w = [pv[0] - pa[0], pv[1] - pa[1], pv[2] - pa[2]];
+        const t = (w[0] * d[0] + w[1] * d[1] + w[2] * d[2]) / comp2;
+        if (t <= 1e-6 || t >= 1 - 1e-6) continue;
+        const dist2 = (w[0] - t * d[0]) ** 2 + (w[1] - t * d[1]) ** 2 + (w[2] - t * d[2]) ** 2;
+        if (dist2 <= tolerancia ** 2) dentro.push([t, v]);
+      }
+      if (dentro.length) divisoes.set(chave(a, b), { a, b, meio: dentro.sort((x, y) => x[0] - y[0]).map(([, v]) => v) });
+    }
+    if (divisoes.size === 0) return indices;
+
+    const novos = [];
+    for (let t = 0; t < indices.length; t += 3) {
+      const tri = [indices[t], indices[t + 1], indices[t + 2]];
+      let dividido = false;
+      for (let k = 0; k < 3 && !dividido; k++) {
+        const u = tri[k];
+        const v = tri[(k + 1) % 3];
+        const oposto = tri[(k + 2) % 3];
+        const div = divisoes.get(chave(u, v));
+        if (!div) continue;
+        // mantém o sentido do triângulo: percorre de u para v
+        const meio = div.a === u ? div.meio : [...div.meio].reverse();
+        const caminho = [u, ...meio, v];
+        for (let i = 0; i < caminho.length - 1; i++) novos.push(caminho[i], caminho[i + 1], oposto);
+        dividido = true;
+      }
+      if (!dividido) novos.push(...tri);
+    }
+    indices = novos;
+  }
+  return indices;
 }
 
 function malhaXml(geometria) {

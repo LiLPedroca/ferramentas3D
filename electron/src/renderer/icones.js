@@ -19,6 +19,8 @@ const P = {
   organizador: '<path d="M8 3h8l4 4v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M4 7v12a2 2 0 0 0 2 2h9M10 12h6M10 15.5h4"/>',
   backup: '<path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8.5 4 4 0 0 1 17.5 18"/><path d="M12 12v8M9 15l3-3 3 3"/>',
   busca: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  logo: '<circle cx="12" cy="13" r="7.5"/><circle cx="12" cy="4.5" r="1.6"/><path d="M9 14.5 11 11l2 3 1.2-1.6L16 15H8"/>',
+  palavras: '<path d="M4 6h16M8 6v13M16 10v9M13 10h6M6 19h4"/>',
   chaveiro: '<circle cx="6.5" cy="12" r="2.2"/><path d="M4 8.5h13a3.5 3.5 0 0 1 0 7H4a3.5 3.5 0 0 1 0-7Z"/><path d="M11 12h5"/>',
   stl: '<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z"/><circle cx="12" cy="12" r="3.2"/><path d="m14.4 14.4 2.6 2.6"/>',
   detector: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/><path d="M10.5 7.5v2M10.5 11.5v2M7.5 10.5h2M11.5 10.5h2"/>',
