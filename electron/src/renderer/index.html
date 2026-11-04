@@ -28,9 +28,14 @@
         <span class="trilha-atual" id="titulo-tela"></span>
       </div>
 
-      <button class="tema" id="alternar-tema" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema">
-        <span id="icone-tema" aria-hidden="true">☾</span>
-      </button>
+      <div class="acoes-topo">
+        <button class="tema" id="verificar-atualizacao" type="button" aria-label="Verificar atualizações" title="Verificar atualizações">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20.5V16h-4.5"/></svg>
+        </button>
+        <button class="tema" id="alternar-tema" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema">
+          <span id="icone-tema" aria-hidden="true">☾</span>
+        </button>
+      </div>
     </header>
 
     <main class="tela inicio" id="tela-inicio">
@@ -290,6 +295,13 @@
         <button type="button" class="botao-secundario" id="confirmar-nao">Cancelar</button>
         <button type="button" class="botao-perigo" id="confirmar-sim">Excluir</button>
       </div>
+    </dialog>
+
+    <dialog class="dialogo dialogo-pequeno dialogo-mensagem" id="dialogo-atualizacao" aria-labelledby="atualizacao-titulo" aria-describedby="atualizacao-texto">
+      <span class="mensagem-icone" id="atualizacao-icone" aria-hidden="true"></span>
+      <h2 id="atualizacao-titulo"></h2>
+      <p id="atualizacao-texto"></p>
+      <button type="button" class="botao-primario" id="atualizacao-ok">Ok</button>
     </dialog>
 
     <div class="aviso" id="aviso" role="status" aria-live="polite"></div>

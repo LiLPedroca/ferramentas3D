@@ -37,13 +37,15 @@ function criarJanela() {
   return janela;
 }
 
-function configurarAtualizacao(janela) {
-  if (!autoUpdater) return;
+// ---------- Atualização ----------
+// estado: "parada" | "baixando" | "pronta". Evita perguntar de novo ou baixar duas vezes.
+const atualizacao = { estado: "parada", perguntando: false, janela: null };
 
-  autoUpdater.autoDownload = false;
-
-  autoUpdater.on("update-available", async (info) => {
-    const { response } = await dialog.showMessageBox(janela, {
+async function perguntarSeAtualiza(info) {
+  if (atualizacao.estado !== "parada" || atualizacao.perguntando) return;
+  atualizacao.perguntando = true;
+  try {
+    const { response } = await dialog.showMessageBox(atualizacao.janela, {
       type: "info",
       buttons: ["Atualizar agora", "Depois"],
       defaultId: 0,
@@ -52,11 +54,22 @@ function configurarAtualizacao(janela) {
       message: `Existe a versão ${info.version} (você tem a ${app.getVersion()}).`,
       detail: "A atualização é baixada e instalada. O programa reabre sozinho.",
     });
-    if (response === 0) autoUpdater.downloadUpdate().catch(() => {});
-  });
+    if (response === 0) {
+      atualizacao.estado = "baixando";
+      autoUpdater.downloadUpdate().catch(() => {
+        atualizacao.estado = "parada";
+      });
+    }
+  } finally {
+    atualizacao.perguntando = false;
+  }
+}
 
-  autoUpdater.on("update-downloaded", async () => {
-    const { response } = await dialog.showMessageBox(janela, {
+async function perguntarSeReinicia() {
+  if (atualizacao.perguntando) return;
+  atualizacao.perguntando = true;
+  try {
+    const { response } = await dialog.showMessageBox(atualizacao.janela, {
       type: "info",
       buttons: ["Reiniciar e instalar", "Mais tarde"],
       defaultId: 0,
@@ -66,13 +79,52 @@ function configurarAtualizacao(janela) {
       detail: "Reinicie o programa para concluir a instalação.",
     });
     if (response === 0) autoUpdater.quitAndInstall();
+  } finally {
+    atualizacao.perguntando = false;
+  }
+}
+
+function configurarAtualizacao(janela, { verificarAoAbrir = true } = {}) {
+  atualizacao.janela = janela;
+  if (!autoUpdater) return;
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.on("update-available", perguntarSeAtualiza);
+  autoUpdater.on("update-downloaded", () => {
+    atualizacao.estado = "pronta";
+    perguntarSeReinicia();
+  });
+  // Erros de rede não interrompem o uso: a próxima verificação tenta de novo.
+  autoUpdater.on("error", (erro) => {
+    if (atualizacao.estado === "baixando") atualizacao.estado = "parada";
+    console.error("Atualização:", erro?.message ?? erro);
   });
 
-  // Erros de rede não devem incomodar o usuário: a verificação tenta de novo na próxima abertura.
-  autoUpdater.on("error", (erro) => console.error("Atualização:", erro?.message ?? erro));
-
-  autoUpdater.checkForUpdates().catch(() => {});
+  if (verificarAoAbrir) autoUpdater.checkForUpdates().catch(() => {});
 }
+
+// Botão "Verificar atualizações". Se houver versão nova, a pergunta de sempre aparece.
+// estado devolvido: "atualizado" | "disponivel" | "baixando" | "pronta" | "indisponivel" | "erro"
+async function verificarManualmente() {
+  if (!autoUpdater) return { estado: "indisponivel" };
+  if (atualizacao.estado === "baixando") return { estado: "baixando" };
+  if (atualizacao.estado === "pronta") {
+    perguntarSeReinicia();
+    return { estado: "pronta" };
+  }
+  try {
+    const resultado = await autoUpdater.checkForUpdates();
+    if (!resultado) return { estado: "indisponivel" };
+    const versao = resultado.updateInfo?.version;
+    const disponivel = resultado.isUpdateAvailable ?? (Boolean(versao) && versao !== app.getVersion());
+    return disponivel ? { estado: "disponivel", versao } : { estado: "atualizado", versao: app.getVersion() };
+  } catch {
+    return { estado: "erro" };
+  }
+}
+
+// Só aceita chamadas vindas das páginas do próprio programa.
+const daTela = (evento) => evento.senderFrame?.url?.startsWith("file://");
 
 // Dados do usuário ficam em %APPDATA%\Programa Ferramentas 3D\dados.
 // FERRAMENTAS_DADOS troca a pasta (usado nos testes, para não tocar nos dados reais).
@@ -80,9 +132,9 @@ function registrarDados() {
   const pasta = process.env.FERRAMENTAS_DADOS || path.join(app.getPath("userData"), "dados");
   const produtos = criarServicoProdutos(pasta);
 
-  // Só aceita chamadas vindas das páginas do próprio programa.
-  const daTela = (evento) => evento.senderFrame?.url?.startsWith("file://");
   const negado = { ok: false, erro: "Origem não autorizada." };
+
+  ipcMain.handle("atualizacao:verificar", (e) => (daTela(e) ? verificarManualmente() : { estado: "erro" }));
 
   ipcMain.handle("produtos:listar", (e) => (daTela(e) ? responder(produtos.listar()) : negado));
   ipcMain.handle("produtos:salvar", (e, valores, id) =>
@@ -101,6 +153,7 @@ app.whenReady().then(() => {
     janela.show();
     // Modo de teste: tira uma captura da tela em PNG e fecha. Não é usado no dia a dia.
     if (process.env.FERRAMENTAS_CAPTURA) {
+      configurarAtualizacao(janela, { verificarAoAbrir: false }); // o botão funciona, sem checar sozinho
       const fs = require("node:fs");
       const altura = Number(process.env.FERRAMENTAS_ALTURA) || 0;
       const largura = Number(process.env.FERRAMENTAS_LARGURA) || 0;

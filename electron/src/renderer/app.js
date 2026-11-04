@@ -77,6 +77,47 @@ function irPara(tela) {
 }
 window.irPara = irPara; // usado também pelo modo de captura de tela dos testes
 
+// ---------- Verificar atualizações ----------
+const ICONE_OK = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const ICONE_ALERTA = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.5v6M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+const ICONE_BAIXANDO = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>';
+
+const MENSAGENS_ATUALIZACAO = {
+  atualizado: (r) => ["ok", ICONE_OK, "Tudo atualizado", `Você está na versão mais recente (${r.versao}).`],
+  baixando: () => ["info", ICONE_BAIXANDO, "Atualização em andamento", "A nova versão está sendo baixada. Quando terminar, o programa avisa."],
+  indisponivel: () => ["alerta", ICONE_ALERTA, "Verificação indisponível", "A verificação de atualizações só funciona no programa instalado."],
+  erro: () => ["alerta", ICONE_ALERTA, "Não foi possível verificar", "Confira sua conexão com a internet e tente de novo."],
+};
+
+function mostrarMensagemAtualizacao(resultado) {
+  const montar = MENSAGENS_ATUALIZACAO[resultado.estado];
+  if (!montar) return; // "disponivel" e "pronta": o próprio programa já abre a pergunta de atualizar.
+  const [tipo, svg, titulo, texto] = montar(resultado);
+  const icone = $("atualizacao-icone");
+  icone.className = `mensagem-icone ${tipo}`;
+  icone.innerHTML = svg;
+  $("atualizacao-titulo").textContent = titulo;
+  $("atualizacao-texto").textContent = texto;
+  $("dialogo-atualizacao").showModal();
+  $("atualizacao-ok").focus();
+}
+
+$("verificar-atualizacao").addEventListener("click", async () => {
+  const botao = $("verificar-atualizacao");
+  if (botao.disabled) return;
+  botao.disabled = true;
+  botao.classList.add("girando");
+  try {
+    mostrarMensagemAtualizacao(await window.atualizacao.verificar());
+  } catch {
+    mostrarMensagemAtualizacao({ estado: "erro" });
+  } finally {
+    botao.disabled = false;
+    botao.classList.remove("girando");
+  }
+});
+$("atualizacao-ok").addEventListener("click", () => $("dialogo-atualizacao").close());
+
 $("ir-inicio").addEventListener("click", () => irPara("inicio"));
 $("voltar").addEventListener("click", () => irPara("inicio"));
 

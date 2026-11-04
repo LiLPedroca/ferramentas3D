@@ -1125,6 +1125,77 @@ textarea:focus {
   padding: 8px 0 18px;
 }
 
+/* Botões do topo (atualização e tema) */
+.acoes-topo {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.acoes-topo .tema {
+  display: grid;
+  place-items: center;
+  margin-left: 0;
+}
+
+.tema:hover {
+  border-color: var(--acento);
+  color: var(--acento-forte);
+}
+
+.tema:disabled {
+  cursor: progress;
+}
+
+.girando svg {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mensagem centralizada (ex.: "você está na versão mais recente") */
+.dialogo-mensagem {
+  width: min(380px, calc(100vw - 40px));
+  padding: 30px 28px 24px;
+  text-align: center;
+}
+
+.dialogo-mensagem h2 {
+  margin: 14px 0 6px;
+  font-size: 19px;
+}
+
+.dialogo-mensagem p {
+  margin: 0 0 22px;
+}
+
+.dialogo-mensagem .botao-primario {
+  justify-content: center;
+  min-width: 120px;
+}
+
+.mensagem-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--cor-mensagem, var(--verde)) 15%, transparent);
+  color: var(--cor-mensagem, var(--verde));
+}
+
+.mensagem-icone.alerta {
+  --cor-mensagem: #e8a93a;
+}
+
+.mensagem-icone.info {
+  --cor-mensagem: var(--acento-forte);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
