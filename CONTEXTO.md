@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.17.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.18.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -133,6 +133,9 @@ O Pedro pediu "fidelidade máxima" (o imagetracer distorcia no zoom e às vezes 
 - Tela `palavras-tela.js` no padrão dos chaveiros (abas Texto/Estilo/Cores, janela de fontes por linha, paletas, Estrutura, 2D/3D, zoom). Base no filamento 1, texto/letras no 2.
 - Peças de tela comuns em `renderer/modelos-ui.js`: `PALETA`, `criarPaleta`, `marcarPaleta`, `escolherFonte` (janela de fontes, devolve uma Promise com o id), `mostrarFonte`; `iniciarModelosUi()` no `app.js`. A prévia 2D (`previa2d.js`) aceita modelo sem argola.
 - **Cuidado com o PowerShell 5.1**: `Get-Content`/`Set-Content` leem/gravam em ANSI e corrompem acentos (aconteceu no CONTEXTO.md e no package.json na v0.16.0; corrigido). Editar arquivos só com as ferramentas de edição, nunca por PowerShell.
+
+## Logo sem moldura (v0.18.0, 04/11/2026)
+Pedido do Pedro: no Chaveiro de logo, nada de moldura; a peça segue exatamente o contorno do logo, com a argola posicionável. Agora a borda padrão é 0 (limite 0 a 8; "Borda em volta" na Estrutura para quem quiser margem). No estilo Contorno, a base usa só os contornos externos do logo: vazados de dentro (ex.: texto branco removido como fundo) ficam preenchidos e aparecem na cor da base; partes soltas ganham pontes. Círculo e Retangular continuam como opção.
 
 Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.
 

@@ -4,13 +4,13 @@
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { simplificarContorno } from "./geometria.js";
-import { comEscopo, malhaDoSolido, prenderArgola, resolverLargura, unirIlhas } from "./manifold.js";
+import { areaComSinal, comEscopo, malhaDoSolido, prenderArgola, resolverLargura, unirIlhas } from "./manifold.js";
 
 export const ESTILOS_LOGO = ["contorno", "circulo", "retangular"];
 
 export const PADRAO_LOGO = {
   largura: 50,
-  borda: 2.4,
+  borda: 0, // 0 = a base segue exatamente o contorno do logo
   base: 2.4,
   relevo: 1.2,
   furo: 4,
@@ -20,7 +20,7 @@ export const PADRAO_LOGO = {
   corBase: "#ffffff",
 };
 
-export const LIMITES_LOGO = { largura: [20, 150], borda: [1.2, 8], base: [1.2, 8], relevo: [0.4, 5], furo: [3, 8], parede: [1.6, 5] };
+export const LIMITES_LOGO = { largura: [20, 150], borda: [0, 8], base: [1.2, 8], relevo: [0.4, 5], furo: [3, 8], parede: [1.6, 5] };
 const NOMES = { largura: "Largura total", borda: "Borda", base: "Base", relevo: "Relevo", furo: "Furo da argola", parede: "Parede da argola" };
 const virgula = (n) => String(n).replace(".", ",");
 
@@ -134,7 +134,11 @@ export function gerarLogo(M, svgOuCores, entrada) {
 
       let base;
       if (o.estilo === "contorno") {
-        base = unirIlhas(M, guardar, guardar(arte.offset(o.borda, "Round", 2, 64)), Math.max(2.4, o.borda * 1.4));
+        // segue o contorno do logo (borda 0 = exatamente o logo, sem moldura). Os vazados de dentro
+        // são preenchidos pela base (aparecem na cor dela); partes soltas ganham pontes.
+        const contorno = o.borda > 0 ? guardar(arte.offset(o.borda, "Round", 2, 64)) : arte;
+        const externos = contorno.toPolygons().filter((laco) => areaComSinal(laco) > 0);
+        base = unirIlhas(M, guardar, guardar(new C(externos, "NonZero")), Math.max(2.4, o.borda * 1.4));
       } else if (o.estilo === "circulo") {
         let raio = 0;
         for (const laco of arte.toPolygons()) for (const p of laco) raio = Math.max(raio, Math.hypot(p[0] - meio[0], p[1] - meio[1]));
@@ -159,7 +163,7 @@ export function gerarLogo(M, svgOuCores, entrada) {
     const chute = Math.max(5, o.largura - 2 * o.borda - 2 * (o.furo / 2 + o.parede));
     const r = resolverLargura(o.largura, chute, gerarCom);
     const avisos = [];
-    if (o.base < 1.6 || o.borda < 1.6 || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
+    if (o.base < 1.6 || (o.borda > 0 && o.borda < 1.6) || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
     const malhas = [
       { nome: "Base e argola", cor: o.corBase, ...malhaDoSolido(guardar(r.base.extrude(o.base)), "base") },
       ...r.partes.map((p, i) => ({

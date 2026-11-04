@@ -55,6 +55,35 @@ describe("chaveiro de logo", () => {
     }
   });
 
+  it("contorno sem moldura: a base segue exatamente o logo (só a argola sobra, em cima)", () => {
+    const r = gerarLogo(M, cores, {}); // padrão: contorno, borda 0
+    const limites = (lacos) => {
+      const pts = lacos.flat();
+      return {
+        x: [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0]))],
+        y: [Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1]))],
+      };
+    };
+    const base = limites(r.camadas[0].lacos);
+    const logo = limites(r.camadas.slice(1).flatMap((c) => c.lacos));
+    expect(base.x[0]).toBeCloseTo(logo.x[0], 2);
+    expect(base.x[1]).toBeCloseTo(logo.x[1], 2);
+    expect(base.y[0]).toBeCloseTo(logo.y[0], 2);
+    expect(base.y[1]).toBeGreaterThan(logo.y[1]); // a argola
+    // vazados de dentro (o "3D") ficam preenchidos: a base não tem furos além do da argola
+    const furos = r.camadas[0].lacos.filter((l) => {
+      let s = 0;
+      for (let i = 0; i < l.length; i++) s += l[i][0] * l[(i + 1) % l.length][1] - l[(i + 1) % l.length][0] * l[i][1];
+      return s < 0;
+    });
+    expect(furos).toHaveLength(1);
+  });
+
+  it("borda em volta continua possível", () => {
+    const r = gerarLogo(M, cores, { borda: 3 });
+    expect(r.dimensoes[0]).toBeCloseTo(50, 1);
+  });
+
   it("aceita o texto SVG direto", () => {
     expect(gerarLogo(M, svg, { estilo: "circulo" }).malhas.length).toBeGreaterThan(1);
   });
