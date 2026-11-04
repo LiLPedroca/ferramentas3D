@@ -102,15 +102,17 @@ export function gerarLogo(M, svgOuCores, entrada) {
   const cores = typeof svgOuCores === "string" ? coresDoSvg(svgOuCores) : svgOuCores;
   const C = M.CrossSection;
   return comEscopo(M, (guardar) => {
-    // cada cor como uma seção (arte com 100 de largura); cores de cima não cobrem as anteriores
+    // cada cor como uma seção (arte com 100 de largura). Como no SVG, o que vem depois fica por
+    // cima: a parte visível de uma cor é ela menos as cores seguintes (o vetorizador empilha camadas).
     let acumulado = null;
     const secoes = [];
-    for (const { cor, formas } of cores) {
+    for (const { cor, formas } of [...cores].reverse()) {
       if (!formas.length) continue;
       let secao = guardar(C.union(formas.map((lacos) => guardar(new C(lacos, "EvenOdd")))));
+      const inteira = secao;
       if (acumulado) secao = guardar(secao.subtract(acumulado));
-      acumulado = acumulado ? guardar(acumulado.add(secao)) : secao;
-      secoes.push({ cor, secao });
+      acumulado = acumulado ? guardar(acumulado.add(inteira)) : inteira;
+      secoes.unshift({ cor, secao });
     }
     if (!secoes.length) throw new Error("A imagem ficou vazia depois da conversão. Tente outra imagem ou desligue a remoção de fundo.");
 
