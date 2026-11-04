@@ -35,59 +35,22 @@
 
     <main class="tela inicio" id="tela-inicio">
       <div class="inicio-conteudo">
-        <section class="hero">
-          <div class="hero-texto">
-            <p class="sobretitulo">Seu estúdio de impressão 3D</p>
+        <div class="inicio-topo">
+          <div>
             <h1 class="saudacao" id="saudacao">Olá</h1>
-            <p class="hero-descricao">Calcule preços e confira modelos. Em breve: orçamentos, clientes e estoque, no mesmo lugar.</p>
-          </div>
-          <button class="botao-primario" id="atalho-calculadora" type="button">
-            Calcular um preço
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
-        </section>
-
-        <section class="resumo" aria-label="Resumo">
-          <div class="cartao-resumo">
-            <span>Prontas para usar</span>
-            <strong id="qtd-disponiveis">0</strong>
-            <small>ferramentas disponíveis</small>
-          </div>
-          <div class="cartao-resumo">
-            <span>Em desenvolvimento</span>
-            <strong id="qtd-em-breve">0</strong>
-            <small>chegam por atualização automática</small>
-          </div>
-          <div class="cartao-resumo">
-            <span>Versão instalada</span>
-            <strong id="versao-resumo">—</strong>
-            <small>atualiza sozinho pelo GitHub</small>
-          </div>
-        </section>
-
-        <div class="barra-ferramentas">
-          <div class="filtros" role="group" aria-label="Filtrar ferramentas">
-            <button class="filtro ativo" type="button" data-filtro="todas" aria-pressed="true">Todas <span id="cont-todas"></span></button>
-            <button class="filtro" type="button" data-filtro="disponiveis" aria-pressed="false">Disponíveis <span id="cont-disponiveis"></span></button>
-            <button class="filtro" type="button" data-filtro="em-breve" aria-pressed="false">Em breve <span id="cont-em-breve"></span></button>
+            <p class="inicio-sub">O que vamos fazer hoje?</p>
           </div>
           <label class="busca">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-            <input id="busca" type="search" placeholder="Buscar ferramentas…" aria-label="Buscar ferramentas" autocomplete="off" />
+            <input id="busca" type="search" placeholder="Buscar ferramenta…" aria-label="Buscar ferramenta" autocomplete="off" />
             <kbd>Ctrl K</kbd>
           </label>
         </div>
 
         <section class="secao" id="secao-disponiveis" aria-labelledby="titulo-disponiveis">
-          <h2 class="titulo-secao" id="titulo-disponiveis">Prontas para usar</h2>
+          <h2 class="titulo-secao" id="titulo-disponiveis">Ferramentas</h2>
           <div class="grade grade-prontas" id="grade-disponiveis"></div>
         </section>
-
-        <section class="secao" id="secao-em-breve" aria-labelledby="titulo-em-breve">
-          <h2 class="titulo-secao" id="titulo-em-breve">Em breve</h2>
-          <div class="grade grade-breve" id="grade-em-breve"></div>
-        </section>
-
         <p class="vazio" id="vazio" hidden>Nenhuma ferramenta encontrada para essa busca.</p>
       </div>
     </main>

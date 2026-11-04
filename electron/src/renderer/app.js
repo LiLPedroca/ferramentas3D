@@ -10,7 +10,7 @@ import {
 } from "../core/calculadora.js";
 import { Racional } from "../core/racional.js";
 import { FERRAMENTAS } from "../core/ferramentas.js";
-import { contarFerramentas, filtrarFerramentas, saudacao } from "../core/inicio.js";
+import { filtrarFerramentas, saudacao } from "../core/inicio.js";
 import { icone } from "./icones.js";
 import { abrirEditor, carregarProdutos, iniciarProdutos } from "./produtos.js";
 import { iniciarVisualizador } from "./viewer3d.js";
@@ -79,7 +79,6 @@ window.irPara = irPara; // usado também pelo modo de captura de tela dos testes
 
 $("ir-inicio").addEventListener("click", () => irPara("inicio"));
 $("voltar").addEventListener("click", () => irPara("inicio"));
-$("atalho-calculadora").addEventListener("click", () => irPara("calculadora"));
 
 // Ctrl+K: volta ao início e foca a busca. Esc na busca limpa o texto.
 document.addEventListener("keydown", (ev) => {
@@ -92,7 +91,6 @@ document.addEventListener("keydown", (ev) => {
 });
 
 // ---------- Tela inicial ----------
-let filtroAtual = "todas";
 let temporizadorAviso = null;
 
 function mostrarAviso(texto) {
@@ -107,10 +105,6 @@ function atualizarSaudacao() {
   $("saudacao").textContent = saudacao(new Date().getHours());
 }
 
-function classeCategoria(categoria) {
-  return `cat-${categoria.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()}`;
-}
-
 function criarElemento(tag, classe, texto) {
   const el = document.createElement(tag);
   if (classe) el.className = classe;
@@ -119,78 +113,32 @@ function criarElemento(tag, classe, texto) {
 }
 
 function cartaoPronto(f) {
-  const cartao = criarElemento("button", `cartao-ferramenta ${classeCategoria(f.categoria)}`);
+  const cartao = criarElemento("button", "cartao-ferramenta");
   cartao.type = "button";
   cartao.setAttribute("aria-label", `Abrir ${f.titulo}`);
 
-  const topo = criarElemento("div", "ferramenta-topo");
   const icon = criarElemento("span", "ferramenta-icone");
-  icon.innerHTML = icone(f.id, 24);
-  topo.append(icon, criarElemento("span", "selo selo-pronta", "Disponível"));
+  icon.innerHTML = icone(f.id, 22);
+  const seta = criarElemento("span", "ferramenta-seta");
+  seta.innerHTML = icone("seta", 18);
 
-  const rodape = criarElemento("div", "ferramenta-rodape");
-  const abrir = criarElemento("span", "abrir", "Abrir ");
-  abrir.insertAdjacentHTML("beforeend", icone("seta", 16));
-  rodape.append(criarElemento("span", "categoria", f.categoria), abrir);
+  const texto = criarElemento("span", "ferramenta-texto");
+  texto.append(criarElemento("span", "ferramenta-titulo", f.titulo), criarElemento("span", "ferramenta-descricao", f.descricao));
 
-  cartao.append(topo, criarElemento("h3", "", f.titulo), criarElemento("p", "", f.descricao), rodape);
+  cartao.append(icon, texto, seta);
   cartao.addEventListener("click", () => irPara(f.tela));
   return cartao;
 }
 
-function cartaoEmBreve(f) {
-  const cartao = criarElemento("button", `cartao-breve ${classeCategoria(f.categoria)}`);
-  cartao.type = "button";
-  cartao.setAttribute("aria-label", `${f.titulo}, em breve`);
-
-  const icon = criarElemento("span", "ferramenta-icone");
-  icon.innerHTML = icone(f.id, 20);
-
-  const texto = criarElemento("span", "breve-texto");
-  const titulo = criarElemento("span", "breve-titulo");
-  titulo.append(criarElemento("span", "", f.titulo), criarElemento("span", "selo selo-breve", "Em breve"));
-  texto.append(titulo, criarElemento("span", "breve-descricao", f.descricao));
-
-  cartao.append(icon, texto);
-  cartao.addEventListener("click", () =>
-    mostrarAviso(`${f.titulo} está em desenvolvimento e chega por uma atualização.`),
-  );
-  return cartao;
-}
-
 function renderizarFerramentas() {
-  const lista = filtrarFerramentas(FERRAMENTAS, { filtro: filtroAtual, busca: $("busca").value });
-  const prontas = lista.filter((f) => f.disponivel);
-  const emBreve = lista.filter((f) => !f.disponivel);
-
+  // Só aparece o que já funciona.
+  const prontas = filtrarFerramentas(FERRAMENTAS, { filtro: "disponiveis", busca: $("busca").value });
   $("grade-disponiveis").replaceChildren(...prontas.map(cartaoPronto));
-  $("grade-em-breve").replaceChildren(...emBreve.map(cartaoEmBreve));
   $("secao-disponiveis").hidden = prontas.length === 0;
-  $("secao-em-breve").hidden = emBreve.length === 0;
-  $("vazio").hidden = lista.length > 0;
+  $("vazio").hidden = prontas.length > 0;
 }
 
 function iniciarHome() {
-  const contagem = contarFerramentas(FERRAMENTAS);
-  $("qtd-disponiveis").textContent = contagem.disponiveis;
-  $("qtd-em-breve").textContent = contagem.emBreve;
-  $("versao-resumo").textContent = __VERSAO__;
-  $("cont-todas").textContent = contagem.total;
-  $("cont-disponiveis").textContent = contagem.disponiveis;
-  $("cont-em-breve").textContent = contagem.emBreve;
-
-  document.querySelectorAll(".filtro").forEach((botao) => {
-    botao.addEventListener("click", () => {
-      filtroAtual = botao.dataset.filtro;
-      document.querySelectorAll(".filtro").forEach((b) => {
-        const ativo = b === botao;
-        b.classList.toggle("ativo", ativo);
-        b.setAttribute("aria-pressed", String(ativo));
-      });
-      renderizarFerramentas();
-    });
-  });
-
   $("busca").addEventListener("input", renderizarFerramentas);
   $("busca").addEventListener("keydown", (ev) => {
     if (ev.key === "Escape") {

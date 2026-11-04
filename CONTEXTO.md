@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.5.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.5.1**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -57,10 +57,14 @@ Toda alteração vira uma release nova, sem pedir confirmação a cada vez:
 - Usar como referência das funcionalidades e da home. Não copiar código sem revisar.
 - A home da versão Codex tem saudação, cards de resumo, busca, filtros e 17 ferramentas (5 disponíveis).
 
-## Home (pronta na v0.4.0)
-- A home é o ponto de entrada. Calculadora e visualizador abrem pelos cards, e a barra "← Início / ferramenta" no topo volta.
-- Saudação pelo horário, resumo (prontas, em desenvolvimento, versão), busca sem acento (Ctrl+K) e filtros (Todas, Disponíveis, Em breve).
-- Catálogo em `electron/src/core/ferramentas.js`: para liberar uma ferramenta, marcar `disponivel: true`, dar uma `tela` e registrar a tela em `TELAS` no `app.js`.
+## Home (redesenhada na v0.5.1)
+- Visual limpo, pedido do Pedro: saudação discreta, busca (Ctrl+K) e cards planos das ferramentas, sem selos, banners, números ou filtros.
+- **Regra: não mostrar nada que ainda não existe** (sem "Em breve", sem placeholders).
+- A barra "← Início / ferramenta" no topo volta para a home.
+- Catálogo em `electron/src/core/ferramentas.js`: só ferramentas prontas. Para adicionar uma, criar a tela, registrar em `TELAS` no `app.js` e incluir no catálogo.
+
+## Ideias para próximas ferramentas (não aparecem no app)
+Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de filamentos, Comparador de custos, Encaixes e tolerâncias, Medidas e escala, Ficha de impressão, Falhas de impressão, Biblioteca de projetos, Conversor SVG, Preparador de fotos, Organizador de arquivos, Backup e restauração.
 - Lógica testada em `electron/src/core/inicio.js`. Ícones em `electron/src/renderer/icones.js`.
 
 ## Produtos (pronto na v0.5.0)

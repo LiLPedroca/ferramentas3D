@@ -102,8 +102,9 @@ app.whenReady().then(() => {
     // Modo de teste: tira uma captura da tela em PNG e fecha. Não é usado no dia a dia.
     if (process.env.FERRAMENTAS_CAPTURA) {
       const fs = require("node:fs");
-      const altura = Number(process.env.FERRAMENTAS_ALTURA);
-      if (altura > 0) janela.setSize(1180, altura);
+      const altura = Number(process.env.FERRAMENTAS_ALTURA) || 0;
+      const largura = Number(process.env.FERRAMENTAS_LARGURA) || 0;
+      if (altura > 0 || largura > 0) janela.setSize(largura || 1180, altura || 780);
       setTimeout(async () => {
         const aba = process.env.FERRAMENTAS_ABA;
         if (aba) {
