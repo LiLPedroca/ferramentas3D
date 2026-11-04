@@ -5,6 +5,7 @@ const { criarServicoProdutos, responder } = require("./produtos.cjs");
 const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
+const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
@@ -161,11 +162,12 @@ function registrarDados() {
   // Cadastros em lista: <nome>:listar, <nome>:salvar, <nome>:excluir.
   const clientes = criarServicoClientes(pasta);
   const orcamentos = criarServicoOrcamentos(pasta, { clientes });
-  const cadastros = { clientes, orcamentos };
+  const favoritos = criarServicoFavoritos(pasta);
+  const cadastros = { clientes, orcamentos, favoritos };
 
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
-    colecoes: { produtos, clientes, orcamentos },
+    colecoes: { produtos, clientes, orcamentos, favoritos },
     configuracoes,
     versaoApp: app.getVersion(),
   });

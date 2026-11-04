@@ -674,6 +674,76 @@
       </div>
     </main>
 
+    <main class="tela oculta pagina" id="tela-stl">
+      <div class="pagina-conteudo estreito">
+        <h1 class="titulo-pagina">Caçador de STL</h1>
+        <p class="ajuda md-intro">Pesquise o mesmo modelo em vários sites de uma vez (as buscas abrem no seu navegador) e guarde os links que você gostar. Confira sempre a licença e o preço no site original.</p>
+
+        <form class="painel cartao-config" id="stl-form-busca">
+          <h2>Buscar modelos</h2>
+          <div class="stl-busca">
+            <div class="entrada"><input id="stl-termo" maxlength="120" placeholder="Ex.: vaso espiral, suporte de fone…" autocomplete="off" aria-label="O que você procura" /></div>
+            <button class="botao-primario" type="submit">Buscar</button>
+          </div>
+          <div class="stl-sites" id="stl-sites" role="group" aria-label="Sites da busca"></div>
+        </form>
+
+        <section class="painel cartao-config">
+          <div class="historico-topo">
+            <h2>Favoritos <span class="contagem-texto" id="stl-contagem"></span></h2>
+            <button class="botao-secundario pequeno" id="stl-novo-fav" type="button">+ Adicionar link</button>
+          </div>
+          <div class="stl-filtros">
+            <label class="busca">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="stl-busca-fav" type="search" placeholder="Buscar nos favoritos…" aria-label="Buscar nos favoritos" autocomplete="off" />
+            </label>
+            <select id="stl-filtro-site" class="seletor" aria-label="Filtrar por site"></select>
+          </div>
+          <div class="stl-lista" id="stl-favoritos"></div>
+          <p class="ajuda" id="stl-vazio-fav" hidden>Nenhum favorito ainda. Achou um modelo bom? Copie o link e clique em "+ Adicionar link".</p>
+          <p class="ajuda" id="stl-sem-resultado" hidden>Nenhum favorito encontrado com esse filtro.</p>
+        </section>
+      </div>
+    </main>
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-favorito" aria-labelledby="titulo-dialogo-fav">
+      <form id="form-favorito" novalidate>
+        <header class="dialogo-topo">
+          <h2 id="titulo-dialogo-fav">Novo favorito</h2>
+          <button type="button" class="fechar" id="fechar-fav" aria-label="Fechar">×</button>
+        </header>
+        <div class="dialogo-campos dialogo-corpo-simples">
+          <label class="campo">
+            <span>Link do modelo *</span>
+            <div class="entrada"><input id="fav-url" type="url" maxlength="600" placeholder="https://" autocomplete="off" /></div>
+          </label>
+          <p class="ajuda" id="fav-site"></p>
+          <div class="linha">
+            <label class="campo">
+              <span>Título</span>
+              <div class="entrada"><input id="fav-titulo" maxlength="140" autocomplete="off" /></div>
+            </label>
+            <label class="campo">
+              <span>Preço</span>
+              <select id="fav-preco" class="seletor largo-total"></select>
+            </label>
+          </div>
+          <label class="campo">
+            <span>Observações</span>
+            <textarea id="fav-obs" maxlength="500" rows="3" placeholder="Ex.: imprimir em PETG, sem suporte"></textarea>
+          </label>
+        </div>
+        <p class="erro dialogo-erro" id="erro-fav" role="alert"></p>
+        <footer class="dialogo-rodape">
+          <button type="button" class="botao-texto perigo" id="excluir-fav" hidden>Excluir</button>
+          <span class="espaco"></span>
+          <button type="button" class="botao-secundario" id="cancelar-fav">Cancelar</button>
+          <button type="submit" class="botao-primario">Salvar</button>
+        </footer>
+      </form>
+    </dialog>
+
     <main class="tela oculta pagina" id="tela-grupo">
       <div class="pagina-conteudo">
         <div class="grupo-capa" id="grupo-capa">

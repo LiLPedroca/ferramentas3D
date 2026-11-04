@@ -79,6 +79,15 @@ export const FERRAMENTAS = [
     tela: "svg",
   },
   {
+    id: "stl",
+    grupo: "ferramentas",
+    titulo: "Caçador de STL",
+    descricao: "Pesquise nos sites e guarde favoritos.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "stl",
+  },
+  {
     id: "detector",
     grupo: "ferramentas",
     titulo: "Detector de IA",

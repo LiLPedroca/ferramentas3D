@@ -17,6 +17,7 @@ const TELAS = {
   orcamentos: { elemento: "tela-orcamentos" },
   metadados: { elemento: "tela-metadados" },
   detector: { elemento: "tela-detector" },
+  stl: { elemento: "tela-stl" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
