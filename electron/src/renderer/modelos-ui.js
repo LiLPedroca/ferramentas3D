@@ -103,7 +103,57 @@ export function mostrarFonte(botao, id) {
   botao.style.fontFamily = familiaCss(id);
 }
 
+// ---------- Com ou sem AMS ----------
+let responderImpressao = null;
+let calcularTroca = null;
+
+function resumoImpressao() {
+  const manual = document.querySelector('input[name="imp-modo"]:checked')?.value === "manual";
+  $("imp-camadas").hidden = !manual;
+  $("erro-impressao").textContent = "";
+  if (!manual) return null;
+  const camada = Number($("imp-camada").value);
+  const primeira = Number(String($("imp-primeira").value).replace(",", "."));
+  if (!(primeira >= 0.05 && primeira <= 0.5)) {
+    $("imp-resumo").textContent = "";
+    $("erro-impressao").textContent = "Primeira camada: use de 0,05 a 0,5 mm.";
+    return undefined;
+  }
+  const troca = calcularTroca(camada, primeira);
+  const mm = troca.z.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  $("imp-resumo").textContent = `A pausa fica antes da camada ${troca.numero} (${mm} mm), a primeira só de texto. No Anycubic, confira na pré-visualização.`;
+  return { ams: false, camada, primeira, ...troca };
+}
+
+function responder(valor) {
+  if ($("dialogo-impressao").open) $("dialogo-impressao").close();
+  const r = responderImpressao;
+  responderImpressao = null;
+  r?.(valor);
+}
+
+// Pergunta se a impressão é com AMS. calcular(camada, primeira) → { z, numero } da troca.
+// Devolve { ams: true } | { ams: false, z, numero, camada, primeira } | null (cancelado).
+export function perguntarImpressao(calcular) {
+  responder(null);
+  calcularTroca = calcular;
+  resumoImpressao();
+  $("dialogo-impressao").showModal();
+  return new Promise((r) => {
+    responderImpressao = r;
+  });
+}
+
 export function iniciarModelosUi() {
+  for (const el of document.querySelectorAll('input[name="imp-modo"], #imp-camada, #imp-primeira')) el.addEventListener("input", resumoImpressao);
+  $("imp-cancelar").addEventListener("click", () => responder(null));
+  $("dialogo-impressao").addEventListener("close", () => responder(null));
+  $("imp-continuar").addEventListener("click", () => {
+    const escolha = resumoImpressao();
+    if (escolha === undefined) return; // dado inválido: a mensagem já está na janela
+    responder(escolha ?? { ams: true });
+  });
+
   $("fontes-busca").addEventListener("input", listarFontes);
   $("fontes-fechar").addEventListener("click", () => fechar(null));
   $("dialogo-fontes").addEventListener("close", () => fechar(null));

@@ -895,6 +895,57 @@
       </div>
     </main>
 
+    <dialog class="dialogo dialogo-medio" id="dialogo-impressao" aria-labelledby="titulo-dialogo-impressao">
+      <header class="dialogo-topo">
+        <h2 id="titulo-dialogo-impressao">Como você vai imprimir?</h2>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <p class="ajuda">A peça tem duas cores, uma em cima da outra.</p>
+        <div class="fatiador-lista">
+          <label class="fatiador-opcao">
+            <input type="radio" name="imp-modo" value="ams" checked />
+            <span class="fatiador-texto">
+              <strong>Com AMS (ou ACE)</strong>
+              <span class="cliente-sub">Troca automática: cada parte no filamento escolhido em "Filamentos na exportação".</span>
+            </span>
+          </label>
+          <label class="fatiador-opcao">
+            <input type="radio" name="imp-modo" value="manual" />
+            <span class="fatiador-texto">
+              <strong>Sem AMS (troca manual)</strong>
+              <span class="cliente-sub">O arquivo já sai com uma pausa na primeira camada do texto: a impressora para, você troca o filamento e ela continua.</span>
+            </span>
+          </label>
+        </div>
+        <div id="imp-camadas" hidden>
+          <div class="linha">
+            <label class="campo">
+              <span>Altura de camada no fatiador</span>
+              <select id="imp-camada" class="seletor largo-total">
+                <option value="0.08">0,08 mm</option>
+                <option value="0.12">0,12 mm</option>
+                <option value="0.16">0,16 mm</option>
+                <option value="0.2" selected>0,20 mm</option>
+                <option value="0.24">0,24 mm</option>
+                <option value="0.28">0,28 mm</option>
+              </select>
+            </label>
+            <label class="campo">
+              <span>Primeira camada</span>
+              <div class="entrada"><input id="imp-primeira" inputmode="decimal" value="0,2" /><em>mm</em></div>
+            </label>
+          </div>
+          <p class="ajuda" id="imp-resumo"></p>
+        </div>
+      </div>
+      <p class="erro dialogo-erro" id="erro-impressao" role="alert"></p>
+      <footer class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="imp-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="imp-continuar">Continuar</button>
+      </footer>
+    </dialog>
+
     <dialog class="dialogo dialogo-medio" id="dialogo-fontes" aria-labelledby="titulo-dialogo-fontes">
       <header class="dialogo-topo">
         <h2 id="titulo-dialogo-fontes">Escolher fonte</h2>

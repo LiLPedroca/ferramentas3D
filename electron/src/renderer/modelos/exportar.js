@@ -134,7 +134,8 @@ function malhaXml(geometria) {
 }
 
 // Um objeto 3MF com uma parte por cor: os fatiadores abrem como peça única com partes separadas.
-export function gerar3mf(partes, { titulo = "Modelo" } = {}) {
+// pausas (opcional): alturas em mm onde a impressão para para trocar o filamento à mão (sem AMS).
+export function gerar3mf(partes, { titulo = "Modelo", pausas = [] } = {}) {
   const materiais = partes
     .map((p) => `<base name="${escaparXml(p.nome)}" displaycolor="${escaparXml(p.cor.toUpperCase())}FF"/>`)
     .join("");
@@ -163,12 +164,28 @@ export function gerar3mf(partes, { titulo = "Modelo" } = {}) {
     `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
     `<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`;
 
-  return zipSync({
+  const arquivos = {
     "[Content_Types].xml": strToU8(tipos),
     "_rels/.rels": strToU8(relacoes),
     "3D/3dmodel.model": strToU8(modelo),
     "Metadata/model_settings.config": strToU8(configuracaoDasPartes(partes, titulo, idConjunto)),
-  });
+  };
+  if (pausas.length) arquivos["Metadata/custom_gcode_per_layer.xml"] = strToU8(pausasXml(pausas));
+  return zipSync(arquivos);
+}
+
+// Metadata/custom_gcode_per_layer.xml (formato do Orca/Bambu, lido pelo Anycubic Slicer Next):
+// type 1 = pausa; o fatiador coloca ali o "machine_pause_gcode" do perfil da impressora (na
+// Kobra X é o M600, troca de filamento). A pausa vale para a primeira camada com altura acima
+// de top_z, qualquer que seja a altura de camada escolhida no fatiador.
+export function pausasXml(pausas) {
+  const camadas = pausas
+    .map((z) => `<layer top_z="${num(z)}" type="1" extruder="1" color="" extra="" gcode="M600"/>`)
+    .join("");
+  return (
+    `<?xml version="1.0" encoding="utf-8"?>\n<custom_gcodes_per_layer><plate><plate_info id="1"/>${camadas}` +
+    `<mode value="SingleExtruder"/></plate></custom_gcodes_per_layer>\n`
+  );
 }
 
 // Filamento (slot) de cada parte: 1, 2, 3… na ordem, ou o "slot" escolhido na tela.

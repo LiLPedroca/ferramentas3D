@@ -223,6 +223,23 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto) {
   });
 }
 
+// Impressão sem AMS: altura (print_z) da primeira camada do texto, onde entra a pausa para trocar o
+// filamento. O fatiador corta cada camada no meio dela: a primeira camada cujo meio passa da base
+// já é só texto. camada/primeira = altura de camada e da primeira camada no fatiador (mm).
+// O Anycubic Slicer Next prende a pausa à camada mais próxima do valor: devolvemos a altura exata.
+export function camadaDaTroca(base, camada = 0.2, primeira = 0.2) {
+  if (!(camada > 0) || !(primeira > 0)) throw new Error("Altura de camada inválida.");
+  let k = 0;
+  let z = primeira;
+  let altura = primeira;
+  while (z - altura / 2 <= base + 1e-9) {
+    k += 1;
+    z = primeira + k * camada;
+    altura = camada;
+  }
+  return { z: Math.round(z * 10000) / 10000, numero: k + 1 };
+}
+
 // Gera a peça com a LARGURA TOTAL pedida (base e argola incluídas). Borda, espessuras e argola
 // continuam em mm; só o texto muda de tamanho.
 export function gerarChaveiro(M, fonte, entrada) {

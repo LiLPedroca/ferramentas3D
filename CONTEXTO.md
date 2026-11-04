@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.18.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.19.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -136,6 +136,12 @@ O Pedro pediu "fidelidade máxima" (o imagetracer distorcia no zoom e às vezes 
 
 ## Logo sem moldura (v0.18.0, 04/11/2026)
 Pedido do Pedro: no Chaveiro de logo, nada de moldura; a peça segue exatamente o contorno do logo, com a argola posicionável. Agora a borda padrão é 0 (limite 0 a 8; "Borda em volta" na Estrutura para quem quiser margem). No estilo Contorno, a base usa só os contornos externos do logo: vazados de dentro (ex.: texto branco removido como fundo) ficam preenchidos e aparecem na cor da base; partes soltas ganham pontes. Círculo e Retangular continuam como opção.
+
+## Impressão sem AMS no Chaveiro de nome (v0.19.0, 04/11/2026)
+Ao "Salvar 3MF" ou "Abrir no fatiador", a janela "Como você vai imprimir?" (`perguntarImpressao` em `modelos-ui.js`) pergunta: com AMS/ACE (cada parte no filamento escolhido) ou sem AMS (troca manual). Sem AMS: as duas partes vão no filamento 1 e o 3MF leva `Metadata/custom_gcode_per_layer.xml` (formato Orca/Bambu, `type="1"` = pausa; `pausasXml` em `exportar.js`). Por enquanto só no Chaveiro de nome (o Pedro pediu assim; logo com várias cores no relevo não dá por camada).
+- O fatiador coloca ali o `machine_pause_gcode` do perfil. A impressora do Pedro é a **Anycubic Kobra X 0.4** (perfil em `%APPDATA%\AnycubicSlicerNext\system\Anycubic\machine`), que usa **M600**.
+- O Anycubic prende a pausa à camada MAIS PRÓXIMA do valor; por isso a janela pergunta a altura de camada (padrão 0,20) e a primeira camada (0,2), e `camadaDaTroca(base, camada, primeira)` em `chaveiro.js` calcula o print_z exato da primeira camada só de texto (o fatiador corta cada camada no meio dela).
+- **Fatiar por linha de comando funciona** (para testar sem abrir o programa): `AnycubicSlicerNext.exe --slice 0 --outputdir <pasta> --load-settings "<machine.json>;<process.json>" --load-filaments "<filament.json>[;<filament.json>]" <arquivo.3mf>` → `plate_1.gcode`. Conferido: sem AMS → um M600 antes da camada 13 (2,6 mm) com 0,20; 2,48 com 0,12; 2,6 com 0,16; com AMS → troca T1 na camada de 2,6 mm (os filamentos do model_settings são respeitados).
 
 Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.
 

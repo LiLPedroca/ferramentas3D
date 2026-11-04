@@ -1,9 +1,9 @@
 // Tela do Chaveiro de nome: opções à esquerda, prévia 2D (argola arrastável) ou 3D à direita.
 import { abrirNoFatiador } from "./fatiador-ui.js";
-import { gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
+import { camadaDaTroca, gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { carregarFonte, familiaCss } from "./modelos/fontes.js";
-import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte } from "./modelos-ui.js";
+import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao } from "./modelos-ui.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d } from "./modelos/previa2d.js";
@@ -176,12 +176,35 @@ function partesComSlots() {
   return partes.map((p, i) => ({ ...p, slot: slots[i] }));
 }
 
+// 3MF conforme a impressão: com AMS (cada parte no seu filamento) ou sem AMS (tudo no filamento 1
+// e uma pausa na primeira camada do texto para trocar à mão). null = cancelado.
+async function arquivo3mf() {
+  const base = modelo.opcoes.base;
+  const escolha = await perguntarImpressao((camada, primeira) => camadaDaTroca(base, camada, primeira));
+  if (!escolha) return null;
+  if (escolha.ams) return { bytes: gerar3mf(partesComSlots(), { titulo: nomeArquivo() }), aviso: "" };
+  const mm = escolha.z.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  return {
+    bytes: gerar3mf(
+      partes.map((p) => ({ ...p, slot: 1 })),
+      { titulo: nomeArquivo(), pausas: [escolha.z] },
+    ),
+    aviso: ` Pausa para trocar o filamento na camada ${escolha.numero} (${mm} mm).`,
+  };
+}
+
 async function salvar(extensao) {
   if (!partes) return;
-  const bytes = extensao === "3mf" ? gerar3mf(partesComSlots(), { titulo: nomeArquivo() }) : gerarStl(partes);
+  let bytes;
+  let aviso = "";
+  if (extensao === "3mf") {
+    const arquivo = await arquivo3mf();
+    if (!arquivo) return;
+    ({ bytes, aviso } = arquivo);
+  } else bytes = gerarStl(partes);
   const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
   if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.`);
+  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
 }
 
 function rotuloFatiador() {
@@ -268,8 +291,12 @@ export function iniciarChaveiro() {
 
   $("ch-3mf").addEventListener("click", () => salvar("3mf"));
   $("ch-stl").addEventListener("click", () => salvar("stl"));
-  $("ch-fatiador").addEventListener("click", () => {
-    if (partes) abrirNoFatiador(gerar3mf(partesComSlots(), { titulo: nomeArquivo() }), nomeArquivo(), "3mf");
+  $("ch-fatiador").addEventListener("click", async () => {
+    if (!partes) return;
+    const arquivo = await arquivo3mf();
+    if (!arquivo) return;
+    await abrirNoFatiador(arquivo.bytes, nomeArquivo(), "3mf");
+    if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
   });
 
   let primeira = true;

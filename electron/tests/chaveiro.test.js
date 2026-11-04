@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { strFromU8, unzipSync } from "three/examples/jsm/libs/fflate.module.js";
 import { beforeAll, describe, expect, it } from "vitest";
-import { gerarChaveiro, validarOpcoesChaveiro } from "../src/renderer/modelos/chaveiro.js";
+import { camadaDaTroca, gerarChaveiro, validarOpcoesChaveiro } from "../src/renderer/modelos/chaveiro.js";
 import { gerar3mf, gerarStl, malhaIndexada } from "../src/renderer/modelos/exportar.js";
 import { FONTES } from "../src/renderer/modelos/fontes.js";
 import { formasDoTexto, formasDosPoligonos, geometriaDaMalha } from "../src/renderer/modelos/geometria.js";
@@ -152,6 +152,29 @@ describe("chaveiro de nome", () => {
       }
     }
     expect(problemas).toEqual([]);
+  });
+});
+
+describe("impressão sem AMS (pausa para troca manual)", () => {
+  it("camada da troca bate com o que o Anycubic Slicer Next fatiou (Kobra X, base 2,4 mm)", () => {
+    // valores conferidos fatiando de verdade: primeira camada do texto em cada altura de camada
+    expect(camadaDaTroca(2.4, 0.2, 0.2).z).toBe(2.6);
+    expect(camadaDaTroca(2.4, 0.12, 0.2).z).toBe(2.48);
+    expect(camadaDaTroca(2.4, 0.16, 0.2).z).toBe(2.6);
+    expect(camadaDaTroca(2.4, 0.2, 0.2).numero).toBe(13);
+  });
+
+  it("3MF sem AMS: as duas partes no filamento 1 e uma pausa na camada do texto", () => {
+    const r = gerarChaveiro(M, carregar("Fredoka"), { texto: "Ana" });
+    const partes = r.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m), slot: 1 }));
+    const arquivos = unzipSync(gerar3mf(partes, { titulo: "Chaveiro Ana", pausas: [camadaDaTroca(r.opcoes.base).z] }));
+    const pausas = strFromU8(arquivos["Metadata/custom_gcode_per_layer.xml"]);
+    expect(pausas).toContain('<layer top_z="2.6" type="1"');
+    expect(pausas).toContain('<plate_info id="1"/>');
+    const config = strFromU8(arquivos["Metadata/model_settings.config"]);
+    expect(config.match(/key="extruder" value="(\d+)"/g).every((x) => x.endsWith('"1"'))).toBe(true);
+    // com AMS (sem pausas) o arquivo não leva o XML de pausas
+    expect(unzipSync(gerar3mf(partes))["Metadata/custom_gcode_per_layer.xml"]).toBeUndefined();
   });
 });
 
