@@ -22,6 +22,7 @@ from app.core.calculadora import (
     pecas_para_pagar_impressora,
 )
 from app.ui.formatacao import formatar_reais, parse_fracao, parse_inteiro
+from app.versao import VERSAO
 
 # (nome exibido, valor inicial). Lucro inicial é provisório: ver decisão em aberto no CONTEXTO.md.
 CAMPOS_ENTRADA = [
@@ -41,7 +42,7 @@ CAMPOS_ENTRADA = [
 class JanelaCalculadora(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Calculadora de custo 3D")
+        self.setWindowTitle(f"Calculadora de custo 3D - v{VERSAO}")
         self._campos: dict[str, QLineEdit] = {}
 
         raiz = QWidget()
