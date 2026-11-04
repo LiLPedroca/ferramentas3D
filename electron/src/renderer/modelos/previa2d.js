@@ -60,6 +60,7 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar } = {}) {
         ctx.stroke();
       }
     });
+    if (!modelo.argola) return; // peça sem argola (Palavras decorativas)
     const centro = arrasto ? arrasto.centro : modelo.argola.centro;
     const [x, y] = paraTela(centro);
     ctx.setLineDash([6 * dpr, 5 * dpr]);
@@ -84,6 +85,7 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar } = {}) {
   }
 
   function sobreArgola(p) {
+    if (!modelo.argola) return false;
     const [cx, cy] = modelo.argola.centro;
     return Math.hypot(p[0] - cx, p[1] - cy) <= modelo.argola.raio * 1.6 + 1;
   }

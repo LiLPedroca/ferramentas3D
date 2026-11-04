@@ -2,29 +2,15 @@
 import { abrirNoFatiador } from "./fatiador-ui.js";
 import { gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
-import { CATEGORIAS_FONTES, carregarFonte, familiaCss, FONTES } from "./modelos/fontes.js";
+import { carregarFonte, familiaCss } from "./modelos/fontes.js";
+import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte } from "./modelos-ui.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
-import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
-
-export const PALETA = [
-  ["#2563eb", "Azul"],
-  ["#dc2626", "Vermelho"],
-  ["#facc15", "Amarelo"],
-  ["#f472b6", "Rosa"],
-  ["#7e22ce", "Roxo"],
-  ["#15803d", "Verde"],
-  ["#f59e0b", "Laranja"],
-  ["#ffffff", "Branco"],
-  ["#111111", "Preto"],
-  ["#8a8f98", "Cinza"],
-  ["#8b4513", "Marrom"],
-];
 
 // campos de medida: id do campo → chave nas opções
 const MEDIDAS = { "ch-largura": "largura", "ch-borda": "borda", "ch-base": "base", "ch-relevo": "relevo", "ch-furo": "furo", "ch-parede": "parede" };
@@ -54,13 +40,11 @@ function preencherCampos() {
   for (const [id, chave] of Object.entries(MEDIDAS)) $(id).value = formatar(opcoes[chave], 3);
   $("ch-unidade").value = unidade;
   for (const em of document.querySelectorAll("#tela-chaveiro [data-unidade]")) em.textContent = unidade;
-  const fonte = FONTES.find((f) => f.id === opcoes.fonte);
-  $("ch-fonte").textContent = fonte?.nome ?? opcoes.fonte;
-  $("ch-fonte").style.fontFamily = familiaCss(opcoes.fonte);
+  mostrarFonte($("ch-fonte"), opcoes.fonte);
   $("ch-fonte-amostra").style.fontFamily = familiaCss(opcoes.fonte);
   for (const b of document.querySelectorAll("#tela-chaveiro [data-estilo]")) b.setAttribute("aria-pressed", String(b.dataset.estilo === opcoes.estilo));
-  marcarPaleta("ch-paleta-base", opcoes.corBase);
-  marcarPaleta("ch-paleta-texto", opcoes.corTexto);
+  marcarPaleta($("ch-paleta-base"), opcoes.corBase);
+  marcarPaleta($("ch-paleta-texto"), opcoes.corTexto);
   const pronto = Object.entries(MODELOS_PRONTOS).find(([, p]) => p.borda === opcoes.borda && p.base === opcoes.base && p.relevo === opcoes.relevo);
   $("ch-pronto").value = pronto ? pronto[0] : "";
 }
@@ -68,39 +52,6 @@ function preencherCampos() {
 function lerMedida(id) {
   const n = Number(String($(id).value).replace(",", "."));
   return Number.isFinite(n) ? Math.round(n * fator() * 1000) / 1000 : NaN;
-}
-
-function criarPaleta(id, chave) {
-  const caixa = $(id);
-  const botoes = PALETA.map(([cor, nome]) => {
-    const b = el("button", "ch-cor");
-    b.type = "button";
-    b.style.background = cor;
-    b.dataset.cor = cor;
-    b.title = nome;
-    b.setAttribute("aria-label", nome);
-    b.addEventListener("click", () => mudar({ [chave]: cor }));
-    return b;
-  });
-  const personalizada = el("label", "ch-cor-personalizada");
-  const seletor = el("input");
-  seletor.type = "color";
-  seletor.addEventListener("input", () => mudar({ [chave]: seletor.value }, { lembrar: false }));
-  seletor.addEventListener("change", lembrar);
-  personalizada.append(seletor, el("span", "", "Cor personalizada"));
-  caixa.replaceChildren(...botoes, personalizada);
-}
-
-function marcarPaleta(id, cor) {
-  let achou = false;
-  for (const b of $(id).querySelectorAll(".ch-cor")) {
-    const igual = b.dataset.cor === cor;
-    achou ||= igual;
-    b.setAttribute("aria-pressed", String(igual));
-  }
-  const personalizada = $(id).querySelector(".ch-cor-personalizada");
-  personalizada.classList.toggle("ativa", !achou);
-  personalizada.querySelector("input").value = cor;
 }
 
 // ---------- Histórico (desfazer/refazer) ----------
@@ -217,37 +168,6 @@ function ajustar() {
   else previa2d.ajustar();
 }
 
-// ---------- Fontes ----------
-function abrirFontes() {
-  $("fontes-busca").value = "";
-  listarFontes();
-  $("dialogo-fontes").showModal();
-  $("fontes-busca").focus();
-}
-
-function listarFontes() {
-  const busca = $("fontes-busca").value.trim().toLowerCase();
-  const grupos = [];
-  for (const categoria of CATEGORIAS_FONTES) {
-    const itens = FONTES.filter((f) => f.categoria === categoria.nome && (!busca || f.nome.toLowerCase().includes(busca)));
-    if (!itens.length) continue;
-    grupos.push(el("h3", "fontes-categoria", categoria.nome));
-    for (const f of itens) {
-      const b = el("button", "fontes-item", f.nome);
-      b.type = "button";
-      b.style.fontFamily = familiaCss(f.id);
-      b.setAttribute("aria-pressed", String(f.id === opcoes.fonte));
-      b.addEventListener("click", () => {
-        $("dialogo-fontes").close();
-        mudar({ fonte: f.id });
-      });
-      grupos.push(b);
-    }
-  }
-  if (!grupos.length) grupos.push(el("p", "ajuda", "Nenhuma fonte com esse nome."));
-  $("fontes-lista").replaceChildren(...grupos);
-}
-
 // ---------- Exportação ----------
 const nomeArquivo = () => `Chaveiro ${modelo.opcoes.texto}`;
 
@@ -271,8 +191,9 @@ function rotuloFatiador() {
 
 // ---------- Início ----------
 export function iniciarChaveiro() {
-  criarPaleta("ch-paleta-base", "corBase");
-  criarPaleta("ch-paleta-texto", "corTexto");
+  for (const [id, chave] of [["ch-paleta-base", "corBase"], ["ch-paleta-texto", "corTexto"]]) {
+    criarPaleta($(id), (cor, final) => mudar({ [chave]: cor }, { lembrar: final }));
+  }
   $("ch-pronto").append(...Object.entries(MODELOS_PRONTOS).map(([id, p]) => new Option(p.nome, id)));
   for (const id of ["ch-slot-base", "ch-slot-texto"]) {
     $(id).replaceChildren(...Array.from({ length: 16 }, (_, i) => new Option(`Filamento ${i + 1}`, String(i + 1))));
@@ -317,9 +238,10 @@ export function iniciarChaveiro() {
     b.addEventListener("click", () => $(b.dataset.alvo).scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
-  $("ch-fonte").addEventListener("click", abrirFontes);
-  $("fontes-busca").addEventListener("input", listarFontes);
-  $("fontes-fechar").addEventListener("click", () => $("dialogo-fontes").close());
+  $("ch-fonte").addEventListener("click", async () => {
+    const id = await escolherFonte(opcoes.fonte);
+    if (id && id !== opcoes.fonte) mudar({ fonte: id });
+  });
 
   $("ch-desfazer").addEventListener("click", () => voltar(-1));
   $("ch-refazer").addEventListener("click", () => voltar(1));

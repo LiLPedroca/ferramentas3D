@@ -1,5 +1,5 @@
 // Tela do Chaveiro de logo: imagem -> cores vetorizadas -> relevo multicor sobre base com argola.
-import { PALETA } from "./chaveiro-tela.js";
+import { criarPaleta, marcarPaleta } from "./modelos-ui.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
@@ -36,34 +36,7 @@ const status = (texto, erro = false) => {
 function preencherCampos() {
   for (const [id, chave] of Object.entries(MEDIDAS)) $(id).value = formatar(opcoes[chave]);
   for (const b of document.querySelectorAll("[data-lg-estilo]")) b.setAttribute("aria-pressed", String(b.dataset.lgEstilo === opcoes.estilo));
-  let achou = false;
-  for (const b of $("lg-paleta-base").querySelectorAll(".ch-cor")) {
-    const igual = b.dataset.cor === opcoes.corBase;
-    achou ||= igual;
-    b.setAttribute("aria-pressed", String(igual));
-  }
-  const personalizada = $("lg-paleta-base").querySelector(".ch-cor-personalizada");
-  personalizada.classList.toggle("ativa", !achou);
-  personalizada.querySelector("input").value = opcoes.corBase;
-}
-
-function criarPaleta() {
-  const botoes = PALETA.map(([cor, nome]) => {
-    const b = el("button", "ch-cor");
-    b.type = "button";
-    b.style.background = cor;
-    b.dataset.cor = cor;
-    b.title = nome;
-    b.setAttribute("aria-label", nome);
-    b.addEventListener("click", () => mudar({ corBase: cor }));
-    return b;
-  });
-  const personalizada = el("label", "ch-cor-personalizada");
-  const seletor = el("input");
-  seletor.type = "color";
-  seletor.addEventListener("input", () => mudar({ corBase: seletor.value }));
-  personalizada.append(seletor, el("span", "", "Cor personalizada"));
-  $("lg-paleta-base").replaceChildren(...botoes, personalizada);
+  marcarPaleta($("lg-paleta-base"), opcoes.corBase);
 }
 
 function mudar(mudancas) {
@@ -197,7 +170,7 @@ export function iniciarLogo() {
   ligarZonaArquivos($("lg-zona"), $("lg-entrada"), carregar);
   $("lg-trocar").addEventListener("click", () => $("lg-entrada").click());
   familiaCss("Lobster"); // ícone "Aa" do estilo Contorno
-  criarPaleta();
+  criarPaleta($("lg-paleta-base"), (cor) => mudar({ corBase: cor }));
   preencherCampos();
   $("lg-cores").addEventListener("input", () => {
     vetorizarImagem();

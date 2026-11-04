@@ -1025,63 +1025,124 @@
     <main class="tela oculta pagina" id="tela-palavras">
       <div class="pagina-conteudo largo">
         <div class="modelo-trabalho">
-          <aside class="painel modelo-opcoes">
-            <h1 class="titulo-pagina pequeno">Palavras decorativas</h1>
-            <label class="campo">
-              <span>Estilo</span>
-              <select id="pl-modo" class="seletor largo-total">
-                <option value="placa">Placa (texto em relevo sobre base)</option>
-                <option value="letreiro">Letreiro (letras unidas, para ficar em pé)</option>
-              </select>
-            </label>
-            <div class="pl-linha">
-              <div class="entrada"><input id="pl-texto-1" maxlength="30" value="Lar" aria-label="Linha 1" placeholder="Linha 1" autocomplete="off" /></div>
-              <select id="pl-fonte-1" class="seletor" aria-label="Fonte da linha 1"></select>
-              <div class="entrada"><input id="pl-altura-1" inputmode="decimal" value="20" aria-label="Altura da linha 1" /><em>mm</em></div>
+          <aside class="painel modelo-opcoes ch-painel">
+            <nav class="ch-abas" aria-label="Partes da peça">
+              <button type="button" data-alvo="pl-sec-texto">Texto</button>
+              <button type="button" data-alvo="pl-sec-estilo">Estilo</button>
+              <button type="button" data-alvo="pl-sec-cores">Cores</button>
+            </nav>
+            <div class="ch-rolagem">
+              <section id="pl-sec-texto">
+                <div class="pl-bloco" data-linha="1">
+                  <span class="ch-rotulo">Linha 1</span>
+                  <div class="entrada"><input id="pl-texto-1" maxlength="30" aria-label="Linha 1" autocomplete="off" /></div>
+                  <div class="pl-fonte-tamanho">
+                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-1" aria-label="Fonte da linha 1"></button>
+                    <div class="entrada"><input id="pl-tamanho-1" inputmode="decimal" aria-label="Tamanho da linha 1" /><em>%</em></div>
+                  </div>
+                </div>
+                <div class="pl-bloco" data-linha="2">
+                  <span class="ch-rotulo">Linha 2 (opcional)</span>
+                  <div class="entrada"><input id="pl-texto-2" maxlength="30" aria-label="Linha 2" autocomplete="off" /></div>
+                  <div class="pl-fonte-tamanho">
+                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-2" aria-label="Fonte da linha 2"></button>
+                    <div class="entrada"><input id="pl-tamanho-2" inputmode="decimal" aria-label="Tamanho da linha 2" /><em>%</em></div>
+                  </div>
+                </div>
+                <div class="pl-bloco" data-linha="3">
+                  <span class="ch-rotulo">Linha 3 (opcional)</span>
+                  <div class="entrada"><input id="pl-texto-3" maxlength="30" aria-label="Linha 3" autocomplete="off" /></div>
+                  <div class="pl-fonte-tamanho">
+                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-3" aria-label="Fonte da linha 3"></button>
+                    <div class="entrada"><input id="pl-tamanho-3" inputmode="decimal" aria-label="Tamanho da linha 3" /><em>%</em></div>
+                  </div>
+                </div>
+                <p class="ajuda">Tamanho em relação à linha 1 (100%).</p>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Largura total</span>
+                    <div class="entrada"><input id="pl-largura" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Espaço entre linhas</span>
+                    <div class="entrada"><input id="pl-espacamento" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </div>
+              </section>
+
+              <section id="pl-sec-estilo">
+                <h2 class="ch-titulo">Estilo</h2>
+                <div class="ch-estilos pl-modos" role="group" aria-label="Estilo da peça">
+                  <button type="button" data-pl-modo="placa"><span class="ch-forma retangular"></span>Placa</button>
+                  <button type="button" data-pl-modo="letreiro"><span class="ch-forma contorno">Aa</span>Letreiro</button>
+                </div>
+                <p class="ajuda" id="pl-modo-ajuda"></p>
+                <div id="pl-so-placa">
+                  <span class="ch-rotulo">Base da placa</span>
+                  <div class="ch-estilos" role="group" aria-label="Base da placa">
+                    <button type="button" data-pl-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
+                    <button type="button" data-pl-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
+                    <button type="button" data-pl-estilo="capsula"><span class="ch-forma capsula"></span>Cápsula</button>
+                  </div>
+                </div>
+                <details class="ch-detalhes">
+                  <summary>Estrutura</summary>
+                  <div class="linha">
+                    <label class="campo">
+                      <span id="pl-rotulo-espessura">Espessura da placa</span>
+                      <div class="entrada"><input id="pl-espessura" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                    <label class="campo" id="campo-pl-relevo">
+                      <span>Relevo do texto</span>
+                      <div class="entrada"><input id="pl-relevo" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                  </div>
+                  <label class="campo" id="campo-pl-borda">
+                    <span>Borda da placa</span>
+                    <div class="entrada"><input id="pl-borda" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                  <label class="campo" id="campo-pl-ligacao">
+                    <span>Ligação das letras</span>
+                    <div class="entrada"><input id="pl-ligacao" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </details>
+              </section>
+
+              <section id="pl-sec-cores">
+                <h2 class="ch-titulo">Cores da peça</h2>
+                <span class="ch-rotulo" id="pl-rotulo-cor-base">Placa</span>
+                <div class="ch-paleta" id="pl-paleta-base"></div>
+                <span class="ch-rotulo" id="pl-rotulo-cor-texto">Texto</span>
+                <div class="ch-paleta" id="pl-paleta-texto"></div>
+              </section>
             </div>
-            <div class="pl-linha">
-              <div class="entrada"><input id="pl-texto-2" maxlength="30" value="doce lar" aria-label="Linha 2" placeholder="Linha 2 (opcional)" autocomplete="off" /></div>
-              <select id="pl-fonte-2" class="seletor" aria-label="Fonte da linha 2"></select>
-              <div class="entrada"><input id="pl-altura-2" inputmode="decimal" value="12" aria-label="Altura da linha 2" /><em>mm</em></div>
-            </div>
-            <div class="pl-linha">
-              <div class="entrada"><input id="pl-texto-3" maxlength="30" aria-label="Linha 3" placeholder="Linha 3 (opcional)" autocomplete="off" /></div>
-              <select id="pl-fonte-3" class="seletor" aria-label="Fonte da linha 3"></select>
-              <div class="entrada"><input id="pl-altura-3" inputmode="decimal" value="10" aria-label="Altura da linha 3" /><em>mm</em></div>
-            </div>
-            <div class="linha">
-              <label class="campo">
-                <span id="pl-rotulo-espessura">Espessura da placa</span>
-                <div class="entrada"><input id="pl-espessura" inputmode="decimal" value="3" /><em>mm</em></div>
-              </label>
-              <label class="campo" id="campo-pl-relevo">
-                <span>Relevo</span>
-                <div class="entrada"><input id="pl-relevo" inputmode="decimal" value="2" /><em>mm</em></div>
-              </label>
-            </div>
-            <label class="campo">
-              <span>Espaço entre linhas</span>
-              <div class="entrada"><input id="pl-espaco" inputmode="decimal" value="4" /><em>mm</em></div>
-            </label>
-            <div class="linha">
-              <label class="campo cor">
-                <span id="pl-rotulo-cor-base">Cor da placa</span>
-                <input type="color" id="pl-cor-base" value="#1f2937" />
-              </label>
-              <label class="campo cor">
-                <span id="pl-rotulo-cor-texto">Cor do texto</span>
-                <input type="color" id="pl-cor-texto" value="#f8fafc" />
-              </label>
-            </div>
-            <p class="erro" id="pl-erro" role="alert"></p>
           </aside>
           <section class="painel modelo-previa">
-            <div class="palco-modelo" id="pl-palco"></div>
-            <div class="modelo-rodape">
+            <div class="ch-barra">
+              <span class="cliente-sub">Duas partes, duas cores (filamentos 1 e 2 no 3MF)</span>
+              <div class="ch-grupo" role="group" aria-label="Tipo de prévia">
+                <button type="button" class="ch-mini" id="pl-ver-2d" aria-pressed="true">2D</button>
+                <button type="button" class="ch-mini" id="pl-ver-3d" aria-pressed="false">3D</button>
+              </div>
+            </div>
+            <div class="palco-modelo ch-palco" id="pl-palco">
+              <canvas id="pl-2d" class="ch-canvas"></canvas>
+              <div class="ch-3d" id="pl-3d" hidden></div>
+            </div>
+            <div class="ch-barra">
               <span class="cliente-sub" id="pl-medidas"></span>
+              <div class="ch-grupo">
+                <button type="button" class="ch-mini" id="pl-zoom-menos" aria-label="Diminuir zoom">−</button>
+                <button type="button" class="ch-mini" id="pl-ajustar">Ajustar à tela</button>
+                <button type="button" class="ch-mini" id="pl-zoom-mais" aria-label="Aumentar zoom">+</button>
+              </div>
+            </div>
+            <p class="ch-status" id="pl-status" role="status"></p>
+            <div class="modelo-rodape">
+              <span class="cliente-sub" id="pl-partes"></span>
               <div class="acoes-form">
                 <button class="botao-secundario" id="pl-stl" type="button" disabled>Salvar STL</button>
-                <button class="botao-secundario" id="pl-3mf" type="button" disabled>Salvar 3MF (2 cores)</button>
+                <button class="botao-secundario" id="pl-3mf" type="button" disabled>Salvar 3MF</button>
                 <button class="botao-primario" id="pl-fatiador" type="button" disabled>Abrir no fatiador</button>
               </div>
             </div>

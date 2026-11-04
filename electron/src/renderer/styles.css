@@ -2784,3 +2784,27 @@ textarea:focus {
   border: 2px solid currentColor;
   border-radius: 50%;
 }
+
+/* Palavras decorativas */
+.pl-bloco {
+  margin-bottom: 12px;
+}
+
+.pl-bloco .entrada {
+  margin-bottom: 6px;
+}
+
+.pl-fonte-tamanho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  gap: 6px;
+}
+
+.ch-fonte.pl-fonte {
+  padding: 6px 10px;
+  font-size: 17px;
+}
+
+.ch-estilos.pl-modos {
+  grid-template-columns: repeat(2, 1fr);
+}
