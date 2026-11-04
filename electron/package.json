@@ -1,0 +1,63 @@
+{
+  "name": "programa-ferramentas-3d",
+  "productName": "Programa Ferramentas 3D",
+  "version": "0.3.0",
+  "description": "Ferramentas para impressão 3D: calculadora de custo e visualizador de modelos.",
+  "main": "src/main/main.cjs",
+  "author": "Pedro Henrique",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "build:renderer": "node scripts/build-renderer.mjs",
+    "start": "npm run build:renderer && electron .",
+    "test": "vitest run",
+    "dist": "npm run build:renderer && electron-builder --win --publish never",
+    "release": "npm run build:renderer && electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.2",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.25.12",
+    "vitest": "^5.1.0"
+  },
+  "build": {
+    "appId": "com.pedrohenrique.programaferramentas3d",
+    "productName": "Programa Ferramentas 3D",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "build/**/*",
+      "src/main/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Programa Ferramentas 3D",
+      "artifactName": "ProgramaFerramentas3D-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "LiLPedroca",
+      "repo": "ferramentas3D"
+    }
+  }
+}

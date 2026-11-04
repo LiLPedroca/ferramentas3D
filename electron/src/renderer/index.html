@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="escuro">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: blob:; script-src 'self'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Programa Ferramentas 3D</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="marca">
+        <span class="marca-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Zm0 2.3L5.2 8 12 11.7 18.8 8 12 4.3ZM5 9.6v6.8l6 3.3v-6.8L5 9.6Zm8 10.1 6-3.3V9.6l-6 3.3v6.8Z" fill="currentColor"/></svg>
+        </span>
+        <div>
+          <h1>Ferramentas 3D</h1>
+          <p class="subtitulo" id="versao"></p>
+        </div>
+      </div>
+
+      <nav class="abas" role="tablist">
+        <button class="aba ativa" role="tab" data-aba="calculadora" aria-selected="true">Calculadora</button>
+        <button class="aba" role="tab" data-aba="visualizador" aria-selected="false">Visualizar 3D</button>
+      </nav>
+
+      <button class="tema" id="alternar-tema" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema">
+        <span id="icone-tema" aria-hidden="true">☾</span>
+      </button>
+    </header>
+
+    <main class="tela" id="tela-calculadora">
+      <section class="painel formulario" aria-labelledby="titulo-form">
+        <h2 id="titulo-form">Dados do lote</h2>
+
+        <fieldset class="grupo">
+          <legend>Material e impressão</legend>
+          <div class="linha">
+            <label class="campo">
+              <span>Peso total do lote</span>
+              <div class="entrada"><input id="peso" inputmode="decimal" autocomplete="off" /><em>g</em></div>
+            </label>
+            <label class="campo">
+              <span>Quantidade de peças</span>
+              <div class="entrada"><input id="quantidade" inputmode="numeric" autocomplete="off" /><em>peças</em></div>
+            </label>
+          </div>
+          <p class="ajuda" id="ajuda-peso"></p>
+          <div class="linha">
+            <label class="campo">
+              <span>Preço do filamento</span>
+              <div class="entrada"><input id="preco-kg" inputmode="decimal" autocomplete="off" /><em>R$/kg</em></div>
+            </label>
+            <div class="campo">
+              <span>Tempo de impressão do lote</span>
+              <div class="par">
+                <div class="entrada"><input id="horas" inputmode="numeric" autocomplete="off" /><em>h</em></div>
+                <div class="entrada"><input id="minutos" inputmode="numeric" autocomplete="off" /><em>min</em></div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend>Custos de produção</legend>
+          <div class="linha">
+            <label class="campo">
+              <span>Consumo da impressora</span>
+              <div class="entrada"><input id="potencia" inputmode="decimal" autocomplete="off" /><em>W</em></div>
+            </label>
+            <label class="campo">
+              <span>Tarifa de energia</span>
+              <div class="entrada"><input id="tarifa" inputmode="decimal" autocomplete="off" /><em>R$/kWh</em></div>
+            </label>
+          </div>
+          <div class="linha">
+            <label class="campo">
+              <span>Uso da impressora por hora</span>
+              <div class="entrada"><input id="custo-hora" inputmode="decimal" autocomplete="off" /><em>R$/h</em></div>
+            </label>
+            <label class="campo">
+              <span>Mão de obra do lote</span>
+              <div class="entrada"><input id="mao-obra" inputmode="decimal" autocomplete="off" /><em>R$</em></div>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend>Lucro e projeção</legend>
+          <div class="linha lucro">
+            <label class="campo">
+              <span>Lucro sobre o custo</span>
+              <div class="entrada"><input id="lucro" inputmode="decimal" autocomplete="off" /><em>%</em></div>
+            </label>
+            <input id="lucro-barra" type="range" min="0" max="100" step="1" aria-label="Lucro em porcentagem" />
+          </div>
+          <p class="ajuda">A barra vai até 100%. Para lucro acima disso, digite o percentual no campo.</p>
+          <label class="campo">
+            <span>Valor da impressora (para calcular quantas peças pagam ela)</span>
+            <div class="entrada"><input id="valor-impressora" inputmode="decimal" autocomplete="off" placeholder="Ex.: 3000" /><em>R$</em></div>
+          </label>
+        </fieldset>
+
+        <p class="erro" id="erro" role="alert"></p>
+      </section>
+
+      <section class="painel resultado" aria-labelledby="titulo-res">
+        <p class="rotulo" id="titulo-res">Preço de venda sugerido</p>
+        <p class="preco-grande" id="preco-unitario">R$ 0,00</p>
+        <p class="ajuda" id="preco-lote-texto"></p>
+
+        <div class="metricas">
+          <div><span>Custo por peça</span><strong id="custo-unitario">R$ 0,00</strong></div>
+          <div><span>Lucro por peça</span><strong id="lucro-unitario">R$ 0,00</strong></div>
+        </div>
+
+        <div class="destaque">
+          <span>Peças para pagar a impressora</span>
+          <strong id="pecas-pagar">—</strong>
+        </div>
+
+        <h3>Composição do custo do lote</h3>
+        <ul class="composicao" id="composicao"></ul>
+
+        <div class="total">
+          <span>Custo total do lote</span>
+          <strong id="custo-lote">R$ 0,00</strong>
+        </div>
+        <p class="ajuda pequeno">Valores exibidos arredondados a centavos. O preço usa o cálculo completo, sem arredondamento intermediário.</p>
+      </section>
+    </main>
+
+    <main class="tela oculta" id="tela-visualizador">
+      <section class="painel visualizador">
+        <div class="zona-arquivo" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo STL">
+          <p><strong>Arraste um arquivo .stl aqui</strong></p>
+          <p class="ajuda">ou clique para escolher</p>
+          <input type="file" id="arquivo-stl" accept=".stl" hidden />
+        </div>
+        <div class="palco" id="palco"><p class="ajuda" id="palco-vazio">Nenhum modelo carregado.</p></div>
+      </section>
+      <aside class="painel info-modelo">
+        <h2>Modelo</h2>
+        <dl id="info-modelo">
+          <dt>Arquivo</dt><dd>—</dd>
+          <dt>Dimensões (mm)</dt><dd>—</dd>
+          <dt>Volume (cm³)</dt><dd>—</dd>
+          <dt>Triângulos</dt><dd>—</dd>
+        </dl>
+        <p class="ajuda pequeno">Dimensões assumem que o STL está em milímetros, como o padrão dos fatiadores.</p>
+      </aside>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

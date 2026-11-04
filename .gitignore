@@ -15,3 +15,7 @@ dist/
 # Arquivos fora do repositório
 dev/
 *.spec
+
+# Electron
+electron/node_modules/
+electron/release/
