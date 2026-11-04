@@ -41,6 +41,13 @@ const num = (n) => (Math.round(n * 10000) / 10000).toString();
 // Une vértices só pela posição (normais e UVs mudam de face para face e impediriam a união),
 // para a malha sair fechada: cada aresta compartilhada por dois triângulos.
 export function malhaIndexada(geometria) {
+  // malhas do Manifold já saem fechadas e indexadas: usa como estão
+  if (geometria.userData?.fechada && geometria.index) {
+    const pronta = new BufferGeometry();
+    pronta.setAttribute("position", geometria.attributes.position);
+    pronta.setIndex(geometria.index);
+    return pronta;
+  }
   const solta = geometria.index ? geometria.toNonIndexed() : geometria;
   const soPosicao = new BufferGeometry();
   soPosicao.setAttribute("position", solta.attributes.position.clone());
@@ -149,7 +156,8 @@ export function gerar3mf(partes, { titulo = "Modelo" } = {}) {
     `<?xml version="1.0" encoding="UTF-8"?>` +
     `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
     `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
-    `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>`;
+    `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>` +
+    `<Default Extension="config" ContentType="application/xml"/></Types>`;
   const relacoes =
     `<?xml version="1.0" encoding="UTF-8"?>` +
     `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -159,5 +167,29 @@ export function gerar3mf(partes, { titulo = "Modelo" } = {}) {
     "[Content_Types].xml": strToU8(tipos),
     "_rels/.rels": strToU8(relacoes),
     "3D/3dmodel.model": strToU8(modelo),
+    "Metadata/model_settings.config": strToU8(configuracaoDasPartes(partes, titulo, idConjunto)),
   });
+}
+
+// Filamento (slot) de cada parte: 1, 2, 3… na ordem, ou o "slot" escolhido na tela.
+export function slotsDasPartes(partes) {
+  const slots = partes.map((p, i) => (Number.isInteger(p.slot) && p.slot >= 1 && p.slot <= 16 ? p.slot : Math.min(i + 1, 16)));
+  return slots;
+}
+
+// Metadata/model_settings.config: o Orca, o Anycubic Slicer Next e o Bambu Studio leem daqui o
+// filamento de cada parte (sem isso, todas abrem no filamento 1). Não leva perfil de impressora.
+function configuracaoDasPartes(partes, titulo, idConjunto) {
+  const slots = slotsDasPartes(partes);
+  const linhas = partes
+    .map(
+      (p, i) =>
+        `<part id="${i + 2}" subtype="normal_part"><metadata key="name" value="${escaparXml(p.nome)}"/>` +
+        `<metadata key="extruder" value="${slots[i]}"/></part>`,
+    )
+    .join("");
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?><config><object id="${idConjunto}">` +
+    `<metadata key="name" value="${escaparXml(titulo)}"/><metadata key="extruder" value="${slots[0]}"/>${linhas}</object></config>`
+  );
 }

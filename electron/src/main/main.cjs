@@ -282,6 +282,11 @@ function registrarDados() {
       return new Uint8Array(await require("node:fs/promises").readFile(path.join(pastaFontes, `${nome}-Regular.ttf`)));
     }),
   );
+  // Motor de geometria (Manifold, WASM): a tela não consegue baixar o .wasm pelo file://
+  ipcMain.handle(
+    "modelos:wasm",
+    comTela(async () => new Uint8Array(await require("node:fs/promises").readFile(path.join(pastaFontes, "..", "manifold.wasm")))),
+  );
 
   const nomeModelo = (nome, extensao) => {
     const base = String(nome ?? "modelo").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9 _-]+/g, "").trim().slice(0, 60) || "modelo";

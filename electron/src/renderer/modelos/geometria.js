@@ -254,6 +254,15 @@ export function moverFormas(formas, dx, dy) {
   });
 }
 
+// Malha do Manifold ({ vertices, triangulos }) → geometria indexada do Three.js, marcada como fechada.
+export function geometriaDaMalha({ vertices, triangulos }) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  g.setIndex(new THREE.BufferAttribute(triangulos, 1));
+  g.userData.fechada = true;
+  return g;
+}
+
 // ---------- Extrusão ----------
 export function extrudar(formas, espessura, zInicial = 0) {
   const lista = Array.isArray(formas) ? formas : [formas];

@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-theme="escuro">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: blob:; script-src 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programa Ferramentas 3D</title>
     <link rel="stylesheet" href="styles.css" />
@@ -751,60 +751,142 @@
     <main class="tela oculta pagina" id="tela-chaveiro">
       <div class="pagina-conteudo largo">
         <div class="modelo-trabalho">
-          <aside class="painel modelo-opcoes">
-            <h1 class="titulo-pagina pequeno">Chaveiro de nome</h1>
-            <label class="campo">
-              <span>Texto</span>
-              <div class="entrada"><input id="ch-texto" maxlength="20" autocomplete="off" /></div>
-            </label>
-            <label class="campo">
-              <span>Fonte</span>
-              <select id="ch-fonte" class="seletor largo-total"></select>
-            </label>
-            <div class="linha">
-              <label class="campo">
-                <span>Altura das letras</span>
-                <div class="entrada"><input id="ch-altura" inputmode="decimal" value="12" /><em>mm</em></div>
-              </label>
-              <label class="campo">
-                <span>Relevo</span>
-                <div class="entrada"><input id="ch-relevo" inputmode="decimal" value="2" /><em>mm</em></div>
-              </label>
-            </div>
-            <div class="linha">
-              <label class="campo">
-                <span>Base</span>
-                <div class="entrada"><input id="ch-base" inputmode="decimal" value="3" /><em>mm</em></div>
-              </label>
-              <label class="campo">
-                <span>Margem</span>
-                <div class="entrada"><input id="ch-margem" inputmode="decimal" value="3" /><em>mm</em></div>
-              </label>
-            </div>
-            <label class="campo">
-              <span>Furo da argola</span>
-              <div class="entrada"><input id="ch-furo" inputmode="decimal" value="4,5" /><em>mm</em></div>
-            </label>
-            <div class="linha">
-              <label class="campo cor">
-                <span>Cor da base</span>
-                <input type="color" id="ch-cor-base" value="#1f2937" />
-              </label>
-              <label class="campo cor">
-                <span>Cor do texto</span>
-                <input type="color" id="ch-cor-texto" value="#f8fafc" />
-              </label>
-            </div>
-            <p class="erro" id="ch-erro" role="alert"></p>
-          </aside>
+          <aside class="painel modelo-opcoes ch-painel">
+            <nav class="ch-abas" aria-label="Partes do chaveiro">
+              <button type="button" data-alvo="ch-sec-texto">Texto</button>
+              <button type="button" data-alvo="ch-sec-base">Base</button>
+              <button type="button" data-alvo="ch-sec-argola">Argola</button>
+              <button type="button" data-alvo="ch-sec-cores">Cores</button>
+            </nav>
+            <div class="ch-rolagem" id="ch-rolagem">
+              <section id="ch-sec-texto">
+                <label class="campo">
+                  <span>Nome</span>
+                  <div class="entrada"><input id="ch-texto" maxlength="32" autocomplete="off" /></div>
+                </label>
+                <div class="campo">
+                  <span>Fonte</span>
+                  <div class="ch-fonte-linha">
+                    <button type="button" class="ch-fonte" id="ch-fonte"></button>
+                    <span class="ch-fonte-amostra" id="ch-fonte-amostra" aria-hidden="true">Aa</span>
+                  </div>
+                </div>
+                <div class="ch-largura">
+                  <label class="campo">
+                    <span>Largura total do chaveiro</span>
+                    <div class="entrada"><input id="ch-largura" inputmode="decimal" /></div>
+                  </label>
+                  <label class="campo">
+                    <span>Unidade</span>
+                    <select id="ch-unidade" class="seletor">
+                      <option value="mm">mm</option>
+                      <option value="cm">cm</option>
+                    </select>
+                  </label>
+                </div>
+                <p class="ajuda">Inclui base e argola. O arquivo exportado sai com esta largura.</p>
+              </section>
 
+              <section id="ch-sec-cores">
+                <h2 class="ch-titulo">Cores da peça</h2>
+                <span class="ch-rotulo">Base e argola</span>
+                <div class="ch-paleta" id="ch-paleta-base"></div>
+                <span class="ch-rotulo">Texto</span>
+                <div class="ch-paleta" id="ch-paleta-texto"></div>
+              </section>
+
+              <section id="ch-sec-base">
+                <h2 class="ch-titulo">Estilo da base</h2>
+                <div class="ch-estilos" role="group" aria-label="Estilo da base">
+                  <button type="button" data-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
+                  <button type="button" data-estilo="capsula"><span class="ch-forma capsula"></span>Cápsula</button>
+                  <button type="button" data-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
+                </div>
+                <details class="ch-detalhes">
+                  <summary>Estrutura e modelos prontos</summary>
+                  <label class="campo">
+                    <span>Modelo pronto</span>
+                    <select id="ch-pronto" class="seletor largo-total">
+                      <option value="">Personalizado</option>
+                    </select>
+                  </label>
+                  <div class="linha">
+                    <label class="campo">
+                      <span>Borda</span>
+                      <div class="entrada"><input id="ch-borda" inputmode="decimal" /><em data-unidade>mm</em></div>
+                    </label>
+                    <label class="campo">
+                      <span>Base</span>
+                      <div class="entrada"><input id="ch-base" inputmode="decimal" /><em data-unidade>mm</em></div>
+                    </label>
+                  </div>
+                  <label class="campo">
+                    <span>Relevo do texto</span>
+                    <div class="entrada"><input id="ch-relevo" inputmode="decimal" /><em data-unidade>mm</em></div>
+                  </label>
+                </details>
+              </section>
+
+              <section id="ch-sec-argola">
+                <h2 class="ch-titulo">Argola</h2>
+                <p class="ajuda">Na prévia 2D, arraste o círculo tracejado para levar a argola a qualquer ponto da borda.</p>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Furo</span>
+                    <div class="entrada"><input id="ch-furo" inputmode="decimal" /><em data-unidade>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Parede</span>
+                    <div class="entrada"><input id="ch-parede" inputmode="decimal" /><em data-unidade>mm</em></div>
+                  </label>
+                </div>
+                <button type="button" class="botao-texto" id="ch-argola-auto">Voltar a argola para a esquerda</button>
+              </section>
+            </div>
+          </aside>
           <section class="painel modelo-previa">
-            <div class="palco-modelo" id="ch-palco"></div>
-            <div class="modelo-rodape">
+            <div class="ch-barra">
+              <div class="ch-grupo">
+                <button type="button" class="ch-mini" id="ch-desfazer" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled>↶</button>
+                <button type="button" class="ch-mini" id="ch-refazer" title="Refazer (Ctrl+Y)" aria-label="Refazer" disabled>↷</button>
+              </div>
+              <div class="ch-grupo" role="group" aria-label="Tipo de prévia">
+                <button type="button" class="ch-mini" id="ch-ver-2d" aria-pressed="true">2D</button>
+                <button type="button" class="ch-mini" id="ch-ver-3d" aria-pressed="false">3D</button>
+              </div>
+            </div>
+            <div class="palco-modelo" id="ch-palco">
+              <canvas id="ch-2d"></canvas>
+              <div class="ch-3d" id="ch-3d" hidden></div>
+            </div>
+            <div class="ch-barra">
               <span class="cliente-sub" id="ch-medidas"></span>
+              <div class="ch-grupo">
+                <button type="button" class="ch-mini" id="ch-zoom-menos" aria-label="Diminuir zoom">−</button>
+                <button type="button" class="ch-mini" id="ch-ajustar">Ajustar à tela</button>
+                <button type="button" class="ch-mini" id="ch-zoom-mais" aria-label="Aumentar zoom">+</button>
+              </div>
+            </div>
+            <p class="ch-status" id="ch-status" role="status"></p>
+            <details class="ch-detalhes ch-filamentos">
+              <summary>Filamentos na exportação</summary>
+              <div class="linha">
+                <label class="campo">
+                  <span>Filamento da base</span>
+                  <select id="ch-slot-base" class="seletor largo-total"></select>
+                </label>
+                <label class="campo">
+                  <span>Filamento do texto</span>
+                  <select id="ch-slot-texto" class="seletor largo-total"></select>
+                </label>
+              </div>
+              <p class="ajuda">O 3MF já abre com cada parte no filamento escolhido (Anycubic Slicer Next, Orca e Bambu Studio). Confira as cores dos filamentos no fatiador.</p>
+            </details>
+            <div class="modelo-rodape">
+              <span class="cliente-sub">Base e texto em partes separadas, na mesma peça.</span>
               <div class="acoes-form">
                 <button class="botao-secundario" id="ch-stl" type="button" disabled>Salvar STL</button>
-                <button class="botao-secundario" id="ch-3mf" type="button" disabled>Salvar 3MF (2 cores)</button>
+                <button class="botao-secundario" id="ch-3mf" type="button" disabled>Salvar 3MF</button>
                 <button class="botao-primario" id="ch-fatiador" type="button" disabled>Abrir no fatiador</button>
               </div>
             </div>
@@ -812,6 +894,23 @@
         </div>
       </div>
     </main>
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-fontes" aria-labelledby="titulo-dialogo-fontes">
+      <header class="dialogo-topo">
+        <h2 id="titulo-dialogo-fontes">Escolher fonte</h2>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <label class="campo">
+          <span>Buscar fonte</span>
+          <div class="entrada"><input id="fontes-busca" autocomplete="off" /></div>
+        </label>
+        <div class="fontes-lista" id="fontes-lista"></div>
+      </div>
+      <footer class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fontes-fechar">Fechar</button>
+      </footer>
+    </dialog>
 
     <main class="tela oculta pagina" id="tela-logo">
       <div class="pagina-conteudo largo">

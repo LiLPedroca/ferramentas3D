@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("arquivos", {
 
 contextBridge.exposeInMainWorld("modelos", {
   lerFonte: (nome) => ipcRenderer.invoke("fontes:ler", nome),
+  lerMotor: () => ipcRenderer.invoke("modelos:wasm"),
   salvar: (bytes, nome, extensao) => ipcRenderer.invoke("modelos:salvar", bytes, nome, extensao),
 });
 

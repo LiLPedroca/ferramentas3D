@@ -18,6 +18,8 @@ await build({
   target: "chrome120",
   outfile: join(saida, "app.js"),
   define: { __VERSAO__: JSON.stringify(pacote.version) },
+  // o manifold-3d só importa "node:module" quando roda no Node; na tela recebe o .wasm pronto
+  external: ["node:module"],
   logLevel: "warning",
 });
 
@@ -35,5 +37,8 @@ for (const arquivo of ["index.html", "styles.css"]) {
   await copyFile(join(raiz, "src", "renderer", arquivo), join(saida, arquivo));
 }
 await cp(join(raiz, "src", "renderer", "assets"), join(saida, "assets"), { recursive: true });
+// Manifold (geometria dos modelos personalizados): o .wasm é lido pelo processo principal
+await copyFile(join(raiz, "node_modules", "manifold-3d", "manifold.wasm"), join(saida, "assets", "manifold.wasm"));
+await copyFile(join(raiz, "node_modules", "manifold-3d", "LICENSE"), join(saida, "assets", "manifold-LICENSE.txt"));
 
 console.log(`Renderer gerado em ${saida} (versão ${pacote.version})`);

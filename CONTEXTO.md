@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.13.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.14.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -104,13 +104,16 @@ Base comum criada na etapa 2 (usar nas próximas):
 - `src/core/formatos.js`: telefone, CPF/CNPJ, link do WhatsApp, iniciais.
 - Links externos: só `https://`, abertos no navegador (`window.open`).
 
-## Próximo: corrigir os chaveiros (pedido do Pedro, 04/11/2026)
-O Pedro vai mostrar como o Codex fez os chaveiros. Referência: `keychain/` no zip do Codex (README.md, geometry.mjs, logo.mjs, words.mjs, modeling.mjs). Diferenças já vistas em relação à nossa versão:
-- Codex usa Manifold (WASM, licença Apache) para união real de texto, base e argola; nós deixamos partes sobrepostas.
-- Base de contorno (segue o texto com margem, une letras soltas com pontes arredondadas), além de cápsula e retângulo; nós temos meia-lua e círculo.
-- Argola com posição escolhida ao longo da borda, recusando posições que cortem o texto.
-- "Largura total" do chaveiro em mm (inclui base e argola).
-- 3MF com `Metadata/model_settings.config` ligando cada parte aos filamentos 1 e 2 no Orca/Anycubic (o Pedro usa Anycubic Slicer Next).
+## Chaveiro de nome refeito (v0.14.0, 04/11/2026)
+O Pedro mandou um vídeo do Chaveiro de nome do Codex e pediu igual. Feito:
+- Motor Manifold (`manifold-3d` 3.5.4, Apache 2.0) em `renderer/modelos/manifold.js`: união real (regra nonzero das fontes), contorno, pontes entre ilhas (`unirIlhas`), ponto/normal na borda (`pontoNoLaco`, `maisPertoNoLaco`). Na tela, o `.wasm` vem do processo principal (canal `modelos:wasm`, arquivo copiado pelo build para `build/renderer/assets/manifold.wasm`), porque o file:// não baixa WASM. A CSP do `index.html` tem `'wasm-unsafe-eval'` (sem isso o WebAssembly é bloqueado). Nos testes (Node), o pacote acha o `.wasm` sozinho. Roda na própria tela (30 a 100 ms por peça; sem worker).
+- `modelos/chaveiro.js`: `gerarChaveiro(M, fonte, opcoes)`. Base contorno/cápsula/retangular, argola em qualquer ponto da borda (`argola` = posição 0 a 1; null = meio do lado esquerdo), recusa argola sobre o texto ou mal ligada, **largura total** exata (método da secante; borda, espessuras e argola ficam em mm). Devolve malhas fechadas + laços 2D para a prévia.
+- Tela `chaveiro-tela.js` como a do Codex: abas Texto/Base/Argola/Cores, escolha de fonte em janela com busca e categorias, largura em mm ou cm, paletas de 11 cores + cor personalizada, estilos de base, "Estrutura e modelos prontos" (Delicado/Clássico/Robusto), prévia 2D com a argola arrastável (refaz ao soltar; se a posição não servir, volta e explica), 3D, desfazer/refazer (Ctrl+Z/Ctrl+Y), zoom e "Ajustar à tela", "Filamentos na exportação" (slot de cada parte). Não mostramos "Salvar modelo"/"Beta" (regra: nada que não existe).
+- 29 fontes (as 17 novas vieram do pacote do Codex, OFL/Apache, licenças junto), em categorias em `modelos/fontes.js`; `familiaCss(id)` carrega a fonte para mostrar na tela.
+- 3MF (`exportar.js`) agora leva `Metadata/model_settings.config` com o filamento (extruder) de cada parte, para Anycubic Slicer Next/Orca/Bambu abrirem cada parte no filamento certo. Vale também para Logo e Palavras (slots 1, 2, 3… na ordem). Não leva `project_settings` (para não mexer nos perfis do usuário).
+- Testes (`tests/chaveiro.test.js`): largura exata nos 3 estilos, argola ao longo da borda, base de contorno com um só contorno externo, **todas as 29 fontes × 3 estilos com malhas fechadas e orientadas**, 3MF com model_settings.
+
+Próximo possível: levar a base de contorno e a argola posicionável ao Chaveiro de logo (o Codex faz em `keychain/logo.mjs` com `joinIslands` + `attachEyelet`, que equivalem ao nosso `unirIlhas` e à argola do chaveiro de nome). Conferir com o Pedro no Anycubic se os filamentos 1 e 2 já vêm certos.
 
 Para testar telas: o modo de captura (`FERRAMENTAS_*`, ver "Testes e modo de captura") com roteiros JS. Node em `C:\Program Files\nodejs` (adicionar ao PATH), git em `C:\Program Files\Git\cmd\git.exe`, gh em `C:\Program Files\GitHub CLI\gh.exe` (já logado).
 

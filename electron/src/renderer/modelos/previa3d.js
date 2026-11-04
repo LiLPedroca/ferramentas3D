@@ -27,6 +27,8 @@ export function criarPrevia(container) {
 
   let malhas = [];
   let primeiraVez = true;
+  let centro = new THREE.Vector3();
+  let tamanho = new THREE.Vector3(10, 10, 10);
 
   const ajustar = () => {
     const l = container.clientWidth;
@@ -52,24 +54,46 @@ export function criarPrevia(container) {
       for (const m of malhas) {
         cena.remove(m);
         m.material.dispose();
+        if (m.userData.copia) m.geometry.dispose();
       }
       malhas = partes.map((p) => {
         const material = new THREE.MeshStandardMaterial({ color: p.cor, roughness: 0.5, metalness: 0.05 });
-        const malha = new THREE.Mesh(p.geometria, material);
+        // geometria indexada (Manifold): faces planas na prévia, sem suavizar as quinas
+        let geometria = p.geometria;
+        if (geometria.index) {
+          geometria = geometria.toNonIndexed();
+          geometria.computeVertexNormals();
+        }
+        const malha = new THREE.Mesh(geometria, material);
+        malha.userData.copia = geometria !== p.geometria;
         cena.add(malha);
         return malha;
       });
       const caixa = new THREE.Box3();
       malhas.forEach((m) => caixa.expandByObject(m));
-      const centro = caixa.getCenter(new THREE.Vector3());
-      const tamanho = caixa.getSize(new THREE.Vector3());
+      centro = caixa.getCenter(new THREE.Vector3());
+      tamanho = caixa.getSize(new THREE.Vector3());
       grade.position.set(centro.x, centro.y, 0);
       if (primeiraVez) {
-        const alcance = Math.max(tamanho.x, tamanho.y, 10);
-        camera.position.set(centro.x - alcance * 0.2, centro.y - alcance * 1.45, alcance * 1.25);
+        this.enquadrar();
         primeiraVez = false;
       }
       controles.target.copy(centro);
+      controles.update();
+    },
+    // câmera de frente, um pouco de cima, com a peça inteira na tela
+    enquadrar() {
+      const alcance = Math.max(tamanho.x, tamanho.y, 10);
+      // distância para a peça ocupar a largura da tela (campo de visão vertical de 35°)
+      const distancia = (alcance / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.max(camera.aspect, 0.6)) * 1.25;
+      camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * 0.75, distancia * 0.65);
+      controles.target.copy(centro);
+      controles.update();
+    },
+    // fator < 1 aproxima, > 1 afasta
+    zoom(fator) {
+      const d = camera.position.clone().sub(controles.target).multiplyScalar(fator);
+      camera.position.copy(controles.target).add(d);
       controles.update();
     },
   };
