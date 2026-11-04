@@ -1,0 +1,13 @@
+# Ambiente virtual e caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Saídas do PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Arquivos locais
+.env
