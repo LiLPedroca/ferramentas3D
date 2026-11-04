@@ -104,6 +104,16 @@ Base comum criada na etapa 2 (usar nas próximas):
 - `src/core/formatos.js`: telefone, CPF/CNPJ, link do WhatsApp, iniciais.
 - Links externos: só `https://`, abertos no navegador (`window.open`).
 
+## Próximo: corrigir os chaveiros (pedido do Pedro, 04/11/2026)
+O Pedro vai mostrar como o Codex fez os chaveiros. Referência: `keychain/` no zip do Codex (README.md, geometry.mjs, logo.mjs, words.mjs, modeling.mjs). Diferenças já vistas em relação à nossa versão:
+- Codex usa Manifold (WASM, licença Apache) para união real de texto, base e argola; nós deixamos partes sobrepostas.
+- Base de contorno (segue o texto com margem, une letras soltas com pontes arredondadas), além de cápsula e retângulo; nós temos meia-lua e círculo.
+- Argola com posição escolhida ao longo da borda, recusando posições que cortem o texto.
+- "Largura total" do chaveiro em mm (inclui base e argola).
+- 3MF com `Metadata/model_settings.config` ligando cada parte aos filamentos 1 e 2 no Orca/Anycubic (o Pedro usa Anycubic Slicer Next).
+
+Para testar telas: o modo de captura (`FERRAMENTAS_*`, ver "Testes e modo de captura") com roteiros JS. Node em `C:\Program Files\nodejs` (adicionar ao PATH), git em `C:\Program Files\Git\cmd\git.exe`, gh em `C:\Program Files\GitHub CLI\gh.exe` (já logado).
+
 ## Ideias para próximas ferramentas (não aparecem no app)
 Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de filamentos, Comparador de custos, Encaixes e tolerâncias, Medidas e escala, Ficha de impressão, Falhas de impressão, Biblioteca de projetos, Conversor SVG, Preparador de fotos, Organizador de arquivos, Backup e restauração.
 - Lógica testada em `electron/src/core/inicio.js`. Ícones em `electron/src/renderer/icones.js`.
