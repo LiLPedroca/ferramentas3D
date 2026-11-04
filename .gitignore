@@ -11,3 +11,7 @@ dist/
 
 # Arquivos locais
 .env
+
+# Arquivos fora do repositório
+dev/
+*.spec
