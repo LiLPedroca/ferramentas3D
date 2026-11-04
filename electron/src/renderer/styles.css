@@ -260,6 +260,12 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* O contorno de foco fica na caixa (.entrada), não no campo de dentro. */
+.entrada input:focus-visible,
+.busca input:focus-visible {
+  outline: none;
+}
+
 .entrada:focus-within {
   border-color: var(--acento);
   box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.2);
@@ -907,6 +913,403 @@ kbd {
   transform: translate(-50%, 0);
 }
 
+/* ---------- Botões gerais ---------- */
+.botao-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.botao-secundario:hover {
+  border-color: var(--acento);
+  color: var(--acento-forte);
+}
+
+.botao-secundario.largo {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.botao-texto {
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.botao-texto:hover {
+  color: var(--texto);
+}
+
+.botao-texto.perigo,
+.botao-texto.perigo:hover {
+  color: var(--erro);
+}
+
+.botao-perigo {
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--erro);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.botao-primario:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.seletor {
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acento) 20%, transparent);
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--verde) 14%, transparent);
+  color: var(--verde);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* ---------- Produtos ---------- */
+.tela.produtos {
+  display: block;
+}
+
+.produtos-conteudo {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.produtos-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.titulo-pagina {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 750;
+}
+
+.produtos-topo .ajuda {
+  margin: 4px 0 0;
+}
+
+.produtos-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.produtos-acoes .busca {
+  width: 260px;
+}
+
+.grade-produtos {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.cartao-produto {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+  transition: transform 0.18s, border-color 0.2s;
+}
+
+.cartao-produto:hover {
+  transform: translateY(-3px);
+  border-color: var(--acento);
+}
+
+.produto-foto {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+}
+
+.produto-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.produto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 16px;
+}
+
+.produto-cabeca {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.produto-cabeca h3 {
+  margin: 0;
+  font-size: 15.5px;
+  overflow-wrap: anywhere;
+}
+
+.produto-preco {
+  font-size: 22px;
+  font-weight: 750;
+  color: var(--acento-forte);
+  font-variant-numeric: tabular-nums;
+}
+
+.produto-meta,
+.produto-margem {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.produto-margem.negativo {
+  color: var(--erro);
+}
+
+.vazio-produtos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 460px;
+  margin: 50px auto;
+  text-align: center;
+}
+
+.vazio-produtos h2 {
+  margin: 8px 0 0;
+  font-size: 19px;
+}
+
+.vazio-produtos p {
+  margin: 0 0 10px;
+  color: var(--texto-suave);
+}
+
+.vazio-icone {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--verde) 14%, transparent);
+  color: var(--verde);
+}
+
+.vazio-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---------- Diálogos ---------- */
+.dialogo {
+  width: min(760px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: 20px;
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.dialogo::backdrop {
+  background: rgba(5, 8, 15, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.dialogo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.dialogo-topo h2,
+.dialogo-pequeno h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.fechar {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.fechar:hover {
+  background: var(--superficie-2);
+  color: var(--texto);
+}
+
+.dialogo-corpo {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 22px;
+  padding: 20px 22px 6px;
+}
+
+.dialogo-campos .campo {
+  margin-bottom: 14px;
+}
+
+.dialogo-campos .linha {
+  margin-bottom: 0;
+}
+
+.foto-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.foto-previa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1.5px dashed var(--borda);
+  border-radius: 16px;
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.foto-previa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foto-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.trio .entrada {
+  padding: 0 8px;
+}
+
+.trio .entrada em {
+  margin-left: 4px;
+}
+
+.custo-calculadora {
+  margin: -2px 0 14px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--acento) 12%, transparent);
+  color: var(--texto);
+  font-size: 12.5px;
+}
+
+.dialogo-erro {
+  margin: 0;
+  padding: 0 22px;
+}
+
+.dialogo-rodape {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px 18px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.dialogo-pequeno {
+  width: min(420px, calc(100vw - 40px));
+  padding: 22px 22px 4px;
+}
+
+.dialogo-pequeno p {
+  color: var(--texto-suave);
+}
+
+.dialogo-pequeno .dialogo-rodape {
+  padding: 8px 0 18px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
@@ -935,5 +1338,13 @@ kbd {
 
   .resumo {
     grid-template-columns: 1fr;
+  }
+
+  .dialogo-corpo {
+    grid-template-columns: 1fr;
+  }
+
+  .foto-previa {
+    max-width: 180px;
   }
 }

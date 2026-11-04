@@ -12,6 +12,7 @@ import { Racional } from "../core/racional.js";
 import { FERRAMENTAS } from "../core/ferramentas.js";
 import { contarFerramentas, filtrarFerramentas, saudacao } from "../core/inicio.js";
 import { icone } from "./icones.js";
+import { abrirEditor, carregarProdutos, iniciarProdutos } from "./produtos.js";
 import { iniciarVisualizador } from "./viewer3d.js";
 
 const $ = (id) => document.getElementById(id);
@@ -59,6 +60,7 @@ const TELAS = {
   inicio: { elemento: "tela-inicio", titulo: "" },
   calculadora: { elemento: "tela-calculadora", titulo: "Calculadora 3D" },
   visualizador: { elemento: "tela-visualizador", titulo: "Visualizar 3D" },
+  produtos: { elemento: "tela-produtos", titulo: "Produtos" },
 };
 
 function irPara(tela) {
@@ -70,6 +72,7 @@ function irPara(tela) {
   $("titulo-tela").textContent = TELAS[tela].titulo;
   if (tela === "inicio") atualizarSaudacao();
   if (tela === "visualizador") iniciarVisualizador();
+  if (tela === "produtos") carregarProdutos();
   $(TELAS[tela].elemento).scrollTop = 0;
 }
 window.irPara = irPara; // usado também pelo modo de captura de tela dos testes
@@ -256,11 +259,15 @@ function mostrarComposicao(resultado) {
   );
 }
 
+let ultimoCalculo = null; // { entrada, resultado } do último cálculo válido
+
 function atualizarResultado() {
   const erro = $("erro");
+  ultimoCalculo = null;
   try {
     const entrada = lerEntrada();
     const resultado = calcular(entrada);
+    ultimoCalculo = { entrada, resultado };
 
     const textoValorImpressora = $("valor-impressora").value.trim();
     let pecas = "—";
@@ -289,6 +296,34 @@ function atualizarResultado() {
       throw e;
     }
   }
+}
+
+// Racional -> texto decimal com até 4 casas, ponto como separador ("12.5").
+function decimalCurto(r) {
+  return String(Number((Number(r.num) / Number(r.den)).toFixed(4)));
+}
+
+// Abre o cadastro de produto já preenchido com o resultado da calculadora.
+function salvarComoProduto() {
+  if (!ultimoCalculo) {
+    mostrarAviso("Corrija os campos da calculadora antes de salvar.");
+    return;
+  }
+  const { entrada, resultado } = ultimoCalculo;
+  const precoCent = resultado.precoUnitario.centavosArredondados();
+  const pesoPeca = entrada.pesoG.divide(Racional.de(BigInt(entrada.quantidade)));
+  const peso = Number((Number(pesoPeca.num) / Number(pesoPeca.den)).toFixed(2));
+
+  irPara("produtos");
+  abrirEditor(undefined, {
+    preco: formatarReais(new Racional(precoCent, 100n)).replace("R$ ", ""),
+    pesoG: peso > 0 ? String(peso).replace(".", ",") : "",
+    custo: {
+      custoUnitarioCentavos: resultado.custoUnitario.centavosArredondados().toString(),
+      lucroPct: decimalCurto(entrada.lucroPct),
+      data: new Date().toISOString(),
+    },
+  });
 }
 
 function formatarPeso(racional) {
@@ -330,7 +365,10 @@ function preencherPadroes() {
 
 $("versao").textContent = `Versão ${__VERSAO__}`;
 aplicarTema(temaSalvo() ?? (matchMedia("(prefers-color-scheme: light)").matches ? "claro" : "escuro"));
+$("salvar-como-produto").addEventListener("click", salvarComoProduto);
+
 preencherPadroes();
 atualizarResultado();
 iniciarHome();
+iniciarProdutos({ avisar: mostrarAviso, irPara });
 irPara("inicio");

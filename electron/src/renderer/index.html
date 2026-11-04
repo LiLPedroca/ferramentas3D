@@ -190,6 +190,7 @@
           <strong id="custo-lote">R$ 0,00</strong>
         </div>
         <p class="ajuda pequeno">Valores exibidos arredondados a centavos. O preço usa o cálculo completo, sem arredondamento intermediário.</p>
+        <button class="botao-secundario largo" id="salvar-como-produto" type="button">Salvar como produto</button>
       </section>
     </main>
 
@@ -213,6 +214,120 @@
         <p class="ajuda pequeno">Dimensões assumem que o STL está em milímetros, como o padrão dos fatiadores.</p>
       </aside>
     </main>
+
+    <main class="tela oculta produtos" id="tela-produtos">
+      <div class="produtos-conteudo">
+        <div class="produtos-topo">
+          <div>
+            <h1 class="titulo-pagina">Produtos</h1>
+            <p class="ajuda" id="produtos-resumo"></p>
+          </div>
+          <div class="produtos-acoes">
+            <label class="busca">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="busca-produtos" type="search" placeholder="Buscar produto…" aria-label="Buscar produto" autocomplete="off" />
+            </label>
+            <select id="filtro-categoria" class="seletor" aria-label="Filtrar por categoria">
+              <option value="">Todas as categorias</option>
+            </select>
+            <button class="botao-primario" id="novo-produto" type="button">+ Novo produto</button>
+          </div>
+        </div>
+
+        <p class="erro" id="erro-produtos" role="alert"></p>
+        <div class="grade grade-produtos" id="grade-produtos"></div>
+
+        <div class="vazio-produtos" id="vazio-produtos" hidden>
+          <span class="vazio-icone" id="vazio-icone"></span>
+          <h2>Nenhum produto cadastrado</h2>
+          <p>Cadastre seus produtos para guardar preço, peso, medidas e foto. Você também pode calcular o preço na Calculadora 3D e salvar direto aqui.</p>
+          <div class="vazio-botoes">
+            <button class="botao-primario" id="vazio-novo" type="button">Cadastrar produto</button>
+            <button class="botao-secundario" id="vazio-calcular" type="button">Calcular um preço</button>
+          </div>
+        </div>
+        <p class="vazio" id="sem-resultado-produtos" hidden>Nenhum produto encontrado com esse filtro.</p>
+      </div>
+    </main>
+
+    <dialog class="dialogo" id="dialogo-produto" aria-labelledby="titulo-dialogo-produto">
+      <form id="form-produto" novalidate>
+        <header class="dialogo-topo">
+          <h2 id="titulo-dialogo-produto">Novo produto</h2>
+          <button type="button" class="fechar" id="fechar-produto" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="dialogo-corpo">
+          <div class="foto-campo">
+            <div class="foto-previa" id="foto-previa"></div>
+            <div class="foto-botoes">
+              <button type="button" class="botao-secundario" id="escolher-foto">Escolher foto</button>
+              <button type="button" class="botao-texto" id="remover-foto" hidden>Remover foto</button>
+              <input type="file" id="arquivo-foto" accept="image/png,image/jpeg,image/webp" hidden />
+            </div>
+          </div>
+
+          <div class="dialogo-campos">
+            <label class="campo">
+              <span>Nome *</span>
+              <div class="entrada"><input id="p-nome" maxlength="120" autocomplete="off" /></div>
+            </label>
+            <div class="linha">
+              <label class="campo">
+                <span>Categoria</span>
+                <div class="entrada"><input id="p-categoria" list="lista-categorias" maxlength="60" autocomplete="off" placeholder="Ex.: Chaveiros" /></div>
+                <datalist id="lista-categorias"></datalist>
+              </label>
+              <label class="campo">
+                <span>Preço de venda *</span>
+                <div class="entrada"><input id="p-preco" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div>
+              </label>
+            </div>
+
+            <div class="custo-calculadora" id="p-custo" hidden></div>
+
+            <div class="linha">
+              <label class="campo">
+                <span>Peso por peça</span>
+                <div class="entrada"><input id="p-peso" inputmode="decimal" autocomplete="off" /><em>g</em></div>
+              </label>
+              <div class="campo">
+                <span>Dimensões (A × L × C)</span>
+                <div class="trio">
+                  <div class="entrada"><input id="p-altura" inputmode="decimal" aria-label="Altura em mm" autocomplete="off" /><em>mm</em></div>
+                  <div class="entrada"><input id="p-largura" inputmode="decimal" aria-label="Largura em mm" autocomplete="off" /><em>mm</em></div>
+                  <div class="entrada"><input id="p-comprimento" inputmode="decimal" aria-label="Comprimento em mm" autocomplete="off" /><em>mm</em></div>
+                </div>
+              </div>
+            </div>
+
+            <label class="campo">
+              <span>Observações</span>
+              <textarea id="p-obs" maxlength="300" rows="3" placeholder="Material, cor, acabamento…"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <p class="erro dialogo-erro" id="erro-produto" role="alert"></p>
+
+        <footer class="dialogo-rodape">
+          <button type="button" class="botao-texto perigo" id="excluir-produto" hidden>Excluir produto</button>
+          <span class="espaco"></span>
+          <button type="button" class="botao-secundario" id="cancelar-produto">Cancelar</button>
+          <button type="submit" class="botao-primario" id="salvar-produto">Salvar produto</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-confirmar" aria-labelledby="confirmar-titulo">
+      <h2 id="confirmar-titulo">Excluir produto?</h2>
+      <p id="confirmar-texto"></p>
+      <div class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="confirmar-nao">Cancelar</button>
+        <button type="button" class="botao-perigo" id="confirmar-sim">Excluir</button>
+      </div>
+    </dialog>
 
     <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 

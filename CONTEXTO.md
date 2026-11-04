@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.4.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.5.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -63,12 +63,20 @@ Toda alteração vira uma release nova, sem pedir confirmação a cada vez:
 - Catálogo em `electron/src/core/ferramentas.js`: para liberar uma ferramenta, marcar `disponivel: true`, dar uma `tela` e registrar a tela em `TELAS` no `app.js`.
 - Lógica testada em `electron/src/core/inicio.js`. Ícones em `electron/src/renderer/icones.js`.
 
+## Produtos (pronto na v0.5.0)
+- Tela com busca, filtro por categoria, cadastro, edição, exclusão (com confirmação) e foto (reduzida para até 640 px em JPEG).
+- Botão "Salvar como produto" na calculadora: abre o cadastro com preço por peça, peso por peça e o custo (com lucro e data).
+- Campos: nome, categoria, preço (centavos em texto), peso (g), altura/largura/comprimento (mm), observações, foto, custo.
+- Dados em `%APPDATA%\Programa Ferramentas 3D\dados\produtos.json`, gravados só pelo processo principal (`src/main/armazenamento.cjs`): troca atômica (.tmp → renomeia) e cópia `.bak`. Se nada puder ser lido, não sobrescreve.
+- A tela fala com o processo principal por `window.dados.produtos` (preload). O processo principal valida tudo de novo (`src/core/produto.cjs`, em CommonJS para servir aos dois lados).
+- Itens inválidos no arquivo são mantidos, mas não aparecem na lista.
+
 ## Testes e modo de captura
 - `vite` precisa estar nas devDependencies: o `.npmrc` usa `legacy-peer-deps` e não instala dependências "peer" sozinho. Sem ele, o vitest não roda.
-- Modo de captura (só para testes): `FERRAMENTAS_CAPTURA=<png>`, com `FERRAMENTAS_ABA`, `FERRAMENTAS_TEMA`, `FERRAMENTAS_STL` e `FERRAMENTAS_ALTURA` opcionais. O tema da captura não é salvo.
+- Modo de captura (só para testes): `FERRAMENTAS_CAPTURA=<png>`, com `FERRAMENTAS_ABA`, `FERRAMENTAS_TEMA`, `FERRAMENTAS_STL`, `FERRAMENTAS_ALTURA`, `FERRAMENTAS_JS` (roteiro executado na tela) e `FERRAMENTAS_DADOS` (pasta de dados temporária, para não tocar nos dados reais). O tema da captura não é salvo.
 
 ## Pendências
-- Próxima ferramenta a liberar (sugestão: Produtos ou Orçamentos, que dependem de salvar dados localmente).
+- Próxima ferramenta sugerida: Orçamentos (usa os Produtos) ou Clientes.
 - Ícone do aplicativo (hoje é o padrão do Electron).
 - Não há assinatura digital no instalador, então o Windows pode mostrar aviso de editor desconhecido.
 - Auto-update validado ponta a ponta: 0.3.0 → 0.3.1.

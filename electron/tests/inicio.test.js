@@ -42,13 +42,13 @@ describe("catálogo", () => {
     const ids = FERRAMENTAS.map((f) => f.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const f of FERRAMENTAS.filter((f) => f.disponivel)) {
-      expect(["calculadora", "visualizador"]).toContain(f.tela);
+      expect(["calculadora", "visualizador", "produtos"]).toContain(f.tela);
     }
   });
 
   it("conta prontas e em breve", () => {
     const c = contarFerramentas(FERRAMENTAS);
-    expect(c.disponiveis).toBe(2);
-    expect(c.emBreve).toBe(FERRAMENTAS.length - 2);
+    expect(c.disponiveis).toBe(3);
+    expect(c.emBreve).toBe(FERRAMENTAS.length - 3);
   });
 });

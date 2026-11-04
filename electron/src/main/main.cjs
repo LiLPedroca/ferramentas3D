@@ -1,6 +1,7 @@
 // Processo principal do Electron: cria a janela e cuida da atualização pelo GitHub.
 const path = require("node:path");
-const { app, BrowserWindow, dialog, Menu, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron");
+const { criarServicoProdutos, responder } = require("./produtos.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
 let autoUpdater = null;
@@ -18,6 +19,7 @@ function criarJanela() {
     backgroundColor: "#0b0d12",
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -72,8 +74,28 @@ function configurarAtualizacao(janela) {
   autoUpdater.checkForUpdates().catch(() => {});
 }
 
+// Dados do usuário ficam em %APPDATA%\Programa Ferramentas 3D\dados.
+// FERRAMENTAS_DADOS troca a pasta (usado nos testes, para não tocar nos dados reais).
+function registrarDados() {
+  const pasta = process.env.FERRAMENTAS_DADOS || path.join(app.getPath("userData"), "dados");
+  const produtos = criarServicoProdutos(pasta);
+
+  // Só aceita chamadas vindas das páginas do próprio programa.
+  const daTela = (evento) => evento.senderFrame?.url?.startsWith("file://");
+  const negado = { ok: false, erro: "Origem não autorizada." };
+
+  ipcMain.handle("produtos:listar", (e) => (daTela(e) ? responder(produtos.listar()) : negado));
+  ipcMain.handle("produtos:salvar", (e, valores, id) =>
+    daTela(e) ? responder(produtos.salvar(valores, typeof id === "string" ? id : undefined)) : negado,
+  );
+  ipcMain.handle("produtos:excluir", (e, id) =>
+    daTela(e) && typeof id === "string" ? responder(produtos.excluir(id)) : negado,
+  );
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  registrarDados();
   const janela = criarJanela();
   janela.once("ready-to-show", () => {
     janela.show();
@@ -86,6 +108,7 @@ app.whenReady().then(() => {
         const aba = process.env.FERRAMENTAS_ABA;
         if (aba) {
           await janela.webContents.executeJavaScript(`window.irPara(${JSON.stringify(aba)})`);
+          await new Promise((r) => setTimeout(r, 700)); // dá tempo de carregar dados da tela
         }
         // Só muda o tema na tela da captura, sem salvar a preferência do usuário.
         const tema = process.env.FERRAMENTAS_TEMA;
@@ -94,6 +117,11 @@ app.whenReady().then(() => {
             `document.documentElement.dataset.theme = ${JSON.stringify(tema)}`,
           );
           await new Promise((r) => setTimeout(r, 400));
+        }
+        // Roteiro de teste opcional, executado na tela antes da captura.
+        if (process.env.FERRAMENTAS_JS) {
+          await janela.webContents.executeJavaScript(fs.readFileSync(process.env.FERRAMENTAS_JS, "utf8"));
+          await new Promise((r) => setTimeout(r, 800));
         }
         const stl = process.env.FERRAMENTAS_STL;
         if (stl) {
