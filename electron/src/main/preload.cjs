@@ -5,7 +5,14 @@ contextBridge.exposeInMainWorld("atualizacao", {
   verificar: () => ipcRenderer.invoke("atualizacao:verificar"),
 });
 
+const cadastro = (nome) => ({
+  listar: () => ipcRenderer.invoke(`${nome}:listar`),
+  salvar: (valores, id) => ipcRenderer.invoke(`${nome}:salvar`, valores, id ?? null),
+  excluir: (id) => ipcRenderer.invoke(`${nome}:excluir`, id),
+});
+
 contextBridge.exposeInMainWorld("dados", {
+  clientes: cadastro("clientes"),
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
   config: {
     ler: () => ipcRenderer.invoke("config:ler"),

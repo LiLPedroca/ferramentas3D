@@ -1,5 +1,6 @@
 // Ponto de entrada da tela: liga os módulos e abre o início.
 import { iniciarCalculadora } from "./calculadora-tela.js";
+import { carregarClientes, iniciarClientes } from "./clientes.js";
 import { iniciarConfiguracoes } from "./configuracoes-tela.js";
 import { iniciarInicio } from "./inicio-tela.js";
 import { carregarProdutos, iniciarProdutos } from "./produtos.js";
@@ -11,7 +12,9 @@ iniciarInicio();
 iniciarCalculadora();
 iniciarConfiguracoes();
 iniciarProdutos({ avisar: mostrarAviso, irPara });
+iniciarClientes();
 registrarAoAbrir("produtos", carregarProdutos);
+registrarAoAbrir("clientes", carregarClientes);
 registrarAoAbrir("visualizador", iniciarVisualizador);
 
 irPara("inicio");

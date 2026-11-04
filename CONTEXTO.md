@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.6.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.7.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -73,7 +73,7 @@ Home: cabeçalho com ☰ (menu lateral), título da tela, "Meu fatiador", interr
 
 Etapas (marcar [x] ao publicar):
 - [x] 1. Novo visual: home com fotos, páginas de grupo, menu lateral, saudação com nome, Configurações (nome e pasta de dados; dados da empresa entram na etapa 3). (v0.6.0)
-- [ ] 2. Clientes e histórico. (v0.7.0)
+- [x] 2. Clientes (o histórico de pedidos entra com Orçamentos). (v0.7.0)
 - [ ] 3. Orçamentos com PDF (usa Produtos e Clientes). (v0.8.0)
 - [ ] 4. Backup e armazenamento + Removedor de metadados. (v0.9.0)
 - [ ] 5. Detector de IA (indícios locais: C2PA, XMP, EXIF, PNG) + Conversor SVG. (v0.10.0)
@@ -81,7 +81,14 @@ Etapas (marcar [x] ao publicar):
 - [ ] 7. Meu fatiador + Chaveiro de nome (texto 3D com base e argola, exporta 3MF/STL). (v0.12.0)
 - [ ] 8. Chaveiro de logo + Palavras decorativas. (v0.13.0)
 
-Último progresso: 2026-11-04 01:40 (etapa 1 publicada).
+Último progresso: 2026-11-04 01:55 (etapa 2 publicada).
+
+Base comum criada na etapa 2 (usar nas próximas):
+- `src/core/validacao.cjs`: `ErroValidacao` (mensagem amigável), `texto`, `textoLongo`, `ID`, `dataValida`.
+- `src/main/servico-colecao.cjs`: serviço genérico de cadastro (listar/salvar/excluir) + `responder`. Para um cadastro novo: criar o modelo em `src/core/<x>.cjs`, o serviço em `src/main/<x>.cjs` e incluir em `cadastros` no `registrarDados` do `main.cjs` (gera os canais `<x>:listar/salvar/excluir`); no preload, `cadastro("<x>")`.
+- `confirmar({ titulo, texto, botao })` em `renderer/shell.js` para confirmações (devolve true/false).
+- `src/core/formatos.js`: telefone, CPF/CNPJ, link do WhatsApp, iniciais.
+- Links externos: só `https://`, abertos no navegador (`window.open`).
 
 ## Ideias para próximas ferramentas (não aparecem no app)
 Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de filamentos, Comparador de custos, Encaixes e tolerâncias, Medidas e escala, Ficha de impressão, Falhas de impressão, Biblioteca de projetos, Conversor SVG, Preparador de fotos, Organizador de arquivos, Backup e restauração.

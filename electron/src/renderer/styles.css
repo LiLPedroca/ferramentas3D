@@ -1025,6 +1025,86 @@ kbd {
   margin-top: 6px;
 }
 
+/* ---------- Clientes ---------- */
+.lista-clientes {
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  background: var(--superficie);
+}
+
+.linha-cliente {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--borda);
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.linha-cliente:last-child {
+  border-bottom: 0;
+}
+
+.linha-cliente:hover {
+  background: var(--superficie-2);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--acento) 18%, transparent);
+  color: var(--acento-forte);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cliente-principal,
+.cliente-contato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cliente-nome {
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-sub {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-seta {
+  color: var(--texto-suave);
+}
+
+.dialogo-medio {
+  width: min(620px, calc(100vw - 40px));
+}
+
+.dialogo-corpo-simples {
+  padding: 20px 22px 6px;
+}
+
 /* Janela de boas-vindas */
 #form-boas-vindas {
   display: flex;

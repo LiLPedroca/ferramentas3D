@@ -13,6 +13,7 @@ const TELAS = {
   calculadora: { elemento: "tela-calculadora" },
   visualizador: { elemento: "tela-visualizador" },
   produtos: { elemento: "tela-produtos" },
+  clientes: { elemento: "tela-clientes" },
 };
 for (const f of FERRAMENTAS) {
   if (TELAS[f.tela]) Object.assign(TELAS[f.tela], { titulo: f.titulo, pai: `grupo:${f.grupo}` });
@@ -143,6 +144,38 @@ export function mostrarAviso(texto) {
   aviso.classList.add("visivel");
   clearTimeout(temporizadorAviso);
   temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), 2600);
+}
+
+// ---------- Confirmação genérica ----------
+// Abre a janela de confirmação e devolve true (confirmou) ou false (cancelou).
+export function confirmar({ titulo, texto, botao = "Confirmar" }) {
+  return new Promise((resolve) => {
+    const dialogo = $("dialogo-confirmar");
+    const sim = $("confirmar-sim");
+    const nao = $("confirmar-nao");
+    $("confirmar-titulo").textContent = titulo;
+    $("confirmar-texto").textContent = texto;
+    sim.textContent = botao;
+
+    const terminar = (resultado) => {
+      sim.removeEventListener("click", aoSim);
+      nao.removeEventListener("click", aoNao);
+      dialogo.removeEventListener("cancel", aoCancelar);
+      if (dialogo.open) dialogo.close();
+      resolve(resultado);
+    };
+    const aoSim = () => terminar(true);
+    const aoNao = () => terminar(false);
+    const aoCancelar = (ev) => {
+      ev.preventDefault();
+      terminar(false);
+    };
+    sim.addEventListener("click", aoSim);
+    nao.addEventListener("click", aoNao);
+    dialogo.addEventListener("cancel", aoCancelar);
+    dialogo.showModal();
+    nao.focus();
+  });
 }
 
 // ---------- Atualizações ----------

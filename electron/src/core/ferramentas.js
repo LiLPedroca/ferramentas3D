@@ -6,7 +6,7 @@ export const GRUPOS = [
   {
     id: "financeiro",
     titulo: "Gestão financeira",
-    descricao: "Calculadora e catálogo de produtos.",
+    descricao: "Calculadora, produtos e clientes.",
     foto: "assets/grupo-financeiro.jpg",
   },
   {
@@ -41,6 +41,15 @@ export const FERRAMENTAS = [
     categoria: "Gestão financeira",
     disponivel: true,
     tela: "produtos",
+  },
+  {
+    id: "clientes",
+    grupo: "financeiro",
+    titulo: "Clientes",
+    descricao: "Contatos, documento e cidade dos seus clientes.",
+    categoria: "Gestão financeira",
+    disponivel: true,
+    tela: "clientes",
   },
   {
     id: "visualizador",

@@ -79,11 +79,12 @@ describe("catálogo real", () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const f of FERRAMENTAS) {
       expect(f.disponivel).toBe(true);
-      expect(["calculadora", "visualizador", "produtos"]).toContain(f.tela);
+      expect(["calculadora", "visualizador", "produtos", "clientes"]).toContain(f.tela);
     }
   });
 
   it("conta as ferramentas", () => {
-    expect(contarFerramentas(FERRAMENTAS)).toEqual({ total: 3, disponiveis: 3, emBreve: 0 });
+    const n = FERRAMENTAS.length;
+    expect(contarFerramentas(FERRAMENTAS)).toEqual({ total: n, disponiveis: n, emBreve: 0 });
   });
 });

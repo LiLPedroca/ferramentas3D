@@ -1,7 +1,9 @@
 // Configurações do usuário: validação e mesclagem. Em CommonJS (usado no processo principal e nos testes).
 "use strict";
 
-class ConfiguracaoInvalida extends Error {
+const { ErroValidacao } = require("./validacao.cjs");
+
+class ConfiguracaoInvalida extends ErroValidacao {
   constructor(mensagem) {
     super(mensagem);
     this.name = "ConfiguracaoInvalida";

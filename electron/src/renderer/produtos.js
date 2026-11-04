@@ -4,6 +4,7 @@ import { Racional } from "../core/racional.js";
 import { formatarReais } from "../core/calculadora.js";
 import { normalizar } from "../core/inicio.js";
 import { icone } from "./icones.js";
+import { confirmar } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -241,15 +242,18 @@ async function aoEscolherFoto() {
 }
 
 // ---------- Exclusão ----------
-function confirmarExclusao() {
+async function confirmarExclusao() {
   const produto = produtos.find((p) => p.id === editandoId);
   if (!produto) return;
-  $("confirmar-texto").textContent = `"${produto.nome}" será excluído. Essa ação não pode ser desfeita.`;
-  $("dialogo-confirmar").showModal();
+  const ok = await confirmar({
+    titulo: "Excluir produto?",
+    texto: `"${produto.nome}" será excluído. Essa ação não pode ser desfeita.`,
+    botao: "Excluir",
+  });
+  if (ok) await excluir();
 }
 
 async function excluir() {
-  $("dialogo-confirmar").close();
   const resposta = await window.dados.produtos.excluir(editandoId);
   if (!resposta.ok) {
     $("erro-produto").textContent = resposta.erro;
@@ -283,8 +287,6 @@ export function iniciarProdutos(opcoes) {
     mostrarFoto(null);
   });
   $("excluir-produto").addEventListener("click", confirmarExclusao);
-  $("confirmar-nao").addEventListener("click", () => $("dialogo-confirmar").close());
-  $("confirmar-sim").addEventListener("click", excluir);
 }
 
 export function produtosCarregados() {

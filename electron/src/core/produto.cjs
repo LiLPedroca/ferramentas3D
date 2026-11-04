@@ -13,7 +13,9 @@ const LIMITES = {
   medida: 99_999,
 };
 
-class ProdutoInvalido extends Error {
+const { ErroValidacao } = require("./validacao.cjs");
+
+class ProdutoInvalido extends ErroValidacao {
   constructor(mensagem) {
     super(mensagem);
     this.name = "ProdutoInvalido";

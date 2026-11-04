@@ -2,6 +2,7 @@
 const path = require("node:path");
 const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron");
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
+const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
@@ -30,10 +31,13 @@ function criarJanela() {
   janela.loadFile(path.join(__dirname, "..", "..", "build", "renderer", "index.html"));
 
   // Links externos abrem no navegador, nunca dentro do programa.
+  // Só endereços https (ex.: WhatsApp, sites de modelos 3D).
   janela.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (url.startsWith("https://")) shell.openExternal(url);
     return { action: "deny" };
   });
+  // Nunca navega a própria janela para outro endereço.
+  janela.webContents.on("will-navigate", (ev) => ev.preventDefault());
 
   return janela;
 }
@@ -134,6 +138,18 @@ function registrarDados() {
   const produtos = criarServicoProdutos(pasta);
   const configuracoes = criarServicoConfiguracoes(pasta);
   const negado = { ok: false, erro: "Origem não autorizada." };
+
+  // Cadastros em lista: <nome>:listar, <nome>:salvar, <nome>:excluir.
+  const cadastros = { clientes: criarServicoClientes(pasta) };
+  for (const [nome, servico] of Object.entries(cadastros)) {
+    ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(servico.listar()) : negado));
+    ipcMain.handle(`${nome}:salvar`, (e, valores, id) =>
+      daTela(e) ? responder(servico.salvar(valores, typeof id === "string" ? id : undefined)) : negado,
+    );
+    ipcMain.handle(`${nome}:excluir`, (e, id) =>
+      daTela(e) && typeof id === "string" ? responder(servico.excluir(id)) : negado,
+    );
+  }
 
   ipcMain.handle("config:ler", (e) => (daTela(e) ? responderConfig(configuracoes.ler()) : negado));
   ipcMain.handle("config:salvar", (e, alteracao) =>
