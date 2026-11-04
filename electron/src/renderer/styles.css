@@ -1383,6 +1383,164 @@ kbd {
   background: var(--superficie-2);
 }
 
+/* ---------- Backup ---------- */
+.bk-contagem {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bk-numero {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.bk-numero strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-numero span {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.bk-pasta {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+  color: var(--texto-suave);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
+.bk-previa {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--acento) 45%, var(--borda));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--acento) 8%, transparent);
+}
+
+.bk-previa p {
+  margin: 6px 0 0;
+  color: var(--texto-suave);
+}
+
+.bk-automaticos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bk-auto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.bk-auto-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.botao-secundario.pequeno {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* ---------- Removedor de metadados ---------- */
+.md-intro {
+  margin: 6px 0 18px;
+  font-size: 13.5px;
+}
+
+.md-acoes {
+  margin-top: 16px;
+}
+
+.md-opcao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  font-size: 13px;
+}
+
+.md-opcao input {
+  accent-color: var(--acento);
+}
+
+.md-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.md-arquivo {
+  padding: 14px 16px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+}
+
+.md-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.md-nome {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.md-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.md-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  font-size: 12px;
+  cursor: default;
+}
+
+.md-chip.alerta {
+  border-color: color-mix(in srgb, #e8a93a 60%, var(--borda));
+  background: color-mix(in srgb, #e8a93a 14%, transparent);
+  color: #e8a93a;
+}
+
+.md-chip.limpo {
+  border-color: color-mix(in srgb, var(--verde) 50%, var(--borda));
+  color: var(--verde);
+}
+
+.md-chip.erro-chip {
+  border-color: color-mix(in srgb, var(--erro) 50%, var(--borda));
+  color: var(--erro);
+}
+
 /* Janela de boas-vindas */
 #form-boas-vindas {
   display: flex;

@@ -12,7 +12,7 @@ export const GRUPOS = [
   {
     id: "ferramentas",
     titulo: "Ferramentas",
-    descricao: "Visualização e análise de modelos.",
+    descricao: "Visualização 3D, metadados e backup.",
     foto: "assets/grupo-ferramentas.jpg",
   },
   {
@@ -68,5 +68,23 @@ export const FERRAMENTAS = [
     categoria: "Ferramentas",
     disponivel: true,
     tela: "visualizador",
+  },
+  {
+    id: "metadados",
+    grupo: "ferramentas",
+    titulo: "Removedor de metadados",
+    descricao: "Veja e tire GPS, câmera e autor das fotos.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "metadados",
+  },
+  {
+    id: "backup",
+    grupo: "ferramentas",
+    titulo: "Backup e armazenamento",
+    descricao: "Salve e restaure todos os seus dados.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "backup",
   },
 ];

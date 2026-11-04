@@ -4,6 +4,8 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron")
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
 const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
+const { criarServicoBackup } = require("./backup.cjs");
+const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
 
@@ -160,6 +162,123 @@ function registrarDados() {
   const clientes = criarServicoClientes(pasta);
   const orcamentos = criarServicoOrcamentos(pasta, { clientes });
   const cadastros = { clientes, orcamentos };
+
+  // ---------- Backup e armazenamento ----------
+  const backup = criarServicoBackup(pasta, {
+    colecoes: { produtos, clientes, orcamentos },
+    configuracoes,
+    versaoApp: app.getVersion(),
+  });
+  let backupEscolhido = null; // backup lido e aguardando confirmação para restaurar
+  const janelaDe = (e) => BrowserWindow.fromWebContents(e.sender);
+  const comTela = (funcao) => (e, ...args) => (daTela(e) ? responder(funcao(e, ...args)) : negado);
+
+  ipcMain.handle("backup:resumo", comTela(() => backup.resumo()));
+  ipcMain.handle(
+    "backup:exportar",
+    comTela(async (e) => {
+      const nome = nomeBackup("Backup-Ferramentas3D");
+      let destino;
+      if (process.env.FERRAMENTAS_SALVAR_DESTINO) destino = path.join(process.env.FERRAMENTAS_SALVAR_DESTINO, nome);
+      else {
+        const escolha = await dialog.showSaveDialog(janelaDe(e), {
+          title: "Salvar backup",
+          defaultPath: path.join(app.getPath("documents"), nome),
+          filters: [{ name: "Backup", extensions: ["json"] }],
+        });
+        if (escolha.canceled || !escolha.filePath) return null;
+        destino = escolha.filePath;
+      }
+      await require("node:fs/promises").writeFile(destino, await backup.gerarTexto(), "utf8");
+      return destino;
+    }),
+  );
+  ipcMain.handle(
+    "backup:escolher",
+    comTela(async (e) => {
+      let caminho = process.env.FERRAMENTAS_BACKUP_ARQUIVO;
+      if (!caminho) {
+        const escolha = await dialog.showOpenDialog(janelaDe(e), {
+          title: "Escolher backup para restaurar",
+          properties: ["openFile"],
+          filters: [{ name: "Backup", extensions: ["json"] }],
+        });
+        if (escolha.canceled || !escolha.filePaths[0]) return null;
+        caminho = escolha.filePaths[0];
+      }
+      backupEscolhido = await backup.lerArquivoBackup(caminho);
+      return { resumo: backupEscolhido.resumo, descartados: backupEscolhido.descartados, nome: path.basename(caminho) };
+    }),
+  );
+  ipcMain.handle(
+    "backup:escolher-automatico",
+    comTela(async (_e, nome) => {
+      backupEscolhido = await backup.lerAutomatico(String(nome));
+      return { resumo: backupEscolhido.resumo, descartados: backupEscolhido.descartados, nome: String(nome) };
+    }),
+  );
+  ipcMain.handle(
+    "backup:restaurar",
+    comTela(async () => {
+      if (!backupEscolhido) throw new ErroValidacao("Escolha um backup antes de restaurar.");
+      const resultado = await backup.restaurar(backupEscolhido);
+      backupEscolhido = null;
+      return resultado;
+    }),
+  );
+  if (!process.env.FERRAMENTAS_CAPTURA) {
+    backup.copiaDiaria().catch((erro) => console.error("Cópia diária:", erro.message));
+  }
+
+  // ---------- Salvar cópias de arquivos (ex.: imagens sem metadados) ----------
+  // Pergunta a pasta, nunca sobrescreve: acrescenta " (2)", " (3)"... se o nome já existir.
+  ipcMain.handle(
+    "arquivos:salvar-copias",
+    comTela(async (e, lista) => {
+      const fsp = require("node:fs/promises");
+      if (!Array.isArray(lista) || lista.length === 0 || lista.length > 100) throw new ErroValidacao("Nada para salvar.");
+      for (const item of lista) {
+        if (!item || typeof item.nome !== "string" || !(item.bytes instanceof Uint8Array)) throw new ErroValidacao("Arquivo inválido.");
+        if (item.bytes.length > 100 * 1024 * 1024) throw new ErroValidacao("Arquivo grande demais.");
+      }
+      let pastaDestino = process.env.FERRAMENTAS_SALVAR_DESTINO;
+      if (!pastaDestino) {
+        const escolha = await dialog.showOpenDialog(janelaDe(e), {
+          title: "Escolher a pasta para salvar as cópias",
+          properties: ["openDirectory", "createDirectory"],
+        });
+        if (escolha.canceled || !escolha.filePaths[0]) return null;
+        pastaDestino = escolha.filePaths[0];
+      }
+      const salvos = [];
+      for (const item of lista) {
+        const limpo = path.basename(item.nome).replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 150) || "arquivo";
+        const ext = path.extname(limpo);
+        const base = limpo.slice(0, limpo.length - ext.length);
+        let destino = path.join(pastaDestino, limpo);
+        for (let n = 2; ; n++) {
+          try {
+            await fsp.writeFile(destino, item.bytes, { flag: "wx" }); // falha se já existir
+            break;
+          } catch (erro) {
+            if (erro.code !== "EEXIST" || n > 999) throw erro;
+            destino = path.join(pastaDestino, `${base} (${n})${ext}`);
+          }
+        }
+        salvos.push(path.basename(destino));
+      }
+      return { pasta: pastaDestino, salvos };
+    }),
+  );
+  ipcMain.handle(
+    "arquivos:abrir-pasta",
+    comTela(async (_e, caminho) => {
+      if (typeof caminho !== "string" || !path.isAbsolute(caminho)) throw new ErroValidacao("Pasta inválida.");
+      const erro = await shell.openPath(caminho);
+      if (erro) throw new ErroValidacao(`Não foi possível abrir a pasta: ${erro}`);
+      return true;
+    }),
+  );
 
   // PDF do orçamento: pergunta onde salvar e abre o arquivo pronto.
   // FERRAMENTAS_PDF_DESTINO (testes) salva direto nessa pasta, sem perguntar nem abrir.

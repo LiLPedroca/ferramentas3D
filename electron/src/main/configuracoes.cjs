@@ -8,6 +8,7 @@ const { ErroValidacao } = require("../core/validacao.cjs");
 function criarServicoConfiguracoes(pasta) {
   const documento = new Documento(pasta, "configuracoes");
   return {
+    documento,
     async ler() {
       return normalizarGravado(await documento.ler());
     },

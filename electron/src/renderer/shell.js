@@ -15,6 +15,8 @@ const TELAS = {
   produtos: { elemento: "tela-produtos" },
   clientes: { elemento: "tela-clientes" },
   orcamentos: { elemento: "tela-orcamentos" },
+  metadados: { elemento: "tela-metadados" },
+  backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
 };
 for (const f of FERRAMENTAS) {

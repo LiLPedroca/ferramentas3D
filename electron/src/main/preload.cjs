@@ -11,6 +11,19 @@ const cadastro = (nome) => ({
   excluir: (id) => ipcRenderer.invoke(`${nome}:excluir`, id),
 });
 
+contextBridge.exposeInMainWorld("arquivos", {
+  salvarCopias: (lista) => ipcRenderer.invoke("arquivos:salvar-copias", lista),
+  abrirPasta: (caminho) => ipcRenderer.invoke("arquivos:abrir-pasta", caminho),
+});
+
+contextBridge.exposeInMainWorld("backup", {
+  resumo: () => ipcRenderer.invoke("backup:resumo"),
+  exportar: () => ipcRenderer.invoke("backup:exportar"),
+  escolher: () => ipcRenderer.invoke("backup:escolher"),
+  escolherAutomatico: (nome) => ipcRenderer.invoke("backup:escolher-automatico", nome),
+  restaurar: () => ipcRenderer.invoke("backup:restaurar"),
+});
+
 contextBridge.exposeInMainWorld("dados", {
   clientes: cadastro("clientes"),
   orcamentos: { ...cadastro("orcamentos"), pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id) },

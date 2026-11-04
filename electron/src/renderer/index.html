@@ -535,6 +535,83 @@
       </div>
     </main>
 
+    <main class="tela oculta pagina" id="tela-backup">
+      <div class="pagina-conteudo estreito">
+        <h1 class="titulo-pagina">Backup e armazenamento</h1>
+        <p class="erro" id="erro-backup" role="alert"></p>
+
+        <section class="painel cartao-config">
+          <h2>Seus dados</h2>
+          <div class="bk-contagem" id="bk-contagem"></div>
+          <p class="ajuda" id="bk-espaco"></p>
+          <p class="bk-pasta" id="bk-pasta"></p>
+          <div class="acoes-form">
+            <button class="botao-secundario" id="bk-abrir-pasta" type="button">Abrir pasta de dados</button>
+          </div>
+        </section>
+
+        <section class="painel cartao-config">
+          <h2>Fazer backup</h2>
+          <p class="ajuda">Salva produtos (com fotos), clientes, orçamentos e configurações num único arquivo. Guarde em um pendrive ou na nuvem.</p>
+          <div class="acoes-form">
+            <button class="botao-primario" id="bk-exportar" type="button">Salvar backup…</button>
+          </div>
+        </section>
+
+        <section class="painel cartao-config">
+          <h2>Restaurar</h2>
+          <p class="ajuda">Traz de volta os dados de um arquivo de backup. Você confere o conteúdo antes de confirmar.</p>
+          <div class="acoes-form">
+            <button class="botao-secundario" id="bk-escolher" type="button">Escolher arquivo de backup…</button>
+          </div>
+          <div class="bk-previa" id="bk-previa" hidden>
+            <strong id="bk-previa-titulo"></strong>
+            <p id="bk-previa-texto"></p>
+            <div class="acoes-form">
+              <button class="botao-secundario" id="bk-cancelar" type="button">Cancelar</button>
+              <button class="botao-perigo" id="bk-restaurar" type="button">Restaurar este backup</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="painel cartao-config">
+          <h2>Cópias automáticas</h2>
+          <p class="ajuda">Uma cópia por dia, ao abrir o programa. Ficam as 10 mais recentes, além das cópias feitas antes de cada restauração.</p>
+          <div class="bk-automaticos" id="bk-automaticos"></div>
+        </section>
+      </div>
+    </main>
+
+    <main class="tela oculta pagina" id="tela-metadados">
+      <div class="pagina-conteudo estreito">
+        <h1 class="titulo-pagina">Removedor de metadados</h1>
+        <p class="ajuda md-intro">Fotos guardam informações escondidas, como o local onde foram tiradas, a câmera e o programa usado. Veja o que cada imagem carrega e salve cópias limpas. Os arquivos originais nunca são alterados.</p>
+
+        <div class="zona-arquivo" id="md-zona" tabindex="0" role="button" aria-label="Escolher fotos">
+          <p><strong>Arraste fotos aqui</strong></p>
+          <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
+          <input type="file" id="md-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
+        </div>
+
+        <div class="md-acoes" id="md-acoes" hidden>
+          <p class="ajuda" id="md-resumo"></p>
+          <label class="md-opcao"><input type="checkbox" id="md-manter-cor" checked /> Manter o perfil de cor (recomendado: não identifica ninguém e mantém as cores certas)</label>
+          <div class="acoes-form">
+            <button class="botao-texto" id="md-limpar" type="button">Limpar lista</button>
+            <button class="botao-primario" id="md-salvar" type="button">Salvar cópias sem metadados</button>
+          </div>
+          <div class="bk-previa" id="md-resultado" hidden>
+            <p id="md-resultado-texto"></p>
+            <div class="acoes-form">
+              <button class="botao-secundario" id="md-abrir-pasta" type="button">Abrir pasta</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="md-lista" id="md-lista"></div>
+      </div>
+    </main>
+
     <main class="tela oculta pagina" id="tela-grupo">
       <div class="pagina-conteudo">
         <div class="grupo-capa" id="grupo-capa">
