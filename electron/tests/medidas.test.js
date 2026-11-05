@@ -3,7 +3,9 @@ import * as THREE from "three";
 import {
   acharFurosEPinos,
   ajustarCirculo,
+  arestaReta,
   arestasMarcantes,
+  identificarRedondo,
   autovetores3,
   formatarMedida,
   medirDiametro,
@@ -27,6 +29,69 @@ function placaComFuro(lados = 48, raio = 4) {
   forma.holes.push(furo);
   return new THREE.ExtrudeGeometry(forma, { depth: 10, bevelEnabled: false, curveSegments: lados });
 }
+
+// Copo: Ø 74 por fora, Ø 70 por dentro, 95 de altura, fundo de 3 mm (eixo Y para cima).
+function copo() {
+  const perfil = [V(0, 0, 0), V(37, 0, 0), V(37, 95, 0), V(35, 95, 0), V(35, 3, 0), V(0, 3, 0)].map((p) => new THREE.Vector2(p.x, p.y));
+  const geo = new THREE.LatheGeometry(perfil, 96).toNonIndexed();
+  const malha = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  const raio = new THREE.Raycaster();
+  const lancar = (origem, direcao) => {
+    raio.set(origem, direcao);
+    const h = raio.intersectObject(malha)[0];
+    return h ? { distancia: h.distance, normal: h.face.normal } : null;
+  };
+  return { pos: geo.attributes.position.array, lancar };
+}
+
+describe("paquímetro de passar o mouse", () => {
+  it("na boca do copo: Ø de dentro, Ø de fora e o fundo", () => {
+    const { pos, lancar } = copo();
+    const r = identificarRedondo(pos, V(36, 95, 0), V(0, 1, 0), { lancar });
+    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
+    expect(r.externo.raio * 2).toBeCloseTo(74, 0);
+    expect(r.profundidade).toBeCloseTo(92, 1);
+    expect(r.passante).toBeUndefined();
+  });
+
+  it("na parede de dentro do copo", () => {
+    const { pos, lancar } = copo();
+    const r = identificarRedondo(pos, V(0, 50, 35), V(0, 0, -1), { lancar });
+    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
+    expect(r.externo.raio * 2).toBeCloseTo(74, 0);
+    expect(r.profundidade).toBeCloseTo(92, 0);
+  });
+
+  it("na parede de fora do copo", () => {
+    const { pos, lancar } = copo();
+    const r = identificarRedondo(pos, V(37, 40, 0), V(1, 0, 0), { lancar });
+    expect(r.externo.raio * 2).toBeCloseTo(74, 0);
+    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
+    expect(r.altura).toBeCloseTo(95, 0);
+  });
+
+  it("no fundo de dentro do copo: o Ø do furo", () => {
+    const { pos, lancar } = copo();
+    const r = identificarRedondo(pos, V(10, 3, 5), V(0, 1, 0), { lancar });
+    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
+  });
+
+  it("na face de cima da placa, perto do furo e longe dele", () => {
+    const pos = posicoes(placaComFuro());
+    const perto = identificarRedondo(pos, V(4.2, 0, 10), V(0, 0, 1));
+    expect(perto.interno.raio * 2).toBeCloseTo(8, 1);
+    expect(perto.externo).toBeNull();
+    expect(identificarRedondo(pos, V(12, 12, 10), V(0, 0, 1))).toBeNull();
+  });
+
+  it("ponta de um pino", () => {
+    const pos = posicoes(new THREE.CylinderGeometry(6, 6, 20, 64));
+    const r = identificarRedondo(pos, V(1, 10, 1), V(0, 1, 0));
+    expect(r.externo.raio * 2).toBeCloseTo(12, 1);
+    expect(r.interno).toBeNull();
+    expect(r.altura).toBeCloseTo(20, 1);
+  });
+});
 
 describe("álgebra", () => {
   it("círculo por mínimos quadrados", () => {
@@ -141,6 +206,14 @@ describe("paquímetro", () => {
     expect(r.minima).toBeGreaterThan(0.95);
     expect(r.minima).toBeLessThan(1.01);
     expect(r.amostras.length).toBeGreaterThan(100);
+  });
+
+  it("arestas reais: segue a aresta reta inteira", () => {
+    // caixa 30 × 10 × 10 com muitos pedaços na aresta de 30
+    const pos = posicoes(new THREE.BoxGeometry(30, 10, 10, 6, 1, 1));
+    const reais = arestasMarcantes(pos);
+    const r = arestaReta(reais, V(-5, 5, 5), V(0, 5, 5));
+    expect(r.comprimento).toBeCloseTo(30, 3);
   });
 
   it("formata em mm e polegadas", () => {

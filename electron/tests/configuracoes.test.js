@@ -72,6 +72,23 @@ describe("modelo de configurações", () => {
     expect(normalizarGravado({ medidasSalvas: "lixo" }).medidasSalvas).toEqual([]);
   });
 
+  it("guarda as medidas do paquímetro de passar o mouse", () => {
+    const medidas = [
+      { tipo: "redondo", centro: [0, 95, 0], eixo: [0, 1, 0], externo: { raio: 37, rms: 0.01, lados: 96 }, interno: { raio: 35, rms: 0.01, lados: 96 }, profundidade: 92 },
+      { tipo: "redondo", centro: [0, 5, 0], eixo: [0, 1, 0], externo: null, interno: { raio: 4, rms: 0, lados: 48 }, passante: true },
+      { tipo: "aresta", a: { p: [0, 0, 0], n: null }, b: { p: [30, 0, 0], n: null } },
+      { tipo: "parede", a: { p: [0, 0, 0], n: [0, 1, 0] }, b: { p: [0, -2, 0], n: null }, real: 2.1 },
+    ];
+    const novo = aplicarAlteracao({}, { medidasSalvas: [{ chave: "copo.stl|1|2", nome: "copo.stl", medidas }] });
+    const [boca, furo, aresta, parede] = novo.medidasSalvas[0].medidas;
+    expect(boca.interno.raio).toBe(35);
+    expect(boca.profundidade).toBe(92);
+    expect(furo.passante).toBe(true);
+    expect(aresta.b.p).toEqual([30, 0, 0]);
+    expect(parede.real).toBe(2.1);
+    expect(() => aplicarAlteracao({}, { medidasSalvas: [{ chave: "x", medidas: [{ tipo: "redondo", centro: [0, 0, 0], eixo: [0, 1, 0], externo: null, interno: null }] }] })).toThrow(/Medida/);
+  });
+
   it("recusa nome longo ou com caracteres de controle", () => {
     expect(() => aplicarAlteracao({}, { nome: "x".repeat(81) })).toThrow(/80/);
     expect(() => aplicarAlteracao({}, { nome: "a\u0007b" })).toThrow(/inválidos/);

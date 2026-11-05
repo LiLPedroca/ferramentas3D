@@ -124,10 +124,27 @@ function medidaSemRealDe(m) {
       },
     };
   }
-  if (m.tipo !== "distancia" && m.tipo !== "profundidade") throw new ConfiguracaoInvalida("Medida inválida.");
+  if (m.tipo === "redondo") {
+    // boca, furo ou pino do paquímetro de passar o mouse: Ø de fora e/ou de dentro
+    const lado = (l) => {
+      if (l === null || l === undefined) return null;
+      if (!numeroEntre(l.raio, 1e-4, 1e5)) throw new ConfiguracaoInvalida("Medida inválida.");
+      return { raio: l.raio, rms: numeroEntre(l.rms, 0, 1e5) ? l.rms : 0, lados: Number.isInteger(l.lados) && l.lados >= 0 && l.lados < 1e6 ? l.lados : 0 };
+    };
+    const [externo, interno] = [lado(m.externo), lado(m.interno)];
+    if (!vetor3(m.centro) || !vetor3(m.eixo) || (!externo && !interno)) throw new ConfiguracaoInvalida("Medida inválida.");
+    const r = { tipo: "redondo", centro: m.centro, eixo: m.eixo, externo, interno };
+    if (numeroEntre(m.profundidade, 0, 1e5)) r.profundidade = m.profundidade;
+    if (numeroEntre(m.altura, 0, 1e5)) r.altura = m.altura;
+    if (m.passante === true) r.passante = true;
+    return r;
+  }
+  if (!["distancia", "profundidade", "aresta", "parede"].includes(m.tipo)) throw new ConfiguracaoInvalida("Medida inválida.");
+  // aresta e parede não têm normal nos dois pontos
   const ponto = (p) => {
-    if (!p || !vetor3(p.p) || !vetor3(p.n)) throw new ConfiguracaoInvalida("Medida inválida.");
-    return { p: p.p, n: p.n };
+    if (!p || !vetor3(p.p) || (p.n !== null && p.n !== undefined && !vetor3(p.n))) throw new ConfiguracaoInvalida("Medida inválida.");
+    if (m.tipo !== "aresta" && m.tipo !== "parede" && !vetor3(p.n)) throw new ConfiguracaoInvalida("Medida inválida.");
+    return { p: p.p, n: p.n ?? null };
   };
   return { tipo: m.tipo, a: ponto(m.a), b: ponto(m.b) };
 }

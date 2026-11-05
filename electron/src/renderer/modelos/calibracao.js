@@ -6,6 +6,7 @@
 // Tipo da calibração a partir da medida do paquímetro.
 export function tipoDaCalibracao(medida) {
   if (medida.tipo === "diametro") return medida.furo.tipo === "pino" ? "pino" : "furo";
+  if (medida.tipo === "redondo") return medida.interno ? "furo" : "pino";
   return "externa";
 }
 

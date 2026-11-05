@@ -197,9 +197,8 @@
             <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
           </div>
           <div class="vz-grupo" role="group" aria-label="Paquímetro" data-vz-com-peca hidden>
-            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos ou entre faces paralelas">Distância</button>
-            <button type="button" class="vz-botao" data-vz-modo="diametro" title="Diâmetro de furo ou pino">Diâmetro</button>
-            <button type="button" class="vz-botao" data-vz-modo="profundidade" title="Profundidade de furo ou altura de degrau">Profundidade</button>
+            <button type="button" class="vz-botao" data-vz-modo="paquimetro" title="Passe o mouse: ele reconhece furos, bocas, pinos, arestas e paredes e mostra a medida">Paquímetro</button>
+            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos que você escolhe">Distância</button>
           </div>
           <span class="espaco"></span>
           <button type="button" class="vz-botao solto" id="vz-abrir" title="Abrir outro arquivo">Abrir arquivo</button>
@@ -248,7 +247,6 @@
         <div class="vz-abas" id="vz-abas" role="tablist" hidden>
           <button type="button" role="tab" data-vz-aba="peca" class="ativo">Peça</button>
           <button type="button" role="tab" data-vz-aba="medidas">Medidas <span class="contagem-texto" id="vz-medidas-contagem"></span></button>
-          <button type="button" role="tab" data-vz-aba="analise">Análise <span class="contagem-texto" id="an-contagem"></span></button>
         </div>
 
         <div class="vz-painel" data-vz-painel="peca" hidden>
@@ -284,9 +282,16 @@
               <option value="mm">mm</option>
               <option value="pol">pol</option>
             </select>
+            <select class="seletor pequeno" id="vz-bico" aria-label="Bico da impressora" title="Para avisar quando uma parede é fina demais">
+              <option value="0.2">bico 0,2</option>
+              <option value="0.4">bico 0,4</option>
+              <option value="0.6">bico 0,6</option>
+              <option value="0.8">bico 0,8</option>
+            </select>
           </div>
           <ul class="vz-medidas" id="vz-medidas"></ul>
-          <p class="ajuda pequeno" id="vz-medidas-vazio">Escolha Distância, Diâmetro ou Profundidade na barra e clique na peça.</p>
+          <p class="an-folga" id="vz-folga"></p>
+          <p class="ajuda pequeno" id="vz-medidas-vazio">Clique em Paquímetro e passe o mouse na peça.</p>
           <div class="vz-linha vz-rodape-medidas">
             <button type="button" class="botao-secundario pequeno" id="vz-ficha" hidden>Salvar ficha (imagem)</button>
             <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas</button>
@@ -303,26 +308,6 @@
           </details>
         </div>
 
-        <div class="vz-painel" data-vz-painel="analise" id="an-painel" hidden>
-          <p class="ajuda pequeno" id="an-estado"></p>
-          <button type="button" class="botao-secundario pequeno" id="an-analisar" hidden>Analisar peça</button>
-          <p class="an-folga" id="an-folga"></p>
-          <ul class="an-lista" id="an-furos"></ul>
-          <button type="button" class="botao-texto pequeno" id="an-mais" hidden></button>
-          <p class="ajuda pequeno" id="an-furos-vazio"></p>
-          <div class="vz-linha an-paredes-topo">
-            <strong>Paredes</strong>
-            <span class="espaco"></span>
-            <label class="md-opcao" title="Pinta na peça os lugares finos"><input type="checkbox" id="an-mostrar-finas" /> Mostrar</label>
-            <select class="seletor pequeno" id="an-bico" aria-label="Bico da impressora">
-              <option value="0.2">bico 0,2</option>
-              <option value="0.4">bico 0,4</option>
-              <option value="0.6">bico 0,6</option>
-              <option value="0.8">bico 0,8</option>
-            </select>
-          </div>
-          <p class="ajuda pequeno" id="an-paredes"></p>
-        </div>
       </aside>
     </main>
 

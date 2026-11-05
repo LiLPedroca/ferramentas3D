@@ -1,41 +1,92 @@
-// Paquímetro do Visualizador 3D: distância (bicos externos), diâmetro (furos e pinos) e
-// profundidade/ressalto. Os pontos grudam em vértices e arestas e, se pedido, no centro dos furos.
+// Paquímetro do Visualizador 3D.
+// "Paquímetro": passe o mouse e ele reconhece o que está embaixo (boca de copo, furo, pino, aresta,
+// parede) e mostra a medida na hora; o clique deixa a medida fixa na peça.
+// "Distância": dois cliques, medida à mão (os pontos grudam em cantos e arestas).
 // As medidas ficam guardadas nas coordenadas da peça: acompanham quando ela é girada, movida ou escalada.
 import * as THREE from "three";
+import { MeshBVH } from "three-mesh-bvh";
+import { abrirEncaixeCom } from "./encaixes-tela.js";
+import { ENCAIXES, MATERIAIS_ENCAIXE } from "./modelos/encaixes.js";
 import { previsaoImpressa, resumoCalibracao, textoDiferenca, textoDoResumo, tipoDaCalibracao } from "./modelos/calibracao.js";
-import { arestasMarcantes, formatarMedida, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
+import { arestaReta, arestasMarcantes, formatarMedida, identificarRedondo, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
+import { el } from "./util-tela.js";
 
-// Arestas reais de cada malha, calculadas uma vez por malha (na primeira medida).
+const $ = (id) => document.getElementById(id);
+const COR = 0xffc857;
+const COR_PREVIA = 0x3ad6e8;
+const NOMES = { redondo: "Redondo", distancia: "Distância", profundidade: "Profundidade", aresta: "Aresta", parede: "Parede" };
+const PIXELS_VERTICE = 10;
+const PIXELS_ARESTA = 7;
+const PIXELS_BORDA = 9; // até onde o mouse conta como "em cima da borda" de um furo
+
+// Arestas reais e BVH (para os raios) de cada malha, calculados uma vez por malha.
 const arestasDaMalha = new WeakMap();
 function arestasDe(geometria) {
   if (!arestasDaMalha.has(geometria)) arestasDaMalha.set(geometria, arestasMarcantes(geometria.attributes.position.array));
   return arestasDaMalha.get(geometria);
 }
-import { el } from "./util-tela.js";
+const bvhDaMalha = new WeakMap();
+function lancadorDe(geometria) {
+  if (!bvhDaMalha.has(geometria)) {
+    // numa cópia: o BVH reordena os triângulos e o paquímetro usa a ordem original
+    const bvh = new MeshBVH(geometria.clone());
+    const raio = new THREE.Ray();
+    bvhDaMalha.set(geometria, (origem, direcao) => {
+      raio.set(origem.clone().addScaledVector(direcao, 1e-3), direcao);
+      const h = bvh.raycastFirst(raio, THREE.DoubleSide);
+      return h ? { distancia: h.distance + 1e-3, normal: h.face.normal } : null;
+    });
+  }
+  return bvhDaMalha.get(geometria);
+}
 
-const $ = (id) => document.getElementById(id);
-const COR = 0xffc857;
-const NOMES = { distancia: "Distância", diametro: "Diâmetro", profundidade: "Profundidade" };
-const PIXELS_VERTICE = 10;
-const PIXELS_ARESTA = 7;
+function bicoEscolhido() {
+  try {
+    return Number(localStorage.getItem("visualizador-bico")) || 0.4;
+  } catch {
+    return 0.4;
+  }
+}
+
+// Classifica a folga (furo − pino) pelos encaixes da ferramenta Encaixes e tolerâncias.
+export function classificarFolga(folga, { material = "PLA", bico = 0.4 } = {}) {
+  if (folga < 0) return "não entra (o pino é maior que o furo)";
+  const fator = Math.max(1, bico / 0.4);
+  const extra = MATERIAIS_ENCAIXE[material] ?? 0;
+  if (folga < (ENCAIXES.justo.folga + extra) * fator * 0.5) return "muito justo: talvez não entre sem lixar";
+  let melhor = null;
+  for (const [id, e] of Object.entries(ENCAIXES)) {
+    const alvo = (e.folga + extra) * fator;
+    if (!melhor || Math.abs(folga - alvo) < melhor.dist) melhor = { id, dist: Math.abs(folga - alvo), nome: e.nome };
+  }
+  return `encaixe ${melhor.nome.split(" (")[0].toLowerCase()} ${melhor.nome.slice(melhor.nome.indexOf("("))}`;
+}
 
 // ---------- Guardar e restaurar (coordenadas da peça, em listas simples) ----------
 const lista3 = (v) => [v.x, v.y, v.z];
 const vetor = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 
 function paraGuardar(m) {
-  const base =
-    m.tipo === "diametro"
-      ? { tipo: "diametro", furo: { centro: lista3(m.furo.centro), eixo: lista3(m.furo.eixo), raio: m.furo.raio, rms: m.furo.rms, lados: m.furo.lados, tipo: m.furo.tipo } }
-      : { tipo: m.tipo, a: { p: lista3(m.a.p), n: lista3(m.a.n) }, b: { p: lista3(m.b.p), n: lista3(m.b.n) } };
+  let base;
+  if (m.tipo === "redondo") {
+    base = { tipo: "redondo", centro: lista3(m.centro), eixo: lista3(m.eixo), externo: m.externo, interno: m.interno, profundidade: m.profundidade, passante: m.passante, altura: m.altura };
+  } else {
+    base = { tipo: m.tipo, a: { p: lista3(m.a.p), n: m.a.n ? lista3(m.a.n) : null }, b: { p: lista3(m.b.p), n: m.b.n ? lista3(m.b.n) : null } };
+  }
   return m.real ? { ...base, real: m.real } : base;
 }
 
 function deGuardado(g) {
-  const m =
-    g.tipo === "diametro"
-      ? { tipo: "diametro", furo: { ...g.furo, centro: vetor(g.furo.centro), eixo: vetor(g.furo.eixo) } }
-      : { tipo: g.tipo, a: { p: vetor(g.a.p), n: vetor(g.a.n) }, b: { p: vetor(g.b.p), n: vetor(g.b.n) } };
+  let m;
+  if (g.tipo === "diametro") {
+    // medidas da versão anterior (só o diâmetro de um furo ou pino)
+    const lado = { raio: g.furo.raio, rms: g.furo.rms, lados: g.furo.lados };
+    m = { tipo: "redondo", centro: vetor(g.furo.centro), eixo: vetor(g.furo.eixo), externo: g.furo.tipo === "pino" ? lado : null, interno: g.furo.tipo === "pino" ? null : lado };
+  } else if (g.tipo === "redondo") {
+    m = { ...g, centro: vetor(g.centro), eixo: vetor(g.eixo) };
+  } else {
+    m = { tipo: g.tipo, a: { p: vetor(g.a.p), n: g.a.n ? vetor(g.a.n) : null }, b: { p: vetor(g.b.p), n: g.b.n ? vetor(g.b.n) : null } };
+  }
   if (g.real) m.real = g.real;
   return m;
 }
@@ -53,15 +104,22 @@ function filamentoEscolhido() {
 export function criarPaquimetro(ctx) {
   const { cena, camera, renderizador, peca, palco } = ctx;
   const desenhos = new THREE.Group();
-  cena.add(desenhos);
+  const previa = new THREE.Group();
+  cena.add(desenhos, previa);
   const marcador = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: COR, depthTest: false }));
   marcador.renderOrder = 10;
   marcador.visible = false;
   cena.add(marcador);
+  const rotuloPrevia = el("div", "vz-rotulo vz-rotulo-previa");
+  rotuloPrevia.hidden = true;
+  palco.append(rotuloPrevia);
   const raio = new THREE.Raycaster();
 
   let medidas = [];
-  let pendente = null; // primeiro ponto já clicado
+  let pendente = null; // primeiro ponto já clicado (Distância)
+  let achado = null; // o que o mouse está mostrando agora (Paquímetro)
+  let espera = null;
+  let ultimaChave = "";
   let contador = 0;
   let unidade = "mm";
   let arquivo = null; // { chave, nome } do arquivo aberto (para guardar as medidas)
@@ -69,6 +127,8 @@ export function criarPaquimetro(ctx) {
 
   const filamento = () => $("vz-filamento").value.trim() || "Geral";
   const resumo = () => resumoCalibracao(ctx.config()?.calibracoes, filamento());
+  const mm = (n, casas = 2) => formatarMedida(n, unidade, casas);
+  const numero = (n, casas = 2) => mm(n, casas).replace(/ mm$/, "");
 
   // Guarda as medidas deste arquivo nas configurações (um pouco depois da última mudança).
   function agendarSalvar() {
@@ -88,7 +148,7 @@ export function criarPaquimetro(ctx) {
   // Abre um arquivo: traz de volta as medidas guardadas dele, se houver.
   function definirArquivo(novo) {
     arquivo = novo;
-    marcador.visible = false;
+    esconderPrevia();
     medidas = [];
     pendente = null;
     contador = 0;
@@ -97,11 +157,17 @@ export function criarPaquimetro(ctx) {
       for (const g of salvo.medidas) {
         contador++;
         const m = deGuardado(g);
-        medidas.push({ ...m, id: contador, nome: `${NOMES[m.tipo]} ${contador}` });
+        medidas.push({ ...m, id: contador, nome: `${nomeDe(m)} ${contador}` });
       }
       ctx.avisar(`${salvo.medidas.length} medida(s) deste arquivo foram trazidas de volta.`);
     }
     atualizar();
+  }
+
+  function nomeDe(m) {
+    if (m.tipo !== "redondo") return NOMES[m.tipo];
+    if (m.interno && m.externo) return "Boca";
+    return m.interno ? "Furo" : "Pino";
   }
 
   async function guardarReal(m, real, principal) {
@@ -143,59 +209,97 @@ export function criarPaquimetro(ctx) {
     return { x: ((v.x + 1) / 2) * r.width, y: ((1 - v.y) / 2) * r.height, atras: v.z > 1 };
   }
 
-  // Ponto clicado na peça, já com o snap. Devolve { p, n, pos } em coordenadas da peça.
-  function pontoNaPeca(ev, { centroDeFuros }) {
+  // O que o raio do mouse acerta na peça: { mouse, p, n, pos, t, geometria, mundo } em coordenadas da peça.
+  function acertar(ev) {
     const r = renderizador.domElement.getBoundingClientRect();
     const mouse = { x: ev.clientX - r.left, y: ev.clientY - r.top };
     raio.setFromCamera(new THREE.Vector2((mouse.x / r.width) * 2 - 1, -(mouse.y / r.height) * 2 + 1), camera);
     peca.updateMatrixWorld(true);
-    const achado = raio.intersectObjects(peca.children, false)[0];
-    if (!achado?.face) return null;
-    const pos = achado.object.geometry.attributes.position.array;
-    const p = peca.worldToLocal(achado.point.clone());
-    const n = achado.face.normal.clone().normalize();
-    let tipoSnap = "";
+    const h = raio.intersectObjects(peca.children, false)[0];
+    if (!h?.face) return null;
+    const geometria = h.object.geometry;
+    return {
+      mouse,
+      p: peca.worldToLocal(h.point.clone()),
+      n: h.face.normal.clone().normalize(),
+      pos: geometria.attributes.position.array,
+      t: h.faceIndex,
+      geometria,
+      distancia: h.distance,
+    };
+  }
 
+  // Aresta real do triângulo mais perto do mouse (em pixels), ou null.
+  function arestaPerto(h, limite) {
+    const { pos, t, geometria, mouse, p } = h;
+    const reais = arestasDe(geometria);
+    const vs = [0, 1, 2].map((k) => new THREE.Vector3(pos[t * 9 + k * 3], pos[t * 9 + k * 3 + 1], pos[t * 9 + k * 3 + 2]));
+    const ks = vs.map(reais.chave);
+    let melhor = null;
+    for (const [i, j] of [
+      [0, 1],
+      [1, 2],
+      [2, 0],
+    ]) {
+      if (!reais.arestas.has(ks[i] < ks[j] ? `${ks[i]}|${ks[j]}` : `${ks[j]}|${ks[i]}`)) continue;
+      const [a, b] = [vs[i], vs[j]];
+      const ab = b.clone().sub(a);
+      const t2 = Math.min(1, Math.max(0, p.clone().sub(a).dot(ab) / (ab.lengthSq() || 1)));
+      const q = a.clone().addScaledVector(ab, t2);
+      const s = naTela(paraMundo(q));
+      const d = Math.hypot(s.x - mouse.x, s.y - mouse.y);
+      if (d < limite && (!melhor || d < melhor.d)) melhor = { d, a, b, q, reais };
+    }
+    return melhor;
+  }
+
+  // Ponto clicado na peça para a Distância, já com o snap. Devolve { p, n, pos, tipoSnap }.
+  function pontoNaPeca(ev, { centroDeFuros }) {
+    const h = acertar(ev);
+    if (!h) return null;
+    const { pos, p, n, t, mouse } = h;
     if (centroDeFuros) {
       const furo = medirDiametro(pos, p, n);
       if (furo) return { p: furo.centro, n, pos, tipoSnap: `centro do ${furo.tipo}` };
     }
     if ($("vz-snap").checked) {
-      const t = achado.faceIndex;
-      const reais = arestasDe(achado.object.geometry);
+      const reais = arestasDe(h.geometria);
       const vs = [0, 1, 2].map((k) => new THREE.Vector3(pos[t * 9 + k * 3], pos[t * 9 + k * 3 + 1], pos[t * 9 + k * 3 + 2]));
-      const ks = vs.map(reais.chave);
-      const arestaReal = (i, j) => reais.arestas.has(ks[i] < ks[j] ? `${ks[i]}|${ks[j]}` : `${ks[j]}|${ks[i]}`);
-      let melhor = { dist: PIXELS_VERTICE, ponto: null };
-      for (const [i, v] of vs.entries()) {
-        if (!reais.vertices.has(ks[i])) continue;
+      for (const v of vs) {
+        if (!reais.vertices.has(reais.chave(v))) continue;
         const s = naTela(paraMundo(v));
-        const d = Math.hypot(s.x - mouse.x, s.y - mouse.y);
-        if (d < melhor.dist) melhor = { dist: d, ponto: v, tipo: "vértice" };
+        if (Math.hypot(s.x - mouse.x, s.y - mouse.y) < PIXELS_VERTICE) return { p: v, n, pos, tipoSnap: "vértice" };
       }
-      if (!melhor.ponto) {
-        melhor.dist = PIXELS_ARESTA;
-        for (const [i, j] of [
-          [0, 1],
-          [1, 2],
-          [2, 0],
-        ]) {
-          if (!arestaReal(i, j)) continue;
-          const [a, b] = [vs[i], vs[j]];
-          const ab = b.clone().sub(a);
-          const t2 = Math.min(1, Math.max(0, p.clone().sub(a).dot(ab) / (ab.lengthSq() || 1)));
-          const q = a.clone().addScaledVector(ab, t2);
-          const s = naTela(paraMundo(q));
-          const d = Math.hypot(s.x - mouse.x, s.y - mouse.y);
-          if (d < melhor.dist) melhor = { dist: d, ponto: q, tipo: "aresta" };
-        }
-      }
-      if (melhor.ponto) {
-        p.copy(melhor.ponto);
-        tipoSnap = melhor.tipo;
-      }
+      const aresta = arestaPerto(h, PIXELS_ARESTA);
+      if (aresta) return { p: aresta.q, n, pos, tipoSnap: "aresta" };
     }
-    return { p, n, pos, tipoSnap };
+    return { p, n, pos, tipoSnap: "" };
+  }
+
+  // ---------- O que está debaixo do mouse ----------
+  // Tamanho de um pixel, em mm da peça, na distância do ponto.
+  function mmPorPixel(h) {
+    const altura = renderizador.domElement.getBoundingClientRect().height || 1;
+    const mundo = (2 * h.distancia * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / altura;
+    return mundo / (ctx.escala() || 1);
+  }
+
+  function identificar(h) {
+    const lancar = lancadorDe(h.geometria);
+    const redondo = identificarRedondo(h.pos, h.p, h.n, { perto: PIXELS_BORDA * mmPorPixel(h), lancar });
+    if (redondo) return { tipo: "redondo", ...redondo };
+    const aresta = arestaPerto(h, PIXELS_ARESTA + 2);
+    if (aresta) {
+      const r = arestaReta(aresta.reais, aresta.a, aresta.b);
+      return { tipo: "aresta", a: { p: r.a, n: null }, b: { p: r.b, n: null } };
+    }
+    // espessura: raio para dentro da peça até sair pelo outro lado
+    const dentro = h.n.clone().negate();
+    const saida = lancar(h.p, dentro);
+    if (saida && saida.normal.dot(dentro) > 0.2) {
+      return { tipo: "parede", a: { p: h.p.clone(), n: h.n.clone() }, b: { p: h.p.clone().addScaledVector(dentro, saida.distancia), n: null } };
+    }
+    return null;
   }
 
   // ---------- Valores ----------
@@ -203,83 +307,109 @@ export function criarPaquimetro(ctx) {
     const v = valorDoModelo(m);
     const previsto = previsaoImpressa(tipoDaCalibracao(m), v.principal, resumo());
     if (previsto !== null && Math.abs(previsto - v.principal) >= 0.005) {
-      v.previsao = `Com ${filamento()}, deve sair ≈ ${m.tipo === "diametro" ? "Ø " : ""}${formatarMedida(previsto, unidade)}`;
+      v.previsao = `Com ${filamento()}, deve sair ≈ ${m.tipo === "redondo" ? "Ø " : ""}${mm(previsto)}`;
     }
     return v;
   }
 
   function valorDoModelo(m) {
-    const escala = ctx.escala();
-    if (m.tipo === "diametro") {
-      const d = m.furo.raio * 2 * escala;
-      const mais = m.furo.rms * 2 * escala;
+    const e = ctx.escala();
+    if (m.tipo === "redondo") {
+      const [fora, dentro] = [m.externo && m.externo.raio * 2 * e, m.interno && m.interno.raio * 2 * e];
+      const fundo = m.passante ? "passa direto" : m.profundidade > 0 ? `fundo ${mm(m.profundidade * e, 1)}` : "";
+      const altura = m.altura > 0 ? `altura ${mm(m.altura * e, 1)}` : "";
+      if (fora && dentro) {
+        return {
+          principal: dentro,
+          texto: `Ø ${numero(dentro)} dentro · ${numero(fora)} fora`,
+          linhas: [`Ø dentro ${mm(dentro)}`, `Ø fora ${mm(fora)}`, [`parede ${mm((fora - dentro) / 2)}`, fundo].filter(Boolean).join(" · ")],
+        };
+      }
+      const d = dentro || fora;
+      const lados = (m.interno || m.externo).lados;
       return {
         principal: d,
-        texto: `Ø ${formatarMedida(d, unidade)}`,
-        detalhe: `${m.furo.tipo === "furo" ? "Furo" : "Pino"} · ${m.furo.lados} lados · ±${formatarMedida(Math.max(mais, 0.005), unidade, 3)}${m.furo.lados < 24 ? " · poucos lados: a medida real depende de como o fatiador arredonda" : ""}`,
+        texto: `Ø ${mm(d)}`,
+        linhas: [`${dentro ? "Furo" : "Pino"} Ø ${mm(d)}`, [dentro ? fundo : altura, lados < 24 ? `${lados} lados` : ""].filter(Boolean).join(" · ")],
       };
     }
     const [a, b] = [paraMundo(m.a.p), paraMundo(m.b.p)];
-    const [na, nb] = [normalMundo(m.a.n), normalMundo(m.b.n)];
     if (m.tipo === "profundidade") {
-      const d = medirProfundidade(a, na, b);
-      return { principal: d, texto: formatarMedida(d, unidade), detalhe: "Ao longo da normal da primeira face (haste de profundidade)" };
+      const d = medirProfundidade(a, normalMundo(m.a.n), b);
+      return { principal: d, texto: mm(d), linhas: [`Profundidade ${mm(d)}`] };
     }
-    const r = medirDistancia(a, na, b, nb);
-    const delta = `ΔX ${formatarMedida(Math.abs(r.delta.x), unidade)} · ΔY ${formatarMedida(Math.abs(r.delta.z), unidade)} · ΔZ ${formatarMedida(Math.abs(r.delta.y), unidade)}`;
-    if (r.perpendicular !== null) {
-      return { principal: r.perpendicular, texto: formatarMedida(r.perpendicular, unidade), detalhe: `Entre faces paralelas (como os bicos) · em linha reta ${formatarMedida(r.reta, unidade)}` };
+    if (m.tipo === "aresta") {
+      const d = a.distanceTo(b);
+      return { principal: d, texto: mm(d), linhas: [`Aresta ${mm(d)}`] };
     }
-    return { principal: r.reta, texto: formatarMedida(r.reta, unidade), detalhe: delta };
+    if (m.tipo === "parede") {
+      const d = a.distanceTo(b);
+      const bico = bicoEscolhido();
+      const aviso = d < bico ? `fina demais para o bico ${numero(bico, 1)}` : d < bico * 2 ? `frágil com bico ${numero(bico, 1)}` : "";
+      return { principal: d, texto: mm(d), linhas: [`Espessura ${mm(d)}`, aviso].filter(Boolean), alerta: Boolean(aviso) };
+    }
+    const r = medirDistancia(a, m.a.n && normalMundo(m.a.n), b, m.b.n && normalMundo(m.b.n));
+    if (r.perpendicular !== null) return { principal: r.perpendicular, texto: mm(r.perpendicular), linhas: [`Entre faces paralelas · reta ${mm(r.reta)}`] };
+    const delta = `ΔX ${mm(Math.abs(r.delta.x))} · ΔY ${mm(Math.abs(r.delta.z))} · ΔZ ${mm(Math.abs(r.delta.y))}`;
+    return { principal: r.reta, texto: mm(r.reta), linhas: [delta] };
   }
 
   // ---------- Desenho ----------
-  function limparDesenhos() {
-    for (const o of [...desenhos.children]) {
-      desenhos.remove(o);
+  function limparGrupo(g) {
+    for (const o of [...g.children]) {
+      g.remove(o);
       o.traverse((x) => {
         x.geometry?.dispose();
         x.material?.dispose();
       });
     }
-    for (const r of palco.querySelectorAll(".vz-rotulo")) r.remove();
   }
 
-  function bolinha(pMundo, tam) {
-    const b = new THREE.Mesh(new THREE.SphereGeometry(tam, 12, 10), new THREE.MeshBasicMaterial({ color: COR, depthTest: false }));
+  function bolinha(pMundo, tam, cor = COR) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(tam, 12, 10), new THREE.MeshBasicMaterial({ color: cor, depthTest: false }));
     b.position.copy(pMundo);
     b.renderOrder = 10;
     return b;
   }
 
-  function linha(pontos) {
-    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pontos), new THREE.LineBasicMaterial({ color: COR, depthTest: false }));
+  function linha(pontos, cor = COR) {
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pontos), new THREE.LineBasicMaterial({ color: cor, depthTest: false }));
     l.renderOrder = 10;
     return l;
   }
 
+  // Desenho de uma medida (anéis para redondos, linha com pontas para as outras). Devolve onde pôr o rótulo.
+  function desenhoDe(m, cor, tam) {
+    const g = new THREE.Group();
+    if (m.tipo === "redondo") {
+      const centro = paraMundo(m.centro);
+      const eixo = normalMundo(m.eixo);
+      const u = new THREE.Vector3(1, 0, 0);
+      if (Math.abs(u.dot(eixo)) > 0.9) u.set(0, 1, 0);
+      u.sub(eixo.clone().multiplyScalar(u.dot(eixo))).normalize();
+      const v = eixo.clone().cross(u);
+      let ancora = centro;
+      for (const lado of [m.externo, m.interno]) {
+        if (!lado) continue;
+        const r = lado.raio * ctx.escala();
+        g.add(linha(Array.from({ length: 65 }, (_, i) => centro.clone().addScaledVector(u, r * Math.cos((i / 64) * Math.PI * 2)).addScaledVector(v, r * Math.sin((i / 64) * Math.PI * 2))), cor));
+      }
+      const r = (m.interno ?? m.externo).raio * ctx.escala();
+      g.add(linha([centro.clone().addScaledVector(u, -r), centro.clone().addScaledVector(u, r)], cor), bolinha(centro, tam * 0.6, cor));
+      ancora = centro.clone().addScaledVector(u, (m.externo ?? m.interno).raio * ctx.escala());
+      return { g, ancora };
+    }
+    const [a, b] = [paraMundo(m.a.p), paraMundo(m.b.p)];
+    g.add(bolinha(a, tam, cor), bolinha(b, tam, cor), linha([a, b], cor));
+    return { g, ancora: a.clone().lerp(b, 0.5) };
+  }
+
   function desenhar() {
-    limparDesenhos();
+    limparGrupo(desenhos);
+    for (const r of palco.querySelectorAll(".vz-rotulo:not(.vz-rotulo-previa)")) r.remove();
     const tam = tamanhoMarcador();
     for (const m of medidas) {
-      const g = new THREE.Group();
-      let ancora;
-      if (m.tipo === "diametro") {
-        const centro = paraMundo(m.furo.centro);
-        const eixo = normalMundo(m.furo.eixo);
-        const r = m.furo.raio * ctx.escala();
-        const u = new THREE.Vector3(1, 0, 0);
-        if (Math.abs(u.dot(eixo)) > 0.9) u.set(0, 1, 0);
-        u.sub(eixo.clone().multiplyScalar(u.dot(eixo))).normalize();
-        const v = eixo.clone().cross(u);
-        const anel = Array.from({ length: 65 }, (_, i) => centro.clone().addScaledVector(u, r * Math.cos((i / 64) * Math.PI * 2)).addScaledVector(v, r * Math.sin((i / 64) * Math.PI * 2)));
-        g.add(linha(anel), linha([centro.clone().addScaledVector(u, -r), centro.clone().addScaledVector(u, r)]), bolinha(centro, tam * 0.7));
-        ancora = centro.clone().addScaledVector(u, r);
-      } else {
-        const [a, b] = [paraMundo(m.a.p), paraMundo(m.b.p)];
-        g.add(bolinha(a, tam), bolinha(b, tam), linha([a, b]));
-        ancora = a.clone().lerp(b, 0.5);
-      }
+      const { g, ancora } = desenhoDe(m, COR, tam);
       desenhos.add(g);
       const rotulo = el("div", "vz-rotulo", valor(m).texto);
       rotulo.dataset.id = m.id;
@@ -289,6 +419,29 @@ export function criarPaquimetro(ctx) {
     }
     if (pendente) desenhos.add(bolinha(paraMundo(pendente.p), tam));
     quadro();
+  }
+
+  function mostrarPrevia(m, mouse) {
+    limparGrupo(previa);
+    achado = m;
+    if (!m) {
+      rotuloPrevia.hidden = true;
+      renderizador.domElement.title = "";
+      return;
+    }
+    previa.add(desenhoDe(m, COR_PREVIA, tamanhoMarcador() * 0.8).g);
+    const v = valorDoModelo(m);
+    rotuloPrevia.replaceChildren(...v.linhas.map((l, i) => el(i ? "span" : "strong", "", l)));
+    rotuloPrevia.classList.toggle("alerta", Boolean(v.alerta));
+    rotuloPrevia.style.transform = `translate(${mouse.x + 16}px, ${mouse.y + 14}px)`;
+    rotuloPrevia.hidden = false;
+  }
+
+  function esconderPrevia() {
+    clearTimeout(espera);
+    ultimaChave = "";
+    marcador.visible = false;
+    mostrarPrevia(null);
   }
 
   // Chamado a cada quadro: posiciona os rótulos sobre a tela.
@@ -302,6 +455,41 @@ export function criarPaquimetro(ctx) {
   }
 
   // ---------- Lista ----------
+  function formEmLinha(botao, { valorInicial = "", placeholder = "", rotulo, textoOk, aoEnviar }) {
+    const linhaForm = el("form", "vz-linha");
+    const caixa = el("div", "entrada");
+    const entrada = el("input");
+    entrada.inputMode = "decimal";
+    entrada.placeholder = placeholder;
+    entrada.value = valorInicial;
+    entrada.setAttribute("aria-label", rotulo);
+    caixa.append(entrada, el("em", "", unidade === "pol" ? "pol" : "mm"));
+    const ok = el("button", "botao-secundario pequeno", textoOk);
+    ok.type = "submit";
+    linhaForm.append(caixa, ok);
+    linhaForm.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      let n = Number(entrada.value.replace(",", "."));
+      if (unidade === "pol") n *= 25.4;
+      if (!(n > 0)) {
+        entrada.focus();
+        return;
+      }
+      aoEnviar(n);
+    });
+    botao.replaceWith(linhaForm);
+    entrada.focus();
+    entrada.select();
+  }
+
+  function textoFolga() {
+    const furo = medidas.find((m) => m.tipo === "redondo" && m.interno && !m.externo);
+    const pino = medidas.find((m) => m.tipo === "redondo" && m.externo && !m.interno);
+    if (!furo || !pino) return "";
+    const folga = (furo.interno.raio - pino.externo.raio) * 2 * ctx.escala();
+    return `${furo.nome} × ${pino.nome}: folga ${mm(folga)} → ${classificarFolga(folga, { bico: bicoEscolhido() })}.`;
+  }
+
   function renderizarLista() {
     const lista = $("vz-medidas");
     lista.replaceChildren(
@@ -319,69 +507,43 @@ export function criarPaquimetro(ctx) {
           atualizar();
         });
         topo.append(apagar);
-        li.append(topo, el("span", "cliente-sub", v.detalhe));
+        li.append(topo);
+        const detalhe = (m.tipo === "redondo" && m.interno && m.externo ? v.linhas.slice(2) : v.linhas.slice(1)).join(" · ");
+        if (detalhe) li.append(el("span", "cliente-sub", detalhe));
         if (v.previsao) li.append(el("span", "vz-previsao", v.previsao));
-        if (m.real) li.append(el("span", "vz-real", `Na peça impressa: ${formatarMedida(m.real, unidade)} · ${textoDiferenca(m.realModelo ?? v.principal, m.real)}`));
+        if (m.real) li.append(el("span", "vz-real", `Na peça impressa: ${mm(m.real)} · ${textoDiferenca(m.realModelo ?? v.principal, m.real)}`));
 
+        const botoes = el("div", "an-acoes");
         const ajustar = el("button", "botao-texto pequeno", "Ajustar escala");
-        ajustar.title = "Digite quanto esta medida deve ter: a peça inteira é escalada para isso";
         ajustar.type = "button";
-        ajustar.addEventListener("click", () => {
-          const linhaEscala = el("form", "vz-linha");
-          const caixa = el("div", "entrada");
-          const entrada = el("input");
-          entrada.inputMode = "decimal";
-          entrada.setAttribute("aria-label", "Medida desejada");
-          entrada.value = (unidade === "pol" ? v.principal / 25.4 : v.principal).toFixed(unidade === "pol" ? 3 : 2).replace(".", ",");
-          caixa.append(entrada, el("em", "", unidade === "pol" ? "pol" : "mm"));
-          const ok = el("button", "botao-secundario pequeno", "Aplicar");
-          ok.type = "submit";
-          linhaEscala.append(caixa, ok);
-          linhaEscala.addEventListener("submit", (ev) => {
-            ev.preventDefault();
-            let desejado = Number(entrada.value.replace(",", "."));
-            if (unidade === "pol") desejado *= 25.4;
-            if (!(desejado > 0) || !(v.principal > 0)) return;
-            ctx.aoEscalar(ctx.escala() * (desejado / v.principal));
-          });
-          ajustar.replaceWith(linhaEscala);
-          entrada.focus();
-          entrada.select();
-        });
-
+        ajustar.title = "Digite quanto esta medida deve ter: a peça inteira é escalada para isso";
+        ajustar.addEventListener("click", () =>
+          formEmLinha(ajustar, {
+            valorInicial: (unidade === "pol" ? v.principal / 25.4 : v.principal).toFixed(unidade === "pol" ? 3 : 2).replace(".", ","),
+            rotulo: "Medida desejada",
+            textoOk: "Aplicar",
+            aoEnviar: (desejado) => v.principal > 0 && ctx.aoEscalar(ctx.escala() * (desejado / v.principal)),
+          }),
+        );
         const conferir = el("button", "botao-texto pequeno", m.real ? "Corrigir a impressa" : "Medi na impressa");
         conferir.type = "button";
         conferir.title = "Digite o que o seu paquímetro mostrou na peça impressa";
-        conferir.addEventListener("click", () => {
-          const linhaReal = el("form", "vz-linha");
-          const caixa = el("div", "entrada");
-          const entrada = el("input");
-          entrada.inputMode = "decimal";
-          entrada.placeholder = "medida real";
-          entrada.setAttribute("aria-label", "Medida na peça impressa");
-          caixa.append(entrada, el("em", "", unidade === "pol" ? "pol" : "mm"));
-          const ok = el("button", "botao-secundario pequeno", "Anotar");
-          ok.type = "submit";
-          linhaReal.append(caixa, ok);
-          linhaReal.addEventListener("submit", (ev) => {
-            ev.preventDefault();
-            let real = Number(entrada.value.replace(",", "."));
-            if (unidade === "pol") real *= 25.4;
-            if (!(real > 0)) {
-              entrada.focus();
-              return;
-            }
-            guardarReal(m, real, v.principal);
-          });
-          conferir.replaceWith(linhaReal);
-          entrada.focus();
-        });
-        const botoes = el("div", "an-acoes");
+        conferir.addEventListener("click", () =>
+          formEmLinha(conferir, { placeholder: "medida real", rotulo: "Medida na peça impressa", textoOk: "Anotar", aoEnviar: (real) => guardarReal(m, real, v.principal) }),
+        );
         botoes.append(ajustar, conferir);
+        if (m.tipo === "redondo") {
+          const encaixe = el("button", "botao-texto pequeno", m.interno ? "Fazer pino" : "Fazer furo");
+          encaixe.type = "button";
+          encaixe.title = m.interno ? "Fazer um pino que encaixa (Encaixes e tolerâncias)" : "Fazer um furo para este pino (Encaixes e tolerâncias)";
+          encaixe.addEventListener("click", () => abrirEncaixeCom(v.principal));
+          botoes.append(encaixe);
+        }
         li.append(botoes);
         return li;
       }),
     );
+    $("vz-folga").textContent = textoFolga();
     $("vz-medidas-contagem").textContent = medidas.length ? String(medidas.length) : "";
     $("vz-medidas-vazio").hidden = medidas.length > 0;
     $("vz-limpar-medidas").hidden = medidas.length === 0;
@@ -396,33 +558,39 @@ export function criarPaquimetro(ctx) {
     renderizarLista();
   }
 
-  // ---------- Cliques ----------
+  // ---------- Mouse ----------
   function clicar(ev, modo) {
-    const centroDeFuros = $("vz-centro-furos").checked && modo !== "diametro";
-    const ponto = pontoNaPeca(ev, { centroDeFuros });
-    if (!ponto) return;
-    if (modo === "diametro") {
-      const furo = medirDiametro(ponto.pos, ponto.p, ponto.n);
-      if (!furo) {
-        ctx.avisar("Não achei um furo ou pino redondo aí. Clique na parede de dentro do furo (ou na lateral do pino).");
+    if (modo === "paquimetro") {
+      // clique fixa o que o mouse está mostrando (calcula na hora se ainda não deu tempo)
+      if (!achado) {
+        clearTimeout(espera);
+        const h = acertar(ev);
+        if (h) achado = identificar(h);
+      }
+      if (!achado) {
+        ctx.avisar("Não reconheci nada aí. Passe o mouse numa borda, num furo ou numa parede.");
         return;
       }
-      adicionar({ tipo: "diametro", furo });
+      adicionar(achado);
+      esconderPrevia();
       return;
     }
+    const ponto = pontoNaPeca(ev, { centroDeFuros: $("vz-centro-furos").checked });
+    if (!ponto) return;
     if (!pendente) {
       pendente = ponto;
-      ctx.dica(modo === "profundidade" ? "Agora clique no fundo ou no outro degrau" : "Agora clique no segundo ponto");
+      ctx.dica("Agora clique no segundo ponto");
       desenhar();
       return;
     }
-    adicionar({ tipo: modo, a: pendente, b: ponto });
+    adicionar({ tipo: "distancia", a: pendente, b: ponto });
     pendente = null;
   }
 
   function adicionar(m) {
     contador++;
-    medidas.push({ ...m, id: contador, nome: `${NOMES[m.tipo]} ${contador}` });
+    const { pos, ...limpa } = m;
+    medidas.push({ ...limpa, id: contador, nome: `${nomeDe(m)} ${contador}` });
     ctx.dicaPadrao();
     agendarSalvar();
     atualizar();
@@ -435,16 +603,36 @@ export function criarPaquimetro(ctx) {
     return medidas.map((m) => {
       const v = valor(m);
       const s = naTela(m.ancora);
-      return { nome: m.nome, texto: v.texto, detalhe: [v.detalhe, v.previsao].filter(Boolean).join(" · "), real: m.real ? formatarMedida(m.real, unidade) : "", x: s.x / r.width, y: s.y / r.height, visivel: !s.atras };
+      return { nome: m.nome, texto: v.texto, detalhe: [...v.linhas.slice(1), v.previsao].filter(Boolean).join(" · "), real: m.real ? mm(m.real) : "", x: s.x / r.width, y: s.y / r.height, visivel: !s.atras };
     });
   }
 
-  // Marcador que mostra onde o ponto vai grudar.
   function mover(ev, modo) {
-    if (!modo) {
-      marcador.visible = false;
+    if (!modo || !ev) {
+      esconderPrevia();
       return;
     }
+    if (modo === "paquimetro") {
+      marcador.visible = false;
+      const h = acertar(ev);
+      if (!h) {
+        esconderPrevia();
+        return;
+      }
+      // mesmo triângulo e quase o mesmo ponto: só acompanha o rótulo
+      const passo = PIXELS_BORDA * mmPorPixel(h) * 0.5;
+      const chave = `${h.geometria.uuid}|${h.t}|${Math.round(h.p.x / passo)}|${Math.round(h.p.y / passo)}|${Math.round(h.p.z / passo)}`;
+      if (chave === ultimaChave) {
+        if (achado) rotuloPrevia.style.transform = `translate(${h.mouse.x + 16}px, ${h.mouse.y + 14}px)`;
+        return;
+      }
+      ultimaChave = chave;
+      clearTimeout(espera);
+      // espera o mouse parar um pouquinho (peças grandes levam alguns milissegundos para medir)
+      espera = setTimeout(() => mostrarPrevia(identificar(h), h.mouse), 40);
+      return;
+    }
+    // Distância: marcador mostra onde o ponto vai grudar
     const ponto = pontoNaPeca(ev, { centroDeFuros: false });
     marcador.visible = Boolean(ponto);
     if (!ponto) return;
@@ -455,7 +643,7 @@ export function criarPaquimetro(ctx) {
 
   function cancelar() {
     pendente = null;
-    marcador.visible = false;
+    esconderPrevia();
     desenhar();
   }
 
@@ -463,7 +651,7 @@ export function criarPaquimetro(ctx) {
     medidas = [];
     pendente = null;
     contador = 0;
-    marcador.visible = false;
+    esconderPrevia();
     agendarSalvar();
     atualizar();
   }
@@ -473,6 +661,15 @@ export function criarPaquimetro(ctx) {
     unidade = $("vz-unidade").value;
     atualizar();
     ctx.aoMudar();
+  });
+  $("vz-bico").value = String(bicoEscolhido());
+  $("vz-bico").addEventListener("change", () => {
+    try {
+      localStorage.setItem("visualizador-bico", $("vz-bico").value);
+    } catch {
+      // tudo bem
+    }
+    atualizar();
   });
   $("vz-filamento").value = filamentoEscolhido();
   $("vz-filamento").addEventListener("change", () => {
@@ -491,13 +688,5 @@ export function criarPaquimetro(ctx) {
   });
   $("vz-apagar-calibracao").addEventListener("click", apagarCalibracao);
 
-  // Usado pela análise automática: põe um furo/pino encontrado na lista de medidas.
-  // O anel fica na boca de cima do furo (a ponta mais alta na mesa), onde dá para ver.
-  const adicionarDiametro = (furo) => {
-    const [a, b] = [paraMundo(furo.inicio ?? furo.centro), paraMundo(furo.fim ?? furo.centro)];
-    const boca = (a.y >= b.y ? furo.inicio : furo.fim) ?? furo.centro;
-    adicionar({ tipo: "diametro", furo: { ...furo, centro: boca.clone() } });
-  };
-
-  return { clicar, mover, atualizar, quadro, cancelar, limpar, adicionarDiametro, definirArquivo, paraFicha, unidade: () => unidade };
+  return { clicar, mover, atualizar, quadro, cancelar, limpar, definirArquivo, paraFicha, unidade: () => unidade };
 }

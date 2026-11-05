@@ -902,6 +902,29 @@ input:focus-visible,
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+.vz-rotulo-previa {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #3ad6e8;
+  color: #04252a;
+  font-weight: 600;
+  z-index: 3;
+}
+
+.vz-rotulo-previa strong {
+  font-size: 13px;
+}
+
+.vz-rotulo-previa.alerta {
+  background: #e8a93a;
+  color: #2a1800;
+}
+
+.vz-rotulo[hidden] {
+  display: none;
+}
+
 .vz-acoes {
   display: grid;
   grid-template-columns: 1fr 1fr;

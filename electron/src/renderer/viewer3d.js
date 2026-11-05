@@ -14,19 +14,17 @@ import { DENSIDADE_PLA } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
-import { criarAnalise } from "./analise-tela.js";
 import { criarPaquimetro } from "./paquimetro.js";
 import { estado as app, mostrarAviso, salvarConfig } from "./shell.js";
 
-const MODOS_MEDIDA = ["distancia", "diametro", "profundidade"];
+const MODOS_MEDIDA = ["paquimetro", "distancia"];
 const DICAS = {
   vista: "",
   mover: "Arraste as setas para mover sobre a mesa",
   girar: "Arraste os anéis para girar",
   face: "Clique na face que vai para a mesa",
+  paquimetro: "Passe o mouse na peça · clique para fixar a medida",
   distancia: "Clique em dois pontos · Esc cancela",
-  diametro: "Clique na parede do furo ou do pino",
-  profundidade: "Clique na borda e depois no fundo · Esc cancela",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -104,10 +102,7 @@ export function iniciarVisualizador() {
     cena, camera, renderizador, peca, palco,
     escala: () => estado.escala,
     aoEscalar: (fator) => definirEscala(fator),
-    aoMudar: () => {
-      atualizarInfo();
-      estado.analise?.atualizar();
-    },
+    aoMudar: atualizarInfo,
     avisar: mostrarAviso,
     config: () => app.config,
     salvarConfig,
@@ -117,13 +112,6 @@ export function iniciarVisualizador() {
     dicaPadrao: () => {
       $("vz-dica").textContent = DICAS[estado.modo];
     },
-  });
-
-  estado.analise = criarAnalise({
-    cena, peca,
-    escala: () => estado.escala,
-    unidade: () => estado.paquimetro.unidade(),
-    paquimetro: estado.paquimetro,
   });
 
   // Usado só pelos roteiros do modo de captura (testes da tela), para achar pontos na peça.
@@ -357,7 +345,6 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   atualizarInfo();
   // medidas guardadas: mesmo nome, tamanho, placa e quantidade de triângulos
   estado.paquimetro.definirArquivo({ chave: `${arquivo.name}|${arquivo.size}|${triangulos}|${lido.placa ?? ""}`, nome: arquivo.name });
-  estado.analise.aoCarregar(triangulos);
 }
 
 function limparPeca() {
@@ -401,7 +388,6 @@ function depoisDeMexer() {
   apoiarNaMesa();
   atualizarInfo();
   estado.paquimetro?.atualizar();
-  estado.analise?.atualizar();
 }
 
 const EIXOS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 0, -1), z: new THREE.Vector3(0, 1, 0) };
