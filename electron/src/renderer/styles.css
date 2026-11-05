@@ -3760,3 +3760,24 @@ textarea:focus {
 .vz-resumo dd:nth-of-type(5) {
   display: none;
 }
+/* aviso de "abrir arquivo" discreto no topo da mesa vazia, não no meio */
+.vz-zona {
+  top: 14px;
+  left: 50%;
+  width: auto;
+  max-width: calc(100% - 28px);
+  padding: 7px 14px;
+  border: 1px dashed var(--borda);
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--superficie) 72%, transparent);
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.vz-zona:hover {
+  border-color: var(--acento);
+  color: var(--texto);
+}

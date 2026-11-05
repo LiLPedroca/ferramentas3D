@@ -346,7 +346,7 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   apoiarNaMesa();
   enquadrar("iso");
   $("palco-vazio").hidden = true;
-  $("vz-ferramentas").hidden = false;
+  for (const g of document.querySelectorAll("[data-vz-com-peca]")) g.hidden = false;
   $("vz-flutuante").hidden = false;
   if ($("vz-abas").hidden) {
     $("vz-abas").hidden = false;

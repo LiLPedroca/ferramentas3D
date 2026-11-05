@@ -189,14 +189,14 @@
 
     <main class="tela oculta vz-tela" id="tela-visualizador">
       <section class="vz-area">
-        <div class="vz-barra" id="vz-ferramentas" hidden>
-          <div class="vz-grupo" role="group" aria-label="O que o mouse faz">
+        <div class="vz-barra" id="vz-ferramentas">
+          <div class="vz-grupo" role="group" aria-label="O que o mouse faz" data-vz-com-peca hidden>
             <button type="button" class="vz-botao" data-vz-modo="vista" title="Girar a vista com o mouse">Vista</button>
             <button type="button" class="vz-botao" data-vz-modo="mover" title="Mover a peça sobre a mesa">Mover</button>
             <button type="button" class="vz-botao" data-vz-modo="girar" title="Girar a peça">Girar</button>
             <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
           </div>
-          <div class="vz-grupo" role="group" aria-label="Paquímetro">
+          <div class="vz-grupo" role="group" aria-label="Paquímetro" data-vz-com-peca hidden>
             <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos ou entre faces paralelas">Distância</button>
             <button type="button" class="vz-botao" data-vz-modo="diametro" title="Diâmetro de furo ou pino">Diâmetro</button>
             <button type="button" class="vz-botao" data-vz-modo="profundidade" title="Profundidade de furo ou altura de degrau">Profundidade</button>
@@ -206,9 +206,8 @@
         </div>
 
         <div class="palco" id="palco">
-          <div class="zona-arquivo vz-zona" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
-            <p><strong>Arraste um arquivo aqui</strong></p>
-            <p class="ajuda">ou clique para escolher · STL, 3MF, OBJ ou PLY</p>
+          <div class="vz-zona" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
+            Solte um arquivo na mesa ou <u>clique aqui</u> · STL, 3MF, OBJ, PLY
             <input type="file" id="arquivo-stl" accept=".stl,.3mf,.obj,.ply" hidden />
           </div>
           <p class="ajuda vz-status" id="palco-vazio" hidden></p>
