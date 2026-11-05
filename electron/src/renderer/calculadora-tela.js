@@ -10,7 +10,8 @@ import {
 } from "../core/calculadora.js";
 import { Racional } from "../core/racional.js";
 import { abrirEditor } from "./produtos.js";
-import { irPara, mostrarAviso } from "./shell.js";
+import { carregarFilamentos, descontarDoRolo, listaDeRolos, nomeDoRolo, reaisDeCentavos } from "./filamentos-tela.js";
+import { confirmar, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -165,6 +166,53 @@ function salvarComoProduto() {
   });
 }
 
+// ---------- Rolo do estoque ----------
+// Lista os rolos cadastrados; escolher um preenche o preço por kg e libera "Descontar do rolo".
+async function atualizarRolos() {
+  const rolos = await carregarFilamentos();
+  const atual = $("rolo-calc").value;
+  $("campo-rolo").hidden = rolos.length === 0;
+  $("rolo-calc").replaceChildren(
+    new Option("Digitar o preço", ""),
+    ...rolos.map((f) => new Option(`${nomeDoRolo(f)} · ${reaisDeCentavos(f.precoKgCentavos)}/kg · restam ${Math.round(f.restanteG)} g`, f.id)),
+  );
+  if (rolos.some((f) => f.id === atual)) $("rolo-calc").value = atual;
+  mostrarBotaoDescontar();
+}
+
+function roloEscolhido() {
+  return listaDeRolos().find((f) => f.id === $("rolo-calc").value) ?? null;
+}
+
+function mostrarBotaoDescontar() {
+  const f = roloEscolhido();
+  $("descontar-rolo").hidden = !f;
+  if (f) $("descontar-rolo").textContent = `Descontar ${$("peso").value || 0} g do rolo ${f.material} ${f.cor}`;
+}
+
+function escolherRolo() {
+  const f = roloEscolhido();
+  if (f) {
+    $("preco-kg").value = (Number(f.precoKgCentavos) / 100).toFixed(2).replace(".", ",");
+    atualizarResultado();
+  }
+  mostrarBotaoDescontar();
+}
+
+async function descontarDoLote() {
+  const f = roloEscolhido();
+  if (!f || !ultimoCalculo) return;
+  const g = comoNumero(ultimoCalculo.entrada.pesoG);
+  if (!(g > 0)) {
+    mostrarAviso("Informe o peso do lote antes de descontar.");
+    return;
+  }
+  const texto = `${g.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g saem do rolo ${nomeDoRolo(f)} (restam ${Math.round(f.restanteG)} g).`;
+  if (!(await confirmar({ titulo: "Descontar do estoque?", texto, botao: "Descontar" }))) return;
+  await descontarDoRolo(f.id, g);
+  await atualizarRolos();
+}
+
 // Campo de lucro e barra deslizante sincronizados.
 function sincronizarLucro(origem) {
   const campo = $("lucro");
@@ -190,6 +238,10 @@ export function iniciarCalculadora() {
     atualizarResultado();
   });
   $("salvar-como-produto").addEventListener("click", salvarComoProduto);
+  $("rolo-calc").addEventListener("change", escolherRolo);
+  $("peso").addEventListener("input", mostrarBotaoDescontar);
+  $("descontar-rolo").addEventListener("click", descontarDoLote);
+  registrarAoAbrir("calculadora", atualizarRolos);
 
   for (const [id, valor] of Object.entries(PADROES)) $(id).value = valor;
   sincronizarLucro("campo");

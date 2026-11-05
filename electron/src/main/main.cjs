@@ -7,6 +7,7 @@ const { criarServicoOrcamentos } = require("./orcamentos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
 const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
+const { criarServicoFilamentos } = require("./filamentos.cjs");
 const { abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
@@ -167,11 +168,12 @@ function registrarDados() {
   const orcamentos = criarServicoOrcamentos(pasta, { clientes });
   const favoritos = criarServicoFavoritos(pasta);
   const projetos = criarServicoProjetos(pasta);
-  const cadastros = { clientes, orcamentos, favoritos, projetos };
+  const filamentos = criarServicoFilamentos(pasta);
+  const cadastros = { clientes, orcamentos, favoritos, projetos, filamentos };
 
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
-    colecoes: { produtos, clientes, orcamentos, favoritos, projetos },
+    colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos },
     configuracoes,
     versaoApp: app.getVersion(),
   });
@@ -393,6 +395,9 @@ function registrarDados() {
       })(),
     );
   });
+  ipcMain.handle("filamentos:descontar", (e, id, gramas) =>
+    daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
+  );
   for (const [nome, servico] of Object.entries(cadastros)) {
     ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(servico.listar()) : negado));
     ipcMain.handle(`${nome}:salvar`, (e, valores, id) =>

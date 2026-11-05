@@ -97,6 +97,10 @@
             </label>
           </div>
           <p class="ajuda" id="ajuda-peso"></p>
+          <label class="campo" id="campo-rolo" hidden>
+            <span>Rolo do estoque</span>
+            <select id="rolo-calc" class="seletor largo-total"></select>
+          </label>
           <div class="linha">
             <label class="campo">
               <span>Preço do filamento</span>
@@ -179,6 +183,7 @@
         </div>
         <p class="ajuda pequeno">Valores exibidos arredondados a centavos. O preço usa o cálculo completo, sem arredondamento intermediário.</p>
         <button class="botao-secundario largo" id="salvar-como-produto" type="button">Salvar como produto</button>
+        <button class="botao-secundario largo" id="descontar-rolo" type="button" hidden>Descontar do rolo</button>
       </section>
     </main>
 
@@ -316,6 +321,36 @@
         <button type="button" class="botao-perigo" id="confirmar-sim">Excluir</button>
       </div>
     </dialog>
+
+    <main class="tela oculta pagina" id="tela-filamentos">
+      <div class="pagina-conteudo">
+        <div class="produtos-topo">
+          <div>
+            <h1 class="titulo-pagina">Estoque de filamentos</h1>
+            <p class="ajuda" id="fl-resumo"></p>
+          </div>
+          <div class="produtos-acoes">
+            <label class="busca">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="fl-busca" type="search" placeholder="Buscar cor, material ou marca…" aria-label="Buscar filamento" autocomplete="off" />
+            </label>
+            <button class="botao-primario" id="fl-novo" type="button">+ Novo rolo</button>
+          </div>
+        </div>
+        <p class="erro" id="fl-erro" role="alert"></p>
+        <p class="fl-alerta" id="fl-alerta" hidden></p>
+        <div class="fl-grade" id="fl-grade"></div>
+        <div class="vazio-produtos" id="fl-vazio" hidden>
+          <span class="vazio-icone" id="fl-vazio-icone"></span>
+          <h2>Nenhum rolo cadastrado</h2>
+          <p>Cadastre seus rolos com cor, preço por kg e peso. A calculadora usa o preço do rolo e desconta o que cada impressão gastou.</p>
+          <div class="vazio-botoes">
+            <button class="botao-primario" id="fl-vazio-novo" type="button">Cadastrar rolo</button>
+          </div>
+        </div>
+        <p class="vazio" id="fl-sem-resultado" hidden>Nenhum rolo encontrado com essa busca.</p>
+      </div>
+    </main>
 
     <main class="tela oculta pagina" id="tela-clientes">
       <div class="pagina-conteudo">
@@ -897,6 +932,79 @@
         </div>
       </div>
     </main>
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-filamento" aria-labelledby="titulo-dialogo-filamento">
+      <header class="dialogo-topo">
+        <h2 id="titulo-dialogo-filamento">Novo rolo</h2>
+      </header>
+      <div class="dialogo-campos dialogo-corpo-simples">
+        <div class="linha">
+          <label class="campo">
+            <span>Material</span>
+            <select id="fl-material" class="seletor largo-total"></select>
+          </label>
+          <label class="campo">
+            <span>Marca</span>
+            <div class="entrada"><input id="fl-marca" maxlength="60" autocomplete="off" placeholder="Ex.: Anycubic" /></div>
+          </label>
+        </div>
+        <div class="linha">
+          <label class="campo">
+            <span>Cor *</span>
+            <div class="entrada"><input id="fl-cor" maxlength="40" autocomplete="off" placeholder="Ex.: Branco" /></div>
+          </label>
+          <label class="campo cor">
+            <span>Amostra</span>
+            <input type="color" id="fl-cor-hex" value="#ffffff" />
+          </label>
+        </div>
+        <div class="linha">
+          <label class="campo">
+            <span>Peso do rolo *</span>
+            <div class="entrada"><input id="fl-peso" inputmode="decimal" value="1000" /><em>g</em></div>
+          </label>
+          <label class="campo">
+            <span>Restante</span>
+            <div class="entrada"><input id="fl-restante" inputmode="decimal" placeholder="rolo cheio" /><em>g</em></div>
+          </label>
+        </div>
+        <label class="campo">
+          <span>Preço por kg *</span>
+          <div class="entrada"><input id="fl-preco" inputmode="decimal" placeholder="Ex.: 99,90" /><em>R$/kg</em></div>
+        </label>
+        <label class="campo">
+          <span>Observações</span>
+          <textarea id="fl-obs" maxlength="300" rows="2" placeholder="Onde comprou, temperatura que funciona…"></textarea>
+        </label>
+      </div>
+      <p class="erro dialogo-erro" id="fl-erro-dialogo" role="alert"></p>
+      <footer class="dialogo-rodape">
+        <button type="button" class="botao-texto perigo" id="fl-excluir" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fl-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="fl-salvar">Salvar</button>
+      </footer>
+    </dialog>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-usar-filamento" aria-labelledby="titulo-usar-filamento">
+      <header class="dialogo-topo">
+        <h2 id="titulo-usar-filamento">Usar filamento</h2>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <p class="ajuda" id="fu-rolo"></p>
+        <label class="campo">
+          <span>Quanto foi usado</span>
+          <div class="entrada"><input id="fu-gramas" inputmode="decimal" autocomplete="off" /><em>g</em></div>
+        </label>
+        <p class="ajuda">Use o peso que o fatiador mostrou. Para devolver ao rolo, use um número negativo.</p>
+      </div>
+      <p class="erro dialogo-erro" id="fu-erro" role="alert"></p>
+      <footer class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fu-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="fu-descontar">Descontar</button>
+      </footer>
+    </dialog>
 
     <dialog class="dialogo dialogo-pequeno" id="dialogo-salvar-modelo" aria-labelledby="titulo-salvar-modelo">
       <header class="dialogo-topo">
