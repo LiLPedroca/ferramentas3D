@@ -458,70 +458,45 @@ function corteComCirculos(pos, origem, eixo) {
 
 const menorPor = (lista, f) => lista.reduce((m, x) => (m === null || f(x) < f(m) ? x : m), null);
 
-// Até onde vai a parede redonda (raio) ao longo do eixo, a partir do centro: [ini, fim].
-function extensaoDaParede(pos, centro, eixo, raio) {
-  const tol = Math.max(0.05, raio * 0.03);
-  let [ini, fim] = [Infinity, -Infinity];
-  const radialDe = (p) => {
-    const rel = p.sub(centro);
-    const h = rel.dot(eixo);
-    return { h, radial: rel.addScaledVector(eixo, -h).length() };
-  };
-  for (let t = 0; t < pos.length / 9; t++) {
-    const n = normalDoTriangulo(pos, t);
-    const area = n.length();
-    if (area < 1e-12 || Math.abs(n.dot(eixo)) / area > 0.35) continue;
-    const meio = radialDe(vertice(pos, t * 3).add(vertice(pos, t * 3 + 1)).add(vertice(pos, t * 3 + 2)).divideScalar(3));
-    if (Math.abs(meio.radial - raio) > tol) continue;
-    const alturas = [];
-    for (let k = 0; k < 3; k++) {
-      const { h, radial } = radialDe(vertice(pos, t * 3 + k));
-      if (Math.abs(radial - raio) > Math.max(tol, raio * 0.12)) break;
-      alturas.push(h);
-    }
-    if (alturas.length < 3) continue;
-    ini = Math.min(ini, ...alturas);
-    fim = Math.max(fim, ...alturas);
-  }
-  return Number.isFinite(ini) ? [ini, fim] : [0, 0];
-}
-
 const RECUO = 0.137; // corte um pouco para dentro da face (número "torto" para não cair em cima de vértices)
 
-// O que é redondo debaixo do mouse: parede de furo/pino/copo ou a face plana de uma borda redonda
-// (a boca de um copo, a ponta de um pino, a volta de um furo). pos/ponto/normal nas coordenadas da peça;
-// normal aponta para fora da peça. perto: até quantos mm da borda conta como "em cima da borda".
-// lancar(origem, direcao) → { distancia } | null serve para a profundidade (opcional).
-// Devolve { centro, eixo, externo?, interno?, profundidade?, passante?, altura? } ou null.
-// externo/interno: { raio, rms, lados }.
-export function identificarRedondo(pos, ponto, normal, { perto = 0.5, lancar = null } = {}) {
-  const parede = medirDiametro(pos, ponto, normal);
-  const eixo = parede ? parede.eixo.clone() : normal.clone().normalize();
+// Paquímetro por camada: corta a peça na altura do mouse (plano deitado, como uma camada da impressão)
+// e mede o redondo daquele ponto nessa camada: Ø de dentro e Ø de fora. Passando o mouse de baixo para
+// cima, a medida acompanha cada altura (copo cônico, gargalo, base…).
+// pos/ponto/normal/vertical nas coordenadas da peça; normal aponta para fora; vertical = para cima na mesa.
+// perto: até quantos mm da borda conta como "em cima da borda" (faces deitadas).
+// Devolve { centro, eixo, externo, interno } (externo/interno: { raio, rms, lados } ou null) ou null.
+export function medirCamada(pos, ponto, normal, vertical, { perto = 0.5 } = {}) {
+  const cima = vertical.clone().normalize();
+  const virada = normal.clone().normalize().dot(cima);
   const cortar = (deslocamento) => {
-    const c = corteComCirculos(pos, ponto.clone().addScaledVector(eixo, deslocamento), eixo);
+    const c = corteComCirculos(pos, ponto.clone().addScaledVector(cima, deslocamento), cima);
     const P = [ponto.dot(c.u), ponto.dot(c.v)];
     const redondos = c.lacos.filter((l) => l.circulo);
     for (const l of redondos) l.radial = Math.hypot(P[0] - l.circulo.cx, P[1] - l.circulo.cy);
     return redondos;
   };
-  const naBorda = (l, tol) => Math.abs(l.radial - l.circulo.r) < tol;
+  const longe = (l) => Math.abs(l.radial - l.circulo.r);
 
-  let redondos;
+  let redondos = [];
   let principal = null;
-  let noFundo = false;
-  if (parede) {
+  if (Math.abs(virada) < 0.7) {
+    // parede em pé: o círculo da camada que passa pelo mouse
     redondos = cortar(0);
-    principal = menorPor(redondos.filter((l) => naBorda(l, Math.max(perto, l.circulo.r * 0.1))), (l) => Math.abs(l.circulo.r - parede.raio));
+    principal = menorPor(redondos.filter((l) => longe(l) < Math.max(perto, l.circulo.r * 0.03)), longe);
   } else {
-    redondos = cortar(-RECUO); // logo abaixo da face, dentro do material
-    principal = menorPor(redondos.filter((l) => naBorda(l, perto)), (l) => Math.abs(l.radial - l.circulo.r));
-    if (!principal) {
-      // fundo de um furo (ou de um copo): logo acima da face há um furo em volta do ponto
+    // face deitada virada para cima no fundo de um furo/copo: a camada logo acima tem o furo em volta
+    if (virada > 0) {
       const acima = cortar(RECUO);
       const furo = menorPor(acima.filter((l) => l.furo && l.radial < l.circulo.r), (l) => l.circulo.r);
-      if (furo) [redondos, principal, noFundo] = [acima, furo, true];
-      // ponta de pino / boca de copo: o menor disco em volta do ponto
-      else principal = menorPor(redondos.filter((l) => !l.furo && l.radial < l.circulo.r), (l) => l.circulo.r);
+      if (furo) [redondos, principal] = [acima, furo];
+    }
+    // boca, ponta de pino, base: a camada logo para dentro do material
+    if (!principal) {
+      redondos = cortar(virada > 0 ? -RECUO : RECUO);
+      principal =
+        menorPor(redondos.filter((l) => longe(l) < perto), longe) ??
+        menorPor(redondos.filter((l) => !l.furo && l.radial < l.circulo.r), (l) => l.circulo.r);
     }
   }
   if (!principal) return null;
@@ -531,35 +506,8 @@ export function identificarRedondo(pos, ponto, normal, { perto = 0.5, lancar = n
   const [externo, interno] = principal.furo
     ? [menorPor(juntos.filter((l) => !l.furo && l.circulo.r > c0.r), (l) => l.circulo.r), principal]
     : [principal, menorPor(juntos.filter((l) => l.furo && l.circulo.r < c0.r), (l) => -l.circulo.r)];
-
-  const resumo = (l) => l && { raio: l.circulo.r, rms: l.circulo.rms, lados: l.circulo.lados };
-  const r = { centro: c0.centro.clone(), eixo, externo: resumo(externo), interno: resumo(interno) };
-
-  // Profundidade do furo: do fundo até a boca.
-  if (interno) {
-    const meio = interno.circulo.centro;
-    const [ini, fim] = extensaoDaParede(pos, meio, eixo, interno.circulo.r);
-    if (noFundo) r.profundidade = fim - ini;
-    else if (!parede) {
-      // na boca: raio pelo meio do furo até bater no fundo
-      if (lancar) {
-        const fundo = lancar(meio, eixo.clone().negate());
-        if (fundo) r.profundidade = fundo.distancia + RECUO;
-        else r.passante = true;
-      } else r.profundidade = fim - ini;
-    } else if (lancar) {
-      const cima = lancar(meio, eixo);
-      const baixo = lancar(meio, eixo.clone().negate());
-      if (!cima && !baixo) r.passante = true;
-      else if (cima && baixo) r.profundidade = cima.distancia + baixo.distancia;
-      else r.profundidade = cima ? cima.distancia - ini : baixo.distancia + fim;
-    } else r.profundidade = fim - ini;
-  }
-  if (externo) {
-    const [ini, fim] = extensaoDaParede(pos, externo.circulo.centro, eixo, externo.circulo.r);
-    if (fim - ini >= 0.3) r.altura = fim - ini;
-  }
-  return r;
+  const resumo = (l) => (l ? { raio: l.circulo.r, rms: l.circulo.rms, lados: l.circulo.lados } : null);
+  return { centro: c0.centro.clone(), eixo: cima, externo: resumo(externo), interno: resumo(interno) };
 }
 
 // Aresta reta inteira a partir de um pedaço dela (a, b): segue as arestas reais na mesma direção.

@@ -1,5 +1,5 @@
 // Paquímetro do Visualizador 3D.
-// "Paquímetro": passe o mouse numa borda redonda (boca de copo, furo, pino) e ele mostra só o que importa:
+// "Paquímetro": passe o mouse na peça e ele corta naquela altura (como uma camada) e mostra só o que importa:
 // Ø de dentro e Ø de fora. O clique deixa a medida fixa na peça.
 // "Distância": dois cliques, medida à mão (os pontos grudam em cantos e arestas).
 // As medidas ficam guardadas nas coordenadas da peça: acompanham quando ela é girada, movida ou escalada.
@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { abrirEncaixeCom } from "./encaixes-tela.js";
 import { ENCAIXES, MATERIAIS_ENCAIXE } from "./modelos/encaixes.js";
 import { previsaoImpressa, resumoCalibracao, textoDiferenca, textoDoResumo, tipoDaCalibracao } from "./modelos/calibracao.js";
-import { arestasMarcantes, formatarMedida, identificarRedondo, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
+import { arestasMarcantes, formatarMedida, medirCamada, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -150,7 +150,7 @@ export function criarPaquimetro(ctx) {
 
   function nomeDe(m) {
     if (m.tipo !== "redondo") return NOMES[m.tipo];
-    if (m.interno && m.externo) return "Boca";
+    if (m.interno && m.externo) return "Medida";
     return m.interno ? "Furo" : "Pino";
   }
 
@@ -269,11 +269,11 @@ export function criarPaquimetro(ctx) {
   }
 
   function identificar(h) {
-    // só o que se vê: Ø de dentro e de fora (fundo, parede e altura ficam de fora, a pedido do Pedro)
-    const redondo = identificarRedondo(h.pos, h.p, h.n, { perto: PIXELS_BORDA * mmPorPixel(h) });
-    if (!redondo) return null;
-    const { centro, eixo, externo, interno } = redondo;
-    return { tipo: "redondo", centro, eixo, externo, interno };
+    // por camada: corte deitado na altura do mouse (o "para cima" da mesa, nas coordenadas da peça);
+    // só o que se vê: Ø de dentro e de fora (a pedido do Pedro)
+    const cima = new THREE.Vector3(0, 1, 0).applyQuaternion(peca.getWorldQuaternion(new THREE.Quaternion()).invert());
+    const redondo = medirCamada(h.pos, h.p, h.n, cima, { perto: PIXELS_BORDA * mmPorPixel(h) });
+    return redondo && { tipo: "redondo", ...redondo };
   }
 
   // ---------- Valores ----------
@@ -536,7 +536,7 @@ export function criarPaquimetro(ctx) {
         if (h) achado = identificar(h);
       }
       if (!achado) {
-        ctx.avisar("Não achei nada redondo aí. Passe o mouse na borda de um furo, copo ou pino.");
+        ctx.avisar("Não achei nada redondo nesta altura.");
         return;
       }
       adicionar(achado);

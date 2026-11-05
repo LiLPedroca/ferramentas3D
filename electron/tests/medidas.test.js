@@ -5,9 +5,9 @@ import {
   ajustarCirculo,
   arestaReta,
   arestasMarcantes,
-  identificarRedondo,
   autovetores3,
   formatarMedida,
+  medirCamada,
   medirDiametro,
   medirDistancia,
   medirParedes,
@@ -31,65 +31,70 @@ function placaComFuro(lados = 48, raio = 4) {
 }
 
 // Copo: Ø 74 por fora, Ø 70 por dentro, 95 de altura, fundo de 3 mm (eixo Y para cima).
-function copo() {
-  const perfil = [V(0, 0, 0), V(37, 0, 0), V(37, 95, 0), V(35, 95, 0), V(35, 3, 0), V(0, 3, 0)].map((p) => new THREE.Vector2(p.x, p.y));
-  const geo = new THREE.LatheGeometry(perfil, 96).toNonIndexed();
-  const malha = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
-  const raio = new THREE.Raycaster();
-  const lancar = (origem, direcao) => {
-    raio.set(origem, direcao);
-    const h = raio.intersectObject(malha)[0];
-    return h ? { distancia: h.distance, normal: h.face.normal } : null;
-  };
-  return { pos: geo.attributes.position.array, lancar };
+// cônico: embaixo Ø 60 por fora e Ø 56 por dentro, alargando até a boca.
+function copo({ conico = false } = {}) {
+  const [fb, db] = conico ? [30, 28] : [37, 35];
+  const perfil = [V(0, 0, 0), V(fb, 0, 0), V(37, 95, 0), V(35, 95, 0), V(db, 3, 0), V(0, 3, 0)].map((p) => new THREE.Vector2(p.x, p.y));
+  return new THREE.LatheGeometry(perfil, 96).toNonIndexed().attributes.position.array;
 }
+const CIMA = V(0, 1, 0);
 
-describe("paquímetro de passar o mouse", () => {
-  it("na boca do copo: Ø de dentro, Ø de fora e o fundo", () => {
-    const { pos, lancar } = copo();
-    const r = identificarRedondo(pos, V(36, 95, 0), V(0, 1, 0), { lancar });
+describe("paquímetro por camada (passar o mouse)", () => {
+  it("na boca do copo: Ø de dentro e Ø de fora", () => {
+    const r = medirCamada(copo(), V(36, 95, 0), V(0, 1, 0), CIMA);
     expect(r.interno.raio * 2).toBeCloseTo(70, 0);
     expect(r.externo.raio * 2).toBeCloseTo(74, 0);
-    expect(r.profundidade).toBeCloseTo(92, 1);
-    expect(r.passante).toBeUndefined();
   });
 
-  it("na parede de dentro do copo", () => {
-    const { pos, lancar } = copo();
-    const r = identificarRedondo(pos, V(0, 50, 35), V(0, 0, -1), { lancar });
-    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
-    expect(r.externo.raio * 2).toBeCloseTo(74, 0);
-    expect(r.profundidade).toBeCloseTo(92, 0);
+  it("nas paredes de dentro e de fora do copo", () => {
+    for (const [ponto, normal] of [
+      [V(0, 50, 35), V(0, 0, -1)],
+      [V(37, 40, 0), V(1, 0, 0)],
+    ]) {
+      const r = medirCamada(copo(), ponto, normal, CIMA);
+      expect(r.interno.raio * 2).toBeCloseTo(70, 0);
+      expect(r.externo.raio * 2).toBeCloseTo(74, 0);
+    }
   });
 
-  it("na parede de fora do copo", () => {
-    const { pos, lancar } = copo();
-    const r = identificarRedondo(pos, V(37, 40, 0), V(1, 0, 0), { lancar });
-    expect(r.externo.raio * 2).toBeCloseTo(74, 0);
-    expect(r.interno.raio * 2).toBeCloseTo(70, 0);
-    expect(r.altura).toBeCloseTo(95, 0);
+  it("copo cônico: a medida acompanha a altura do mouse", () => {
+    const pos = copo({ conico: true });
+    // parede de fora: raio vai de 30 (y=0) a 37 (y=95)
+    const raioFora = (y) => 30 + (7 * y) / 95;
+    const normal = V(95, -7, 0).normalize();
+    for (const y of [10, 50, 90]) {
+      const r = medirCamada(pos, V(raioFora(y), y, 0), normal, CIMA);
+      expect(r.externo.raio).toBeCloseTo(raioFora(y), 1);
+      // parede de dentro: raio vai de 28 (y=3) a 35 (y=95)
+      expect(r.interno.raio).toBeCloseTo(28 + (7 * (y - 3)) / 92, 1);
+    }
   });
 
-  it("no fundo de dentro do copo: o Ø do furo", () => {
-    const { pos, lancar } = copo();
-    const r = identificarRedondo(pos, V(10, 3, 5), V(0, 1, 0), { lancar });
+  it("no fundo de dentro do copo: o Ø de dentro", () => {
+    const r = medirCamada(copo(), V(10, 3, 5), V(0, 1, 0), CIMA);
     expect(r.interno.raio * 2).toBeCloseTo(70, 0);
   });
 
   it("na face de cima da placa, perto do furo e longe dele", () => {
     const pos = posicoes(placaComFuro());
-    const perto = identificarRedondo(pos, V(4.2, 0, 10), V(0, 0, 1));
+    const cima = V(0, 0, 1);
+    const perto = medirCamada(pos, V(4.2, 0, 10), V(0, 0, 1), cima);
     expect(perto.interno.raio * 2).toBeCloseTo(8, 1);
     expect(perto.externo).toBeNull();
-    expect(identificarRedondo(pos, V(12, 12, 10), V(0, 0, 1))).toBeNull();
+    expect(medirCamada(pos, V(12, 12, 10), V(0, 0, 1), cima)).toBeNull();
+    expect(medirCamada(pos, V(20, 0, 5), V(1, 0, 0), cima)).toBeNull(); // lateral reta da placa
   });
 
-  it("ponta de um pino", () => {
+  it("ponta e lateral de um pino", () => {
     const pos = posicoes(new THREE.CylinderGeometry(6, 6, 20, 64));
-    const r = identificarRedondo(pos, V(1, 10, 1), V(0, 1, 0));
-    expect(r.externo.raio * 2).toBeCloseTo(12, 1);
-    expect(r.interno).toBeNull();
-    expect(r.altura).toBeCloseTo(20, 1);
+    for (const [ponto, normal] of [
+      [V(1, 10, 1), V(0, 1, 0)],
+      [V(6, 3, 0), V(1, 0, 0)],
+    ]) {
+      const r = medirCamada(pos, ponto, normal, CIMA);
+      expect(r.externo.raio * 2).toBeCloseTo(12, 1);
+      expect(r.interno).toBeNull();
+    }
   });
 });
 

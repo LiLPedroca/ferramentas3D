@@ -23,7 +23,7 @@ const DICAS = {
   mover: "Arraste as setas para mover sobre a mesa",
   girar: "Arraste os anéis para girar",
   face: "Clique na face que vai para a mesa",
-  paquimetro: "Passe o mouse na borda de um furo, copo ou pino · clique para fixar",
+  paquimetro: "Passe o mouse na peça · mede o Ø em cada altura · clique para fixar",
   distancia: "Clique em dois pontos · Esc cancela",
 };
 
