@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { ajustarCirculo, arestasMarcantes, autovetores3, formatarMedida, medirDiametro, medirDistancia, medirProfundidade } from "../src/renderer/modelos/medidas.js";
+import {
+  acharFurosEPinos,
+  ajustarCirculo,
+  arestasMarcantes,
+  autovetores3,
+  formatarMedida,
+  medirDiametro,
+  medirDistancia,
+  medirParedes,
+  medirProfundidade,
+} from "../src/renderer/modelos/medidas.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const posicoes = (geo) => (geo.index ? geo.toNonIndexed() : geo).attributes.position.array;
@@ -85,6 +95,41 @@ describe("paquímetro", () => {
 
   it("profundidade ao longo da normal da primeira face", () => {
     expect(medirProfundidade(V(0, 0, 10), V(0, 0, 1), V(3, 4, 2.5))).toBeCloseTo(7.5);
+  });
+
+  it("acha sozinho o furo da placa e o pino do cilindro, com a profundidade", () => {
+    const furos = acharFurosEPinos(posicoes(placaComFuro()));
+    expect(furos).toHaveLength(1);
+    expect(furos[0].tipo).toBe("furo");
+    expect(furos[0].raio * 2).toBeCloseTo(8, 1);
+    expect(furos[0].profundidade).toBeCloseTo(10, 3);
+
+    const pinos = acharFurosEPinos(posicoes(new THREE.CylinderGeometry(6, 6, 20, 64)));
+    expect(pinos.map((p) => [p.tipo, p.eixoNome])).toEqual([["pino", "Z"]]);
+    expect(pinos[0].profundidade).toBeCloseTo(20, 3);
+
+    expect(acharFurosEPinos(posicoes(new THREE.BoxGeometry(10, 10, 10)))).toEqual([]);
+  });
+
+  it("mede a espessura das paredes", () => {
+    // tubo: raio de fora 10, de dentro 9 → parede de 1 mm
+    const forma = new THREE.Shape();
+    forma.absarc(0, 0, 10, 0, Math.PI * 2, false);
+    const furo = new THREE.Path();
+    furo.absarc(0, 0, 9, 0, Math.PI * 2, true);
+    forma.holes.push(furo);
+    const geo = new THREE.ExtrudeGeometry(forma, { depth: 30, bevelEnabled: false, curveSegments: 32 }).toNonIndexed();
+    const malha = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+    const raio = new THREE.Raycaster();
+    const lancar = (origem, direcao) => {
+      raio.set(origem, direcao);
+      const h = raio.intersectObject(malha)[0];
+      return h ? { distancia: h.distance, normal: h.face.normal } : null;
+    };
+    const r = medirParedes(geo.attributes.position.array, lancar, { amostras: 300 });
+    expect(r.minima).toBeGreaterThan(0.95);
+    expect(r.minima).toBeLessThan(1.01);
+    expect(r.amostras.length).toBeGreaterThan(100);
   });
 
   it("formata em mm e polegadas", () => {

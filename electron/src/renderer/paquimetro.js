@@ -318,5 +318,8 @@ export function criarPaquimetro(ctx) {
     ctx.aoMudar();
   });
 
-  return { clicar, mover, atualizar, quadro, cancelar, limpar, unidade: () => unidade };
+  // Usado pela análise automática: põe um furo/pino encontrado na lista de medidas.
+  const adicionarDiametro = (furo) => adicionar({ tipo: "diametro", furo });
+
+  return { clicar, mover, atualizar, quadro, cancelar, limpar, adicionarDiametro, unidade: () => unidade };
 }

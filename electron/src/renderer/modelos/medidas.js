@@ -107,9 +107,177 @@ function segmentosDoCorte(pos, origem, normal) {
       const [p, q, dp, dq] = menor(ps[i], ps[j]) ? [ps[i], ps[j], d[i], d[j]] : [ps[j], ps[i], d[j], d[i]];
       pontos.push(p.clone().lerp(q, dp / (dp - dq)));
     }
-    if (pontos.length === 2) segs.push(pontos);
+    if (pontos.length === 2) {
+      pontos.t = t; // triângulo de onde veio (para saber de que lado fica o material)
+      segs.push(pontos);
+    }
   }
   return segs;
+}
+
+// Todos os laços fechados do corte. Cada laço: { pontos, triangulo } (um triângulo da parede).
+function lacosDoCorte(pos, origem, normal) {
+  const segs = segmentosDoCorte(pos, origem, normal);
+  const vizinhos = new Map();
+  segs.forEach(([a, b], i) => {
+    for (const p of [a, b]) {
+      const k = chave(p);
+      if (!vizinhos.has(k)) vizinhos.set(k, []);
+      vizinhos.get(k).push(i);
+    }
+  });
+  const usados = new Uint8Array(segs.length);
+  const lacos = [];
+  for (let i = 0; i < segs.length; i++) {
+    if (usados[i]) continue;
+    usados[i] = 1;
+    const pontos = [segs[i][0], segs[i][1]];
+    let ponta = segs[i][1];
+    let fechado = false;
+    for (let passo = 0; passo < segs.length; passo++) {
+      const prox = (vizinhos.get(chave(ponta)) ?? []).find((j) => !usados[j]);
+      if (prox === undefined) {
+        fechado = chave(ponta) === chave(pontos[0]);
+        break;
+      }
+      usados[prox] = 1;
+      const [a, b] = segs[prox];
+      ponta = chave(a) === chave(ponta) ? b : a;
+      pontos.push(ponta);
+    }
+    if (fechado || chave(ponta) === chave(pontos[0])) lacos.push({ pontos, triangulo: segs[i].t });
+  }
+  return lacos;
+}
+
+function baseDoPlano(eixo) {
+  const u = new Vector3(1, 0, 0);
+  if (Math.abs(u.dot(eixo)) > 0.9) u.set(0, 1, 0);
+  u.sub(eixo.clone().multiplyScalar(u.dot(eixo))).normalize();
+  return [u, eixo.clone().cross(u)];
+}
+
+// Encontra sozinho os furos e pinos redondos, cortando a peça em várias alturas nos 3 eixos.
+// pos: triângulos soltos nas coordenadas da peça (Y para cima, como no Three.js).
+// Devolve [{ tipo, eixo, eixoNome, centro, raio, rms, lados, inicio, fim, profundidade }].
+const EIXOS_ANALISE = [
+  { nome: "Z", vetor: new Vector3(0, 1, 0) },
+  { nome: "X", vetor: new Vector3(1, 0, 0) },
+  { nome: "Y", vetor: new Vector3(0, 0, -1) },
+];
+export function acharFurosEPinos(pos, { niveis = [0.06, 0.2, 0.35, 0.5, 0.65, 0.8, 0.94], maximo = 80 } = {}) {
+  const min = new Vector3(Infinity, Infinity, Infinity);
+  const max = new Vector3(-Infinity, -Infinity, -Infinity);
+  for (let i = 0; i < pos.length; i += 3) {
+    min.min(new Vector3(pos[i], pos[i + 1], pos[i + 2]));
+    max.max(new Vector3(pos[i], pos[i + 1], pos[i + 2]));
+  }
+  const tamanho = max.clone().sub(min);
+  const maiorLado = Math.max(tamanho.x, tamanho.y, tamanho.z);
+  const grupos = new Map();
+
+  for (const { nome, vetor } of EIXOS_ANALISE) {
+    const [u, v] = baseDoPlano(vetor);
+    const lo = Math.min(min.dot(vetor), max.dot(vetor));
+    const hi = Math.max(min.dot(vetor), max.dot(vetor));
+    for (const f of niveis) {
+      const altura = lo + (hi - lo) * f;
+      const origem = vetor.clone().multiplyScalar(altura);
+      for (const laco of lacosDoCorte(pos, origem, vetor)) {
+        const pts = laco.pontos.map((p) => [p.dot(u), p.dot(v)]);
+        if (pts.length < 9) continue;
+        const c = ajustarCirculo(pts);
+        if (!c || c.r < 0.3 || c.r > maiorLado || c.rms > c.r * 0.02) continue;
+        const lados = contarLados(pts);
+        if (lados < 8) continue;
+        const centro = u.clone().multiplyScalar(c.cx).addScaledVector(v, c.cy).addScaledVector(vetor, altura);
+        const parede = vertice(pos, laco.triangulo * 3);
+        const normal = normalDoTriangulo(pos, laco.triangulo).normalize();
+        const paraCentro = centro.clone().sub(parede);
+        paraCentro.sub(vetor.clone().multiplyScalar(paraCentro.dot(vetor)));
+        const tipo = paraCentro.dot(normal) > 0 ? "furo" : "pino";
+        const k = `${nome}|${Math.round(c.cx * 10)}|${Math.round(c.cy * 10)}|${Math.round(c.r * 20)}|${tipo}`;
+        if (!grupos.has(k)) grupos.set(k, { tipo, eixo: vetor.clone(), eixoNome: nome, centro, raio: c.r, rms: c.rms, lados, u, v });
+      }
+    }
+  }
+
+  // Comprimento ao longo do eixo: vértices da parede (à distância "raio" do eixo, com a normal de lado).
+  const lista = [...grupos.values()].slice(0, maximo);
+  const nTri = pos.length / 9;
+  for (const g of lista) {
+    const tol = Math.max(0.05, g.raio * 0.03);
+    let [ini, fim] = [Infinity, -Infinity];
+    for (let t = 0; t < nTri; t++) {
+      const n = normalDoTriangulo(pos, t);
+      const area = n.length();
+      if (area < 1e-12 || Math.abs(n.dot(g.eixo)) / area > 0.35) continue;
+      let todos = true;
+      const alturas = [];
+      for (let k = 0; k < 3; k++) {
+        const p = vertice(pos, t * 3 + k);
+        const rel = p.clone().sub(g.centro);
+        const h = rel.dot(g.eixo);
+        const radial = rel.sub(g.eixo.clone().multiplyScalar(h)).length();
+        if (Math.abs(radial - g.raio) > tol) {
+          todos = false;
+          break;
+        }
+        alturas.push(h);
+      }
+      if (!todos) continue;
+      for (const h of alturas) {
+        ini = Math.min(ini, h);
+        fim = Math.max(fim, h);
+      }
+    }
+    if (!Number.isFinite(ini)) [ini, fim] = [0, 0];
+    g.inicio = g.centro.clone().addScaledVector(g.eixo, ini);
+    g.fim = g.centro.clone().addScaledVector(g.eixo, fim);
+    g.profundidade = fim - ini;
+    g.centro = g.inicio.clone().lerp(g.fim, 0.5);
+    delete g.u;
+    delete g.v;
+  }
+  // sem comprimento = corte de um cone ou chanfro, não é furo nem pino
+  return lista
+    .filter((g) => g.profundidade >= 0.3)
+    .sort((a, b) => (a.tipo === b.tipo ? a.raio - b.raio : a.tipo === "furo" ? -1 : 1));
+}
+
+// Espessura de parede: para cada amostra, raio para dentro da peça a partir da face; a distância até
+// a face do outro lado é a espessura. lancar(origem, direcao) → { distancia, normal } | null
+// (feito com BVH na tela). Devolve { minima, amostras: [{ ponto, espessura }] }.
+export function medirParedes(pos, lancar, { amostras = 2500 } = {}) {
+  const nTri = pos.length / 9;
+  const areas = new Float64Array(nTri);
+  let total = 0;
+  for (let t = 0; t < nTri; t++) {
+    areas[t] = normalDoTriangulo(pos, t).length() / 2;
+    total += areas[t];
+  }
+  if (!total) return { minima: null, amostras: [] };
+  // amostragem sistemática pela área (determinística)
+  const passo = total / Math.min(amostras, nTri);
+  const resultado = [];
+  let acumulado = 0;
+  let proximo = passo / 2;
+  for (let t = 0; t < nTri; t++) {
+    acumulado += areas[t];
+    while (proximo <= acumulado && resultado.length < amostras) {
+      proximo += passo;
+      const n = normalDoTriangulo(pos, t);
+      if (n.lengthSq() < 1e-20) continue;
+      n.normalize();
+      const c = vertice(pos, t * 3).add(vertice(pos, t * 3 + 1)).add(vertice(pos, t * 3 + 2)).divideScalar(3);
+      const dentro = n.clone().negate();
+      const achado = lancar(c.clone().addScaledVector(dentro, 1e-3), dentro);
+      // só conta se saiu pela face do outro lado (normal virada contra o raio)
+      if (achado && achado.normal.dot(dentro) > 0.2) resultado.push({ ponto: c, espessura: achado.distancia + 1e-3 });
+    }
+  }
+  const minima = resultado.reduce((m, a) => Math.min(m, a.espessura), Infinity);
+  return { minima: Number.isFinite(minima) ? minima : null, amostras: resultado };
 }
 
 const chave = (p) => `${Math.round(p.x * 1e4)},${Math.round(p.y * 1e4)},${Math.round(p.z * 1e4)}`;

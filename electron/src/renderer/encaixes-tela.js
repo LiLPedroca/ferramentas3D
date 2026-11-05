@@ -7,7 +7,7 @@ import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
-import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
+import { estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -112,6 +112,15 @@ async function salvar(extensao) {
   const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
   if (!resposta.ok) mostrarAviso(resposta.erro);
   else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.`);
+}
+
+// Chamado pelo Visualizador 3D: abre a calculadora com o diâmetro medido na peça.
+export function abrirEncaixeCom(medida) {
+  $("en-medida").value = (Math.round(medida * 100) / 100).toLocaleString("pt-BR");
+  $("en-calibrada").value = "";
+  calcular();
+  irPara("encaixes");
+  $("en-resultado").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 export function iniciarEncaixes() {

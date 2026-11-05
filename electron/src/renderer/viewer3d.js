@@ -14,6 +14,7 @@ import { DENSIDADE_PLA } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
+import { criarAnalise } from "./analise-tela.js";
 import { criarPaquimetro } from "./paquimetro.js";
 import { mostrarAviso } from "./shell.js";
 
@@ -103,7 +104,10 @@ export function iniciarVisualizador() {
     cena, camera, renderizador, peca, palco,
     escala: () => estado.escala,
     aoEscalar: (fator) => definirEscala(fator),
-    aoMudar: () => atualizarInfo(),
+    aoMudar: () => {
+      atualizarInfo();
+      estado.analise?.atualizar();
+    },
     avisar: mostrarAviso,
     dica: (texto) => {
       $("vz-dica").textContent = texto;
@@ -111,6 +115,13 @@ export function iniciarVisualizador() {
     dicaPadrao: () => {
       $("vz-dica").textContent = DICAS[estado.modo];
     },
+  });
+
+  estado.analise = criarAnalise({
+    cena, peca,
+    escala: () => estado.escala,
+    unidade: () => estado.paquimetro.unidade(),
+    paquimetro: estado.paquimetro,
   });
 
   // Usado só pelos roteiros do modo de captura (testes da tela), para achar pontos na peça.
@@ -322,6 +333,7 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   $("palco-vazio").hidden = true;
   $("vz-ferramentas").hidden = false;
   atualizarInfo();
+  estado.analise.aoCarregar(triangulos);
 }
 
 function limparPeca() {
@@ -365,6 +377,7 @@ function depoisDeMexer() {
   apoiarNaMesa();
   atualizarInfo();
   estado.paquimetro?.atualizar();
+  estado.analise?.atualizar();
 }
 
 const EIXOS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 0, -1), z: new THREE.Vector3(0, 1, 0) };

@@ -251,6 +251,29 @@
           <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas as medidas</button>
         </section>
 
+        <section class="vz-paquimetro" id="an-painel" hidden>
+          <div class="historico-topo">
+            <h3>Análise automática</h3>
+            <button type="button" class="botao-secundario pequeno" id="an-analisar" hidden>Analisar peça</button>
+          </div>
+          <p class="ajuda pequeno" id="an-estado"></p>
+          <h4 class="an-titulo">Furos e pinos <span class="contagem-texto" id="an-contagem"></span></h4>
+          <ul class="an-lista" id="an-furos"></ul>
+          <p class="ajuda pequeno" id="an-furos-vazio"></p>
+          <p class="an-folga" id="an-folga"></p>
+          <h4 class="an-titulo">Paredes</h4>
+          <div class="vz-linha">
+            <label class="md-opcao"><input type="checkbox" id="an-mostrar-finas" checked /> Mostrar paredes finas na peça</label>
+            <select class="seletor pequeno" id="an-bico" aria-label="Bico da impressora">
+              <option value="0.2">bico 0,2</option>
+              <option value="0.4">bico 0,4</option>
+              <option value="0.6">bico 0,6</option>
+              <option value="0.8">bico 0,8</option>
+            </select>
+          </div>
+          <p class="ajuda pequeno" id="an-paredes"></p>
+        </section>
+
         <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
         <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
 

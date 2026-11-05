@@ -803,6 +803,70 @@ input:focus-visible,
   padding: 0 8px;
 }
 
+.an-titulo {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+
+.an-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.an-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: start;
+  padding: 7px 9px;
+  border-left: 3px solid #3ad6e8;
+  border-radius: 8px;
+  background: var(--superficie-2);
+  font-size: 13px;
+}
+
+.an-item:hover {
+  background: color-mix(in srgb, #3ad6e8 12%, var(--superficie-2));
+}
+
+.an-item input {
+  margin-top: 3px;
+  accent-color: #3ad6e8;
+}
+
+.an-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.an-acoes {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.an-acoes .botao-texto {
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.an-folga {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.an-folga:empty {
+  display: none;
+}
+
 .vz-rotulo {
   position: absolute;
   top: 0;
