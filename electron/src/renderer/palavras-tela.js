@@ -1,14 +1,16 @@
 // Tela das Palavras decorativas: até 3 linhas, placa ou letreiro, prévia 2D/3D.
+import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
+import { pesoCurto, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { carregarFonte } from "./modelos/fontes.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { camadaDaTroca } from "./modelos/chaveiro.js";
 import { gerarPalavras, LIMITES_PALAVRAS, PADRAO_PALAVRAS } from "./modelos/palavras.js";
-import { criarPrevia2d } from "./modelos/previa2d.js";
+import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
-import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao } from "./modelos-ui.js";
+import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
@@ -23,6 +25,7 @@ let modelo = null;
 let partes = null;
 let modo = "2d";
 let previa2d = null;
+let projetoAtual = null; // { id, nome } quando veio de Meus modelos
 let previa3d = null;
 let temporizador = null;
 let geracao = 0;
@@ -70,7 +73,7 @@ function agendar() {
 }
 
 function habilitar(pronto) {
-  for (const id of ["pl-3mf", "pl-stl", "pl-fatiador"]) $(id).disabled = !pronto;
+  for (const id of ["pl-3mf", "pl-stl", "pl-fatiador", "pl-custo", "pl-salvar-modelo"]) $(id).disabled = !pronto;
 }
 
 async function gerar() {
@@ -94,7 +97,7 @@ async function gerar() {
     status(erro.message, true);
     habilitar(false);
   }
-  $("pl-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm` : "";
+  $("pl-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas)}` : "";
   previa2d.mostrar(modelo);
 }
 
@@ -201,6 +204,32 @@ export function iniciarPalavras() {
 
   $("pl-3mf").addEventListener("click", () => salvar("3mf"));
   $("pl-stl").addEventListener("click", () => salvar("stl"));
+  $("pl-salvar-modelo").addEventListener("click", async () => {
+    if (!modelo) return;
+    const r = await salvarEmMeusModelos({
+      tipo: "palavras",
+      atual: projetoAtual,
+      nomePadrao: nomeArquivo(),
+      montar: async () => ({ opcoes: structuredClone(opcoes), miniatura: miniatura(modelo) }),
+    });
+    if (r) {
+      projetoAtual = r;
+      mostrarAviso(`"${r.nome}" salvo em Meus modelos.`);
+    }
+  });
+  registrarAbridor("palavras", (p) => {
+    const linhas = [...(p.opcoes.linhas ?? [])].slice(0, 3);
+    while (linhas.length < 3) linhas.push({ texto: "", fonte: "Fredoka", tamanho: 45 });
+    opcoes = { ...PADRAO_PALAVRAS, ...p.opcoes, linhas };
+    projetoAtual = { id: p.id, nome: p.nome };
+    preencherCampos();
+    gerar();
+  });
+  $("pl-custo").addEventListener("click", () => {
+    if (!modelo) return;
+    const peso = pesoDasMalhas(modelo.malhas);
+    preencherDoModelo({ nome: nomeArquivo(), pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });
+  });
   $("pl-fatiador").addEventListener("click", async () => {
     if (!partes) return;
     const arquivo = await arquivo3mf();

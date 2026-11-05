@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld("backup", {
 contextBridge.exposeInMainWorld("dados", {
   clientes: cadastro("clientes"),
   favoritos: cadastro("favoritos"),
+  projetos: cadastro("projetos"),
   orcamentos: { ...cadastro("orcamentos"), pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id) },
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
   config: {

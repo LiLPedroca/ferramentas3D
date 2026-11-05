@@ -2,6 +2,39 @@
 // modelo: { camadas: [{ lacos, cor }], perimetro, argola: { t, centro, raio, afastamento }, caixa: { min, max } }
 import { maisPertoNoLaco, pontoNoLaco } from "./manifold.js";
 
+// Miniatura PNG (para Meus modelos): as camadas vistas de cima, centralizadas, fundo transparente.
+export function miniatura(modelo, largura = 320, altura = 200) {
+  const c = document.createElement("canvas");
+  c.width = largura;
+  c.height = altura;
+  const ctx = c.getContext("2d");
+  const { min, max } = modelo.caixa;
+  const margem = 10;
+  const escala = Math.min((largura - 2 * margem) / (max[0] - min[0]), (altura - 2 * margem) / (max[1] - min[1]));
+  const cx = (min[0] + max[0]) / 2;
+  const cy = (min[1] + max[1]) / 2;
+  modelo.camadas.forEach((camada, i) => {
+    ctx.beginPath();
+    for (const laco of camada.lacos) {
+      laco.forEach(([x, y], k) => {
+        const px = largura / 2 + (x - cx) * escala;
+        const py = altura / 2 - (y - cy) * escala;
+        if (k === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+    }
+    ctx.fillStyle = camada.cor;
+    ctx.fill(i === 0 ? "evenodd" : "nonzero");
+    if (i === 0) {
+      ctx.strokeStyle = "rgba(127,127,127,0.45)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+  return c.toDataURL("image/png");
+}
+
 export function criarPrevia2d(canvas, { aoComecar, aoSoltar } = {}) {
   let modelo = null;
   let ativa = true;

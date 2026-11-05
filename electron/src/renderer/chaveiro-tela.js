@@ -1,12 +1,14 @@
 // Tela do Chaveiro de nome: opções à esquerda, prévia 2D (argola arrastável) ou 3D à direita.
+import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
+import { pesoCurto, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
 import { camadaDaTroca, gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { carregarFonte, familiaCss } from "./modelos/fontes.js";
-import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao } from "./modelos-ui.js";
+import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
-import { criarPrevia2d } from "./modelos/previa2d.js";
+import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
@@ -26,6 +28,7 @@ let previa3d = null;
 let temporizador = null;
 let geracao = 0;
 let previa2d = null;
+let projetoAtual = null; // { id, nome } quando veio de Meus modelos
 
 const fator = () => (unidade === "cm" ? 10 : 1);
 const formatar = (mm, casas = 2) => (mm / fator()).toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -121,7 +124,7 @@ async function gerar() {
 }
 
 function habilitar(pronto) {
-  for (const id of ["ch-3mf", "ch-stl", "ch-fatiador"]) $(id).disabled = !pronto;
+  for (const id of ["ch-3mf", "ch-stl", "ch-fatiador", "ch-custo", "ch-salvar-modelo"]) $(id).disabled = !pronto;
 }
 
 function mostrarMedidas() {
@@ -129,7 +132,7 @@ function mostrarMedidas() {
     $("ch-medidas").textContent = "";
     return;
   }
-  $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade}`;
+  $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade} · ${pesoCurto(modelo.malhas)}`;
 }
 
 // A argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.
@@ -291,6 +294,33 @@ export function iniciarChaveiro() {
 
   $("ch-3mf").addEventListener("click", () => salvar("3mf"));
   $("ch-stl").addEventListener("click", () => salvar("stl"));
+  $("ch-salvar-modelo").addEventListener("click", async () => {
+    if (!modelo) return;
+    const r = await salvarEmMeusModelos({
+      tipo: "chaveiro",
+      atual: projetoAtual,
+      nomePadrao: nomeArquivo(),
+      montar: async () => ({ opcoes: { ...opcoes }, miniatura: miniatura(modelo) }),
+    });
+    if (r) {
+      projetoAtual = r;
+      mostrarAviso(`"${r.nome}" salvo em Meus modelos.`);
+    }
+  });
+  registrarAbridor("chaveiro", (p) => {
+    opcoes = { ...PADRAO_CHAVEIRO, ...p.opcoes };
+    projetoAtual = { id: p.id, nome: p.nome };
+    historico = [];
+    posicao = -1;
+    preencherCampos();
+    lembrar();
+    gerar();
+  });
+  $("ch-custo").addEventListener("click", () => {
+    if (!modelo) return;
+    const peso = pesoDasMalhas(modelo.malhas);
+    preencherDoModelo({ nome: nomeArquivo(), pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });
+  });
   $("ch-fatiador").addEventListener("click", async () => {
     if (!partes) return;
     const arquivo = await arquivo3mf();

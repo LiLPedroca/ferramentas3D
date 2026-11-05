@@ -4,7 +4,7 @@ import { confirmar, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
-const NOMES = { produtos: "Produtos", clientes: "Clientes", orcamentos: "Orçamentos", favoritos: "Favoritos de STL", configuracoes: "Configurações" };
+const NOMES = { produtos: "Produtos", clientes: "Clientes", orcamentos: "Orçamentos", favoritos: "Favoritos de STL", projetos: "Modelos salvos", configuracoes: "Configurações" };
 
 function el(tag, classe, texto) {
   const e = document.createElement(tag);
@@ -22,6 +22,7 @@ function descreverResumo(r) {
     `${r.clientes} cliente(s)`,
     `${r.orcamentos} orçamento(s)`,
     `${r.favoritos ?? 0} favorito(s) de STL`,
+    `${r.projetos ?? 0} modelo(s) salvo(s)`,
   ];
   return partes.join(", ");
 }
@@ -36,7 +37,7 @@ async function carregar() {
   const r = resposta.dados;
 
   $("bk-contagem").replaceChildren(
-    ...["produtos", "clientes", "orcamentos", "favoritos"].map((nome) => {
+    ...["produtos", "clientes", "orcamentos", "favoritos", "projetos"].map((nome) => {
       const bloco = el("div", "bk-numero");
       bloco.append(el("strong", "", String(r.contagem[nome] ?? 0)), el("span", "", NOMES[nome]));
       return bloco;

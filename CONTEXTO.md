@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.20.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.22.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -146,8 +146,8 @@ Ao "Salvar 3MF" ou "Abrir no fatiador", a janela "Como você vai imprimir?" (`pe
 ## Plano autorizado em 04/11/2026 ("faça, está autorizado a tudo")
 Etapas (marcar [x] ao publicar): 
 - [x] Sem AMS também nas Palavras (modo placa; letreiro não, as cores dividem as camadas) + ícone do programa (`recursos/icone.svg` → `npx electron scripts/gerar-icone.cjs` gera `recursos/icone.ico` e `icone.png`; `buildResources: recursos`, ícone no exe, instalador e janela). (v0.20.0)
-- [ ] Custo direto do modelo (volume das partes → gramas por cor → calculadora/produto/orçamento).
-- [ ] Salvar modelos (biblioteca dos chaveiros/placas criados, reabrir e reeditar).
+- [x] Custo direto do modelo: `modelos/estimativa.js` (volume do Manifold × 1,24 g/cm³ do PLA, peça maciça; `malhaDoSolido` devolve `volume`); peso "≈ X g" na linha de medidas dos 3 modelos; botão "Calcular custo" → `preencherDoModelo` (calculadora-tela) abre a calculadora com o peso, a explicação e o nome, que vai para o "Salvar como produto". Tempo de impressão fica com o usuário (o fatiador sabe). (v0.21.0)
+- [x] Salvar modelos → ferramenta **Meus modelos** (grupo Modelos personalizados). Cadastro interno "projetos" (o nome "modelos" já era usado pelos canais de arquivo): `core/projeto.cjs` (tipo chaveiro/logo/palavras, nome, opcoes da tela em JSON até 20 mil caracteres, miniatura PNG, no logo a imagem reduzida em data URL), `main/projetos.cjs`, canais `projetos:*`, entra no backup ("modelos salvos"). Telas: botão "Salvar modelo" (janela com nome; se veio de Meus modelos, "Salvar alterações" ou "Salvar como novo"), `salvarEmMeusModelos`/`registrarAbridor` em `modelos-ui.js`, `miniatura()` em `previa2d.js`, tela `projetos-tela.js` (busca, Abrir, Excluir com confirmação). (v0.22.0)
 - [ ] Estoque de filamentos (rolos, preço/kg, peso restante, aviso de fim).
 - [ ] Etiquetas (PDF para produtos/pedidos, QR do WhatsApp).
 - [ ] Encaixes e tolerâncias (calculadora de folga + peça de teste em 3MF).

@@ -21,6 +21,7 @@ const TELAS = {
   chaveiro: { elemento: "tela-chaveiro" },
   logo: { elemento: "tela-logo" },
   palavras: { elemento: "tela-palavras" },
+  projetos: { elemento: "tela-projetos" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
   orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },

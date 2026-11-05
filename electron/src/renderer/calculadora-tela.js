@@ -30,6 +30,18 @@ const PADROES = {
 };
 
 let ultimoCalculo = null; // { entrada, resultado } do último cálculo válido
+let nomeDoModelo = ""; // quando o peso veio de um modelo personalizado (chaveiro, palavras)
+
+// Chamado pelos modelos personalizados: abre a calculadora com o peso estimado de uma peça.
+export function preencherDoModelo({ nome, pesoG, detalhe }) {
+  nomeDoModelo = nome;
+  $("peso").value = (Math.round(pesoG * 10) / 10).toLocaleString("pt-BR");
+  $("quantidade").value = "1";
+  $("origem-calculo").textContent = `Peso estimado de "${nome}"${detalhe ? `: ${detalhe}` : ""}. Preencha o tempo de impressão que o fatiador mostrar.`;
+  $("origem-calculo").hidden = false;
+  irPara("calculadora");
+  atualizarResultado();
+}
 
 const comoNumero = (r) => Number(r.num) / Number(r.den);
 
@@ -142,6 +154,7 @@ function salvarComoProduto() {
 
   irPara("produtos");
   abrirEditor(undefined, {
+    nome: nomeDoModelo || undefined,
     preco: formatarReais(new Racional(precoCent, 100n)).replace("R$ ", ""),
     pesoG: peso > 0 ? String(peso).replace(".", ",") : "",
     custo: {

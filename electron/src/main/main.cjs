@@ -6,6 +6,7 @@ const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
 const { criarServicoFavoritos } = require("./favoritos.cjs");
+const { criarServicoProjetos } = require("./projetos.cjs");
 const { abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
@@ -165,11 +166,12 @@ function registrarDados() {
   const clientes = criarServicoClientes(pasta);
   const orcamentos = criarServicoOrcamentos(pasta, { clientes });
   const favoritos = criarServicoFavoritos(pasta);
-  const cadastros = { clientes, orcamentos, favoritos };
+  const projetos = criarServicoProjetos(pasta);
+  const cadastros = { clientes, orcamentos, favoritos, projetos };
 
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
-    colecoes: { produtos, clientes, orcamentos, favoritos },
+    colecoes: { produtos, clientes, orcamentos, favoritos, projetos },
     configuracoes,
     versaoApp: app.getVersion(),
   });

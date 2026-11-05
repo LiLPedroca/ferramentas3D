@@ -2808,3 +2808,52 @@ textarea:focus {
 .ch-estilos.pl-modos {
   grid-template-columns: repeat(2, 1fr);
 }
+
+/* Meus modelos */
+.pj-busca {
+  max-width: 420px;
+  margin-bottom: 16px;
+}
+
+.pj-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.pj-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.pj-miniatura {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 35%, var(--superficie-2), var(--fundo));
+  overflow: hidden;
+}
+
+.pj-miniatura img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pj-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pj-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pj-acoes .botao-primario {
+  padding: 8px 18px;
+}

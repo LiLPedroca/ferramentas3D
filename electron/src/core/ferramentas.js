@@ -88,6 +88,15 @@ export const FERRAMENTAS = [
     tela: "palavras",
   },
   {
+    id: "projetos",
+    grupo: "modelos",
+    titulo: "Meus modelos",
+    descricao: "Chaveiros e placas que você salvou, para reabrir e ajustar.",
+    categoria: "Modelos personalizados",
+    disponivel: true,
+    tela: "projetos",
+  },
+  {
     id: "visualizador",
     grupo: "ferramentas",
     titulo: "Visualizar 3D",

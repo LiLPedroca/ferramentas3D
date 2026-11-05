@@ -82,6 +82,7 @@
     <main class="tela oculta" id="tela-calculadora">
       <section class="painel formulario" aria-labelledby="titulo-form">
         <h2 id="titulo-form">Dados do lote</h2>
+        <p class="ajuda origem-calculo" id="origem-calculo" hidden></p>
 
         <fieldset class="grupo">
           <legend>Material e impressão</legend>
@@ -885,6 +886,8 @@
             <div class="modelo-rodape">
               <span class="cliente-sub">Base e texto em partes separadas, na mesma peça.</span>
               <div class="acoes-form">
+                <button class="botao-secundario" id="ch-salvar-modelo" type="button" disabled>Salvar modelo</button>
+                <button class="botao-secundario" id="ch-custo" type="button" disabled>Calcular custo</button>
                 <button class="botao-secundario" id="ch-stl" type="button" disabled>Salvar STL</button>
                 <button class="botao-secundario" id="ch-3mf" type="button" disabled>Salvar 3MF</button>
                 <button class="botao-primario" id="ch-fatiador" type="button" disabled>Abrir no fatiador</button>
@@ -894,6 +897,26 @@
         </div>
       </div>
     </main>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-salvar-modelo" aria-labelledby="titulo-salvar-modelo">
+      <header class="dialogo-topo">
+        <h2 id="titulo-salvar-modelo">Salvar modelo</h2>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <label class="campo">
+          <span>Nome</span>
+          <div class="entrada"><input id="sm-nome" maxlength="80" autocomplete="off" /></div>
+        </label>
+        <p class="ajuda">Fica em Meus modelos, com as cores e medidas de agora.</p>
+      </div>
+      <p class="erro dialogo-erro" id="erro-salvar-modelo" role="alert"></p>
+      <footer class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="sm-cancelar">Cancelar</button>
+        <button type="button" class="botao-secundario" id="sm-novo" hidden>Salvar como novo</button>
+        <button type="button" class="botao-primario" id="sm-salvar">Salvar</button>
+      </footer>
+    </dialog>
 
     <dialog class="dialogo dialogo-medio" id="dialogo-impressao" aria-labelledby="titulo-dialogo-impressao">
       <header class="dialogo-topo">
@@ -1063,6 +1086,8 @@
             <div class="modelo-rodape">
               <span class="cliente-sub">No 3MF, a base vai no filamento 1 e cada cor do logo no seguinte (2, 3…).</span>
               <div class="acoes-form">
+                <button class="botao-secundario" id="lg-salvar-modelo" type="button" disabled>Salvar modelo</button>
+                <button class="botao-secundario" id="lg-custo" type="button" disabled>Calcular custo</button>
                 <button class="botao-secundario" id="lg-stl" type="button" disabled>Salvar STL</button>
                 <button class="botao-secundario" id="lg-3mf" type="button" disabled>Salvar 3MF</button>
                 <button class="botao-primario" id="lg-fatiador" type="button" disabled>Abrir no fatiador</button>
@@ -1070,6 +1095,16 @@
             </div>
           </section>
         </div>
+      </div>
+    </main>
+
+    <main class="tela oculta pagina" id="tela-projetos">
+      <div class="pagina-conteudo largo">
+        <h1 class="titulo-pagina">Meus modelos</h1>
+        <p class="ajuda md-intro">Chaveiros e placas que você salvou. Abra para ajustar, exportar de novo ou calcular o custo.</p>
+        <div class="busca pj-busca"><input id="pj-busca" placeholder="Buscar pelo nome" autocomplete="off" aria-label="Buscar modelo" /></div>
+        <p class="ajuda" id="pj-vazio" hidden></p>
+        <div class="pj-grade" id="pj-grade"></div>
       </div>
     </main>
 
@@ -1192,6 +1227,8 @@
             <div class="modelo-rodape">
               <span class="cliente-sub" id="pl-partes"></span>
               <div class="acoes-form">
+                <button class="botao-secundario" id="pl-salvar-modelo" type="button" disabled>Salvar modelo</button>
+                <button class="botao-secundario" id="pl-custo" type="button" disabled>Calcular custo</button>
                 <button class="botao-secundario" id="pl-stl" type="button" disabled>Salvar STL</button>
                 <button class="botao-secundario" id="pl-3mf" type="button" disabled>Salvar 3MF</button>
                 <button class="botao-primario" id="pl-fatiador" type="button" disabled>Abrir no fatiador</button>

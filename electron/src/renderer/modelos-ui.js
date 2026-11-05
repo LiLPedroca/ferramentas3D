@@ -144,7 +144,74 @@ export function perguntarImpressao(calcular) {
   });
 }
 
+// ---------- Meus modelos ----------
+// Cada ferramenta registra como abrir um modelo salvo do seu tipo (chaveiro, logo, palavras).
+const abridores = new Map();
+export function registrarAbridor(tipo, abrir) {
+  abridores.set(tipo, abrir);
+}
+export function abridorDe(tipo) {
+  return abridores.get(tipo);
+}
+
+let pedidoSalvar = null; // { tipo, atual, montar, resolver }
+
+function fecharSalvar(valor) {
+  if ($("dialogo-salvar-modelo").open) $("dialogo-salvar-modelo").close();
+  const p = pedidoSalvar;
+  pedidoSalvar = null;
+  p?.resolver(valor);
+}
+
+async function confirmarSalvar(comoNovo) {
+  const p = pedidoSalvar;
+  if (!p) return;
+  const nome = $("sm-nome").value.trim();
+  if (!nome) {
+    $("erro-salvar-modelo").textContent = "Dê um nome ao modelo.";
+    return;
+  }
+  $("sm-salvar").disabled = $("sm-novo").disabled = true;
+  try {
+    const valores = await p.montar();
+    const id = comoNovo ? undefined : p.atual?.id;
+    const resposta = await window.dados.projetos.salvar({ tipo: p.tipo, nome, ...valores }, id);
+    if (!resposta.ok) {
+      $("erro-salvar-modelo").textContent = resposta.erro;
+      return;
+    }
+    fecharSalvar({ id: resposta.dados.id, nome: resposta.dados.nome });
+  } catch (erro) {
+    $("erro-salvar-modelo").textContent = erro.message;
+  } finally {
+    $("sm-salvar").disabled = $("sm-novo").disabled = false;
+  }
+}
+
+// Pede o nome e salva em Meus modelos. atual: { id, nome } quando o modelo veio de lá (salvar
+// atualiza o mesmo; "Salvar como novo" cria outro). montar(): { opcoes, miniatura, imagem? }.
+// Devolve { id, nome } ou null (cancelado).
+export function salvarEmMeusModelos({ tipo, atual, nomePadrao, montar }) {
+  fecharSalvar(null);
+  $("sm-nome").value = atual?.nome ?? nomePadrao;
+  $("sm-novo").hidden = !atual;
+  $("sm-salvar").textContent = atual ? "Salvar alterações" : "Salvar";
+  $("erro-salvar-modelo").textContent = "";
+  $("dialogo-salvar-modelo").showModal();
+  $("sm-nome").select();
+  return new Promise((resolver) => {
+    pedidoSalvar = { tipo, atual, montar, resolver };
+  });
+}
+
 export function iniciarModelosUi() {
+  $("sm-salvar").addEventListener("click", () => confirmarSalvar(false));
+  $("sm-novo").addEventListener("click", () => confirmarSalvar(true));
+  $("sm-cancelar").addEventListener("click", () => fecharSalvar(null));
+  $("dialogo-salvar-modelo").addEventListener("close", () => fecharSalvar(null));
+  $("sm-nome").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") confirmarSalvar(false);
+  });
   for (const el of document.querySelectorAll('input[name="imp-modo"], #imp-camada, #imp-primeira')) el.addEventListener("input", resumoImpressao);
   $("imp-cancelar").addEventListener("click", () => responder(null));
   $("dialogo-impressao").addEventListener("close", () => responder(null));

@@ -54,7 +54,7 @@ export function malhaDoSolido(solido, nome) {
     vertices[i * 3 + 1] = m.vertProperties[i * m.numProp + 1];
     vertices[i * 3 + 2] = m.vertProperties[i * m.numProp + 2];
   }
-  return { vertices, triangulos: Uint32Array.from(m.triVerts) };
+  return { vertices, triangulos: Uint32Array.from(m.triVerts), volume: solido.volume() };
 }
 
 export const areaComSinal = (laco) => {
