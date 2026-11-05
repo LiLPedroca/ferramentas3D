@@ -395,6 +395,48 @@ function registrarDados() {
       })(),
     );
   });
+  // Etiquetas em PDF: a tela manda só ids e cópias; o conteúdo vem dos dados gravados.
+  ipcMain.handle("etiquetas:pdf", async (e, pedidoTela) => {
+    if (!daTela(e)) return negado;
+    return responder(
+      (async () => {
+        const et = require("../core/etiquetas.cjs");
+        const pedido = et.validarPedidoEtiquetas(pedidoTela);
+        const { empresa } = await configuracoes.ler();
+        let etiquetas;
+        if (pedido.tipo === "produtos") {
+          const todos = await produtos.listar();
+          const itens = pedido.itens.map((i) => ({ produto: todos.find((p) => p.id === i.id), copias: i.copias })).filter((i) => i.produto);
+          etiquetas = et.etiquetasDeProdutos(itens, { empresa, mostrarPreco: pedido.mostrarPreco, qr: pedido.qr });
+        } else {
+          const todos = await orcamentos.listar();
+          const itens = pedido.itens.map((i) => ({ orcamento: todos.find((o) => o.id === i.id), copias: i.copias })).filter((i) => i.orcamento);
+          etiquetas = et.etiquetasDePedidos(itens, { empresa, qr: pedido.qr });
+        }
+        if (pedido.qr && !et.linkWhatsApp(empresa.telefone)) {
+          throw new ErroValidacao("Para o QR code, cadastre o telefone da empresa em Configurações.");
+        }
+        const html = et.gerarHtmlEtiquetas(etiquetas, pedido.tamanho);
+        const nome = `Etiquetas ${pedido.tipo === "produtos" ? "de produtos" : "de pedidos"} ${new Date().toISOString().slice(0, 10)}.pdf`;
+        let destino;
+        if (process.env.FERRAMENTAS_PDF_DESTINO) {
+          destino = path.join(process.env.FERRAMENTAS_PDF_DESTINO, nome);
+        } else {
+          const escolha = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
+            title: "Salvar etiquetas em PDF",
+            defaultPath: path.join(app.getPath("documents"), nome),
+            filters: [{ name: "PDF", extensions: ["pdf"] }],
+          });
+          if (escolha.canceled || !escolha.filePath) return null;
+          destino = escolha.filePath;
+        }
+        const pdf = await htmlParaPdf(html);
+        await require("node:fs/promises").writeFile(destino, pdf);
+        if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
+        return { destino, quantidade: etiquetas.length };
+      })(),
+    );
+  });
   ipcMain.handle("filamentos:descontar", (e, id, gramas) =>
     daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
   );

@@ -70,6 +70,15 @@ export const FERRAMENTAS = [
     tela: "filamentos",
   },
   {
+    id: "etiquetas",
+    grupo: "financeiro",
+    titulo: "Etiquetas",
+    descricao: "Etiquetas de produtos e pedidos em PDF, com QR do WhatsApp.",
+    categoria: "Gestão financeira",
+    disponivel: true,
+    tela: "etiquetas",
+  },
+  {
     id: "chaveiro",
     grupo: "modelos",
     titulo: "Chaveiro de nome",

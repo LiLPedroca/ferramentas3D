@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld("dados", {
   clientes: cadastro("clientes"),
   favoritos: cadastro("favoritos"),
   projetos: cadastro("projetos"),
+  etiquetas: (pedido) => ipcRenderer.invoke("etiquetas:pdf", pedido),
   filamentos: { ...cadastro("filamentos"), descontar: (id, gramas) => ipcRenderer.invoke("filamentos:descontar", id, gramas) },
   orcamentos: { ...cadastro("orcamentos"), pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id) },
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),

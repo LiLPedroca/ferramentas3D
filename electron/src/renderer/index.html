@@ -322,6 +322,46 @@
       </div>
     </dialog>
 
+    <main class="tela oculta pagina" id="tela-etiquetas">
+      <div class="pagina-conteudo largo">
+        <h1 class="titulo-pagina">Etiquetas</h1>
+        <p class="ajuda md-intro">Escolha os produtos ou pedidos, quantas cópias de cada e o tamanho. O PDF sai pronto para imprimir em folha de etiquetas ou na impressora térmica.</p>
+        <div class="et-trabalho">
+          <aside class="painel et-opcoes">
+            <div class="ch-estilos pl-modos" role="group" aria-label="Tipo de etiqueta">
+              <button type="button" data-et-tipo="produtos" aria-pressed="true">Produtos</button>
+              <button type="button" data-et-tipo="pedidos" aria-pressed="false">Pedidos</button>
+            </div>
+            <label class="campo">
+              <span>Tamanho</span>
+              <select id="et-tamanho" class="seletor largo-total"></select>
+            </label>
+            <label class="md-opcao" id="et-campo-preco"><input type="checkbox" id="et-preco" checked /> Mostrar o preço</label>
+            <label class="md-opcao"><input type="checkbox" id="et-qr" /> QR code do WhatsApp da empresa</label>
+            <p class="ajuda" id="et-qr-ajuda" hidden></p>
+            <div class="et-amostra-caixa">
+              <span class="ch-rotulo">Como fica</span>
+              <div class="et-amostra" id="et-amostra"></div>
+            </div>
+            <p class="ajuda" id="et-resumo"></p>
+            <p class="erro" id="et-erro" role="alert"></p>
+            <button class="botao-primario largo" id="et-gerar" type="button" disabled>Gerar PDF</button>
+          </aside>
+          <section class="painel et-lista-painel">
+            <div class="et-lista-topo">
+              <label class="busca">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+                <input id="et-busca" type="search" placeholder="Buscar…" aria-label="Buscar" autocomplete="off" />
+              </label>
+              <button type="button" class="botao-texto" id="et-todos">Marcar todos</button>
+            </div>
+            <div class="et-lista" id="et-lista"></div>
+            <p class="vazio" id="et-vazio" hidden></p>
+          </section>
+        </div>
+      </div>
+    </main>
+
     <main class="tela oculta pagina" id="tela-filamentos">
       <div class="pagina-conteudo">
         <div class="produtos-topo">

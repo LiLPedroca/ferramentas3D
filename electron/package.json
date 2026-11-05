@@ -1,7 +1,7 @@
 {
   "name": "programa-ferramentas-3d",
   "productName": "Programa Ferramentas 3D",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "Ferramentas para impressão 3D: calculadora de custo e visualizador de modelos.",
   "main": "src/main/main.cjs",
   "author": "Pedro Henrique",
@@ -18,6 +18,7 @@
     "electron-updater": "^6.8.11",
     "manifold-3d": "^3.5.4",
     "opentype.js": "^2.0.0",
+    "qrcode-generator": "^1.4.4",
     "three": "^0.187.0"
   },
   "devDependencies": {
