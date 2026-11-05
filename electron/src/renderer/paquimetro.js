@@ -1,14 +1,13 @@
 // Paquímetro do Visualizador 3D.
-// "Paquímetro": passe o mouse e ele reconhece o que está embaixo (boca de copo, furo, pino, aresta,
-// parede) e mostra a medida na hora; o clique deixa a medida fixa na peça.
+// "Paquímetro": passe o mouse numa borda redonda (boca de copo, furo, pino) e ele mostra só o que importa:
+// Ø de dentro e Ø de fora. O clique deixa a medida fixa na peça.
 // "Distância": dois cliques, medida à mão (os pontos grudam em cantos e arestas).
 // As medidas ficam guardadas nas coordenadas da peça: acompanham quando ela é girada, movida ou escalada.
 import * as THREE from "three";
-import { MeshBVH } from "three-mesh-bvh";
 import { abrirEncaixeCom } from "./encaixes-tela.js";
 import { ENCAIXES, MATERIAIS_ENCAIXE } from "./modelos/encaixes.js";
 import { previsaoImpressa, resumoCalibracao, textoDiferenca, textoDoResumo, tipoDaCalibracao } from "./modelos/calibracao.js";
-import { arestaReta, arestasMarcantes, formatarMedida, identificarRedondo, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
+import { arestasMarcantes, formatarMedida, identificarRedondo, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,27 +18,12 @@ const PIXELS_VERTICE = 10;
 const PIXELS_ARESTA = 7;
 const PIXELS_BORDA = 9; // até onde o mouse conta como "em cima da borda" de um furo
 
-// Arestas reais e BVH (para os raios) de cada malha, calculados uma vez por malha.
+// Arestas reais de cada malha (snap da Distância), calculadas uma vez por malha.
 const arestasDaMalha = new WeakMap();
 function arestasDe(geometria) {
   if (!arestasDaMalha.has(geometria)) arestasDaMalha.set(geometria, arestasMarcantes(geometria.attributes.position.array));
   return arestasDaMalha.get(geometria);
 }
-const bvhDaMalha = new WeakMap();
-function lancadorDe(geometria) {
-  if (!bvhDaMalha.has(geometria)) {
-    // numa cópia: o BVH reordena os triângulos e o paquímetro usa a ordem original
-    const bvh = new MeshBVH(geometria.clone());
-    const raio = new THREE.Ray();
-    bvhDaMalha.set(geometria, (origem, direcao) => {
-      raio.set(origem.clone().addScaledVector(direcao, 1e-3), direcao);
-      const h = bvh.raycastFirst(raio, THREE.DoubleSide);
-      return h ? { distancia: h.distance + 1e-3, normal: h.face.normal } : null;
-    });
-  }
-  return bvhDaMalha.get(geometria);
-}
-
 function bicoEscolhido() {
   try {
     return Number(localStorage.getItem("visualizador-bico")) || 0.4;
@@ -285,21 +269,11 @@ export function criarPaquimetro(ctx) {
   }
 
   function identificar(h) {
-    const lancar = lancadorDe(h.geometria);
-    const redondo = identificarRedondo(h.pos, h.p, h.n, { perto: PIXELS_BORDA * mmPorPixel(h), lancar });
-    if (redondo) return { tipo: "redondo", ...redondo };
-    const aresta = arestaPerto(h, PIXELS_ARESTA + 2);
-    if (aresta) {
-      const r = arestaReta(aresta.reais, aresta.a, aresta.b);
-      return { tipo: "aresta", a: { p: r.a, n: null }, b: { p: r.b, n: null } };
-    }
-    // espessura: raio para dentro da peça até sair pelo outro lado
-    const dentro = h.n.clone().negate();
-    const saida = lancar(h.p, dentro);
-    if (saida && saida.normal.dot(dentro) > 0.2) {
-      return { tipo: "parede", a: { p: h.p.clone(), n: h.n.clone() }, b: { p: h.p.clone().addScaledVector(dentro, saida.distancia), n: null } };
-    }
-    return null;
+    // só o que se vê: Ø de dentro e de fora (fundo, parede e altura ficam de fora, a pedido do Pedro)
+    const redondo = identificarRedondo(h.pos, h.p, h.n, { perto: PIXELS_BORDA * mmPorPixel(h) });
+    if (!redondo) return null;
+    const { centro, eixo, externo, interno } = redondo;
+    return { tipo: "redondo", centro, eixo, externo, interno };
   }
 
   // ---------- Valores ----------
@@ -316,22 +290,16 @@ export function criarPaquimetro(ctx) {
     const e = ctx.escala();
     if (m.tipo === "redondo") {
       const [fora, dentro] = [m.externo && m.externo.raio * 2 * e, m.interno && m.interno.raio * 2 * e];
-      const fundo = m.passante ? "passa direto" : m.profundidade > 0 ? `fundo ${mm(m.profundidade * e, 1)}` : "";
-      const altura = m.altura > 0 ? `altura ${mm(m.altura * e, 1)}` : "";
       if (fora && dentro) {
         return {
           principal: dentro,
           texto: `Ø ${numero(dentro)} dentro · ${numero(fora)} fora`,
-          linhas: [`Ø dentro ${mm(dentro)}`, `Ø fora ${mm(fora)}`, [`parede ${mm((fora - dentro) / 2)}`, fundo].filter(Boolean).join(" · ")],
+          linhas: [`Ø dentro ${mm(dentro)}`, `Ø fora ${mm(fora)}`],
         };
       }
       const d = dentro || fora;
-      const lados = (m.interno || m.externo).lados;
-      return {
-        principal: d,
-        texto: `Ø ${mm(d)}`,
-        linhas: [`${dentro ? "Furo" : "Pino"} Ø ${mm(d)}`, [dentro ? fundo : altura, lados < 24 ? `${lados} lados` : ""].filter(Boolean).join(" · ")],
-      };
+      const nome = dentro ? "Ø dentro" : "Ø fora";
+      return { principal: d, texto: `${nome} ${mm(d)}`, linhas: [`${nome} ${mm(d)}`] };
     }
     const [a, b] = [paraMundo(m.a.p), paraMundo(m.b.p)];
     if (m.tipo === "profundidade") {
@@ -568,7 +536,7 @@ export function criarPaquimetro(ctx) {
         if (h) achado = identificar(h);
       }
       if (!achado) {
-        ctx.avisar("Não reconheci nada aí. Passe o mouse numa borda, num furo ou numa parede.");
+        ctx.avisar("Não achei nada redondo aí. Passe o mouse na borda de um furo, copo ou pino.");
         return;
       }
       adicionar(achado);
@@ -661,15 +629,6 @@ export function criarPaquimetro(ctx) {
     unidade = $("vz-unidade").value;
     atualizar();
     ctx.aoMudar();
-  });
-  $("vz-bico").value = String(bicoEscolhido());
-  $("vz-bico").addEventListener("change", () => {
-    try {
-      localStorage.setItem("visualizador-bico", $("vz-bico").value);
-    } catch {
-      // tudo bem
-    }
-    atualizar();
   });
   $("vz-filamento").value = filamentoEscolhido();
   $("vz-filamento").addEventListener("change", () => {
