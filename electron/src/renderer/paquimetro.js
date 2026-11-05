@@ -199,7 +199,8 @@ export function criarPaquimetro(ctx) {
     const mouse = { x: ev.clientX - r.left, y: ev.clientY - r.top };
     raio.setFromCamera(new THREE.Vector2((mouse.x / r.width) * 2 - 1, -(mouse.y / r.height) * 2 + 1), camera);
     peca.updateMatrixWorld(true);
-    const h = raio.intersectObjects(peca.children, false)[0];
+    // com o corte ligado, ignora o que está na parte escondida
+    const h = raio.intersectObjects(peca.children, false).find((i) => !ctx.visivel || ctx.visivel(i.point));
     if (!h?.face) return null;
     const geometria = h.object.geometry;
     return {

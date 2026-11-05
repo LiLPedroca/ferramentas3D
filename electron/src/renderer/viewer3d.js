@@ -9,6 +9,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { preencherDoModelo } from "./calculadora-tela.js";
+import { criarCorte } from "./corte.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
 import { DENSIDADE_PLA } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
@@ -112,13 +113,16 @@ export function iniciarVisualizador() {
     dicaPadrao: () => {
       $("vz-dica").textContent = DICAS[estado.modo];
     },
+    visivel: (ponto) => estado.corte.visivel(ponto),
   });
+  estado.corte = criarCorte({ cena, renderizador, peca });
 
   // Usado só pelos roteiros do modo de captura (testes da tela), para achar pontos na peça.
   window.__visualizadorTeste = { estado, THREE };
 
   const animar = () => {
     controles.update();
+    estado.corte.quadro();
     renderizador.render(cena, camera);
     estado.paquimetro.quadro();
     requestAnimationFrame(animar);
@@ -342,6 +346,7 @@ async function carregarArquivo(arquivo, opcoes = {}) {
     $("vz-resumo-vazio").hidden = true;
     mostrarAba("peca");
   }
+  atualizarCorte();
   atualizarInfo();
   // medidas guardadas: mesmo nome, tamanho, placa e quantidade de triângulos
   estado.paquimetro.definirArquivo({ chave: `${arquivo.name}|${arquivo.size}|${triangulos}|${lido.placa ?? ""}`, nome: arquivo.name });
@@ -386,6 +391,7 @@ function apoiarNaMesa() {
 
 function depoisDeMexer() {
   apoiarNaMesa();
+  atualizarCorte();
   atualizarInfo();
   estado.paquimetro?.atualizar();
 }
@@ -430,7 +436,7 @@ function deitarNaFace(ev) {
   const r = renderizador.domElement.getBoundingClientRect();
   const ponto = new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   raio.setFromCamera(ponto, camera);
-  const achado = raio.intersectObjects(peca.children, false)[0];
+  const achado = raio.intersectObjects(peca.children, false).find((i) => estado.corte.visivel(i.point));
   if (!achado?.face) return;
   const normal = achado.face.normal.clone().transformDirection(achado.object.matrixWorld).normalize();
   const giro = new THREE.Quaternion().setFromUnitVectors(normal, new THREE.Vector3(0, -1, 0));
@@ -455,6 +461,37 @@ function mudarModo(modo) {
   renderizador.domElement.style.cursor = modo === "face" || MODOS_MEDIDA.includes(modo) ? "crosshair" : "";
   $("vz-dica").textContent = DICAS[modo];
   if (MODOS_MEDIDA.includes(modo)) mostrarAba("medidas");
+}
+
+// ---------- Corte (plano de seção) ----------
+const NOMES_CORTE = { altura: "Altura", frente: "Frente", lado: "Lado" };
+
+function atualizarCorte(faixa = estado.corte.atualizar()) {
+  const ligado = estado.corte.ligado();
+  $("vz-corte").classList.toggle("ativo", ligado);
+  $("vz-corte").setAttribute("aria-pressed", String(ligado));
+  $("vz-corte-painel").hidden = !ligado;
+  if (!ligado || !faixa) return;
+  const direcao = estado.corte.direcao();
+  for (const b of document.querySelectorAll("[data-vz-corte]")) b.classList.toggle("ativo", b.dataset.vzCorte === direcao);
+  $("vz-corte-pos").value = String(Math.round(estado.corte.fracao() * 1000));
+  $("vz-corte-valor").textContent = `${NOMES_CORTE[direcao]}: ${medida(faixa.desdeInicio)} de ${medida(faixa.total)}${estado.paquimetro?.unidade() === "pol" ? "" : " mm"}`;
+}
+
+function ligarCorte() {
+  $("vz-corte").addEventListener("click", () => {
+    const ligar = !estado.corte.ligado();
+    atualizarCorte(estado.corte.ligar(ligar));
+    // cada direção já abre na vista que mostra o corte
+    if (ligar) enquadrar({ altura: "iso", frente: "frente", lado: "lado" }[estado.corte.direcao()]);
+  });
+  for (const b of document.querySelectorAll("[data-vz-corte]")) {
+    b.addEventListener("click", () => {
+      atualizarCorte(estado.corte.definir({ direcao: b.dataset.vzCorte }));
+      enquadrar({ altura: "iso", frente: "frente", lado: "lado" }[b.dataset.vzCorte]);
+    });
+  }
+  $("vz-corte-pos").addEventListener("input", () => atualizarCorte(estado.corte.definir({ fracao: Number($("vz-corte-pos").value) / 1000 })));
 }
 
 // ---------- Câmera ----------
@@ -667,6 +704,7 @@ function ligarControles() {
     });
   }
   for (const b of document.querySelectorAll("[data-vz-vista]")) b.addEventListener("click", () => enquadrar(b.dataset.vzVista));
+  ligarCorte();
   $("vz-centralizar").addEventListener("click", centralizar);
   $("vz-restaurar").addEventListener("click", restaurar);
   $("vz-escala").addEventListener("change", () => definirEscala(Number(String($("vz-escala").value).replace(",", ".")) / 100));

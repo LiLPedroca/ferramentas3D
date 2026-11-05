@@ -200,6 +200,9 @@
             <button type="button" class="vz-botao" data-vz-modo="paquimetro" title="Passe o mouse na peça: mostra o Ø de dentro e de fora em cada altura (camada)">Paquímetro</button>
             <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos que você escolhe">Distância</button>
           </div>
+          <div class="vz-grupo" data-vz-com-peca hidden>
+            <button type="button" class="vz-botao" id="vz-corte" aria-pressed="false" title="Cortar a peça para ver o lado de dentro">Corte</button>
+          </div>
           <span class="espaco"></span>
           <button type="button" class="vz-botao solto" id="vz-abrir" title="Abrir outro arquivo">Abrir arquivo</button>
         </div>
@@ -226,6 +229,15 @@
               <button type="button" class="vz-botao" id="vz-centralizar" title="Pôr no meio da mesa">Centralizar</button>
               <button type="button" class="vz-botao" id="vz-restaurar" title="Voltar como abriu">Restaurar</button>
             </div>
+          </div>
+          <div class="vz-corte-painel vidro" id="vz-corte-painel" hidden>
+            <div class="vz-grupo" role="group" aria-label="Direção do corte">
+              <button type="button" class="vz-botao" data-vz-corte="altura" title="Corta deitado: some o que está acima">Altura</button>
+              <button type="button" class="vz-botao" data-vz-corte="frente" title="Corta em pé: some a parte da frente">Frente</button>
+              <button type="button" class="vz-botao" data-vz-corte="lado" title="Corta em pé: some a parte da direita">Lado</button>
+            </div>
+            <input type="range" id="vz-corte-pos" min="0" max="1000" value="500" aria-label="Posição do corte" />
+            <span class="vz-corte-valor" id="vz-corte-valor"></span>
           </div>
           <p class="vz-dica" id="vz-dica"></p>
         </div>

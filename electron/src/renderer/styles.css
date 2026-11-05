@@ -3533,6 +3533,47 @@ textarea:focus {
   max-width: calc(100% - 24px);
 }
 
+.vz-corte-painel {
+  position: absolute;
+  top: 46px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 200px;
+  padding: 8px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--superficie) 72%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.vz-corte-painel[hidden] {
+  display: none;
+}
+
+.vz-corte-painel .vz-grupo {
+  align-self: stretch;
+}
+
+.vz-corte-painel .vz-botao {
+  flex: 1;
+  padding: 5px 6px;
+  font-size: 12px;
+}
+
+.vz-corte-painel input[type="range"] {
+  width: 100%;
+  accent-color: #ff8a3d;
+}
+
+.vz-corte-valor {
+  color: var(--texto-suave);
+  font-size: 12px;
+  text-align: center;
+}
+
 .vz-grupo.vidro {
   background: color-mix(in srgb, var(--superficie) 72%, transparent);
   backdrop-filter: blur(8px);
