@@ -189,22 +189,74 @@
 
     <main class="tela oculta" id="tela-visualizador">
       <section class="painel visualizador">
-        <div class="zona-arquivo" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo STL">
-          <p><strong>Arraste um arquivo .stl aqui</strong></p>
-          <p class="ajuda">ou clique para escolher</p>
-          <input type="file" id="arquivo-stl" accept=".stl" hidden />
+        <div class="zona-arquivo" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
+          <p><strong>Arraste um arquivo .stl, .3mf, .obj ou .ply aqui</strong></p>
+          <p class="ajuda">ou clique para escolher · abre na mesma posição do fatiador, com as cores do arquivo</p>
+          <input type="file" id="arquivo-stl" accept=".stl,.3mf,.obj,.ply" hidden />
+        </div>
+        <div class="vz-barra" id="vz-ferramentas" hidden>
+          <div class="vz-grupo" role="group" aria-label="O que o mouse faz">
+            <button type="button" class="vz-botao" data-vz-modo="vista">Vista</button>
+            <button type="button" class="vz-botao" data-vz-modo="mover">Mover</button>
+            <button type="button" class="vz-botao" data-vz-modo="girar">Girar</button>
+            <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
+          </div>
+          <div class="vz-grupo" role="group" aria-label="Girar 90 graus">
+            <button type="button" class="vz-botao" data-vz-girar="x:90" title="Girar 90° em X">↻ X</button>
+            <button type="button" class="vz-botao" data-vz-girar="y:90" title="Girar 90° em Y">↻ Y</button>
+            <button type="button" class="vz-botao" data-vz-girar="z:90" title="Girar 90° em Z (em pé)">↻ Z</button>
+          </div>
+          <div class="vz-grupo" role="group" aria-label="Vistas">
+            <button type="button" class="vz-botao" data-vz-vista="iso">3D</button>
+            <button type="button" class="vz-botao" data-vz-vista="frente">Frente</button>
+            <button type="button" class="vz-botao" data-vz-vista="topo">Topo</button>
+            <button type="button" class="vz-botao" data-vz-vista="lado">Lado</button>
+          </div>
+          <div class="vz-grupo">
+            <button type="button" class="vz-botao" id="vz-centralizar">Centralizar</button>
+            <button type="button" class="vz-botao" id="vz-restaurar">Restaurar</button>
+          </div>
         </div>
         <div class="palco" id="palco"><p class="ajuda" id="palco-vazio">Nenhum modelo carregado.</p></div>
+        <p class="ajuda pequeno" id="vz-dica"></p>
       </section>
       <aside class="painel info-modelo">
         <h2>Modelo</h2>
         <dl id="info-modelo">
           <dt>Arquivo</dt><dd>—</dd>
-          <dt>Dimensões (mm)</dt><dd>—</dd>
+          <dt>Dimensões X × Y × Z (mm)</dt><dd>—</dd>
           <dt>Volume (cm³)</dt><dd>—</dd>
+          <dt>Peso estimado</dt><dd>—</dd>
           <dt>Triângulos</dt><dd>—</dd>
         </dl>
-        <p class="ajuda pequeno">Dimensões assumem que o STL está em milímetros, como o padrão dos fatiadores.</p>
+        <p class="vz-cabe" id="vz-cabe"></p>
+
+        <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
+        <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
+
+        <div class="campo">
+          <span>Escala (%)</span>
+          <div class="vz-linha">
+            <div class="entrada"><input id="vz-escala" inputmode="decimal" value="100" aria-label="Escala em porcentagem" /><em>%</em></div>
+            <button type="button" class="botao-secundario pequeno" id="vz-polegadas" title="Multiplica por 25,4">Veio em polegadas</button>
+          </div>
+          <p class="ajuda pequeno vz-alerta" id="vz-polegadas-aviso" hidden>A peça está bem pequena. Se o arquivo foi feito em polegadas, clique em "Veio em polegadas".</p>
+        </div>
+
+        <div class="campo">
+          <span>Aparência</span>
+          <label class="md-opcao" id="vz-cores-linha" hidden><input type="checkbox" id="vz-cores-arquivo" checked /> Cores do arquivo</label>
+          <label class="md-opcao"><input type="color" id="vz-cor" value="#7aa5ff" /> Cor da peça</label>
+          <label class="md-opcao"><input type="checkbox" id="vz-aramado" /> Mostrar a malha (aramado)</label>
+        </div>
+
+        <div class="vz-acoes">
+          <button type="button" class="botao-primario" id="vz-custo">Calcular custo</button>
+          <button type="button" class="botao-secundario" id="vz-fatiador">Abrir no fatiador</button>
+          <button type="button" class="botao-secundario" id="vz-salvar-3mf">Salvar 3MF</button>
+          <button type="button" class="botao-secundario" id="vz-salvar-stl">Salvar STL</button>
+        </div>
+        <p class="ajuda pequeno">Medidas em milímetros, como nos fatiadores. Os arquivos salvos saem na posição, no giro e na escala escolhidos. O peso considera a peça maciça; o valor exato é o que o fatiador mostra.</p>
       </aside>
     </main>
 

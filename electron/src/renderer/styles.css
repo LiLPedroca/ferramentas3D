@@ -659,6 +659,100 @@ input:focus-visible,
   word-break: break-all;
 }
 
+.vz-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vz-grupo {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie-2);
+}
+
+.vz-botao {
+  padding: 7px 11px;
+  border: 0;
+  border-right: 1px solid var(--borda);
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.vz-botao:last-child {
+  border-right: 0;
+}
+
+.vz-botao:hover {
+  background: color-mix(in srgb, var(--acento) 10%, transparent);
+}
+
+.vz-botao.ativo {
+  background: color-mix(in srgb, var(--acento) 22%, transparent);
+  color: var(--acento-forte);
+  font-weight: 600;
+}
+
+.vz-cabe {
+  margin: 12px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+
+.vz-cabe:empty {
+  display: none;
+}
+
+.vz-cabe.sim {
+  background: color-mix(in srgb, var(--verde) 12%, transparent);
+  color: var(--verde);
+}
+
+.vz-cabe.nao {
+  background: color-mix(in srgb, var(--erro) 14%, transparent);
+  color: var(--erro);
+}
+
+.vz-linha {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.vz-linha .entrada {
+  flex: 1;
+}
+
+.vz-alerta {
+  color: #e8a93a;
+}
+
+.info-modelo .md-opcao input[type="color"] {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: none;
+}
+
+.vz-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+
+.vz-acoes .botao-primario {
+  grid-column: 1 / -1;
+}
+
 /* ---------- Tela inicial ---------- */
 .tela.inicio {
   display: block;

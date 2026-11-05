@@ -72,7 +72,8 @@ describe("contornos (Palavras decorativas)", () => {
   });
 });
 
-describe("chaveiro de nome", () => {
+// Gera as peças de verdade com o Manifold: com todos os testes rodando juntos, passa dos 5 s padrão.
+describe("chaveiro de nome", { timeout: 30000 }, () => {
   it("largura total exata (com base e argola) nos três estilos de base", () => {
     for (const estilo of ["contorno", "capsula", "retangular"]) {
       for (const largura of [40, 70, 120]) {
