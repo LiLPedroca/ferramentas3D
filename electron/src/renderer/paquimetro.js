@@ -323,7 +323,8 @@ export function criarPaquimetro(ctx) {
         if (v.previsao) li.append(el("span", "vz-previsao", v.previsao));
         if (m.real) li.append(el("span", "vz-real", `Na peça impressa: ${formatarMedida(m.real, unidade)} · ${textoDiferenca(m.realModelo ?? v.principal, m.real)}`));
 
-        const ajustar = el("button", "botao-texto pequeno", "Quero que tenha… (ajustar escala)");
+        const ajustar = el("button", "botao-texto pequeno", "Ajustar escala");
+        ajustar.title = "Digite quanto esta medida deve ter: a peça inteira é escalada para isso";
         ajustar.type = "button";
         ajustar.addEventListener("click", () => {
           const linhaEscala = el("form", "vz-linha");
@@ -348,7 +349,7 @@ export function criarPaquimetro(ctx) {
           entrada.select();
         });
 
-        const conferir = el("button", "botao-texto pequeno", m.real ? "Corrigir a medida da peça impressa" : "Medi na peça impressa…");
+        const conferir = el("button", "botao-texto pequeno", m.real ? "Corrigir a impressa" : "Medi na impressa");
         conferir.type = "button";
         conferir.title = "Digite o que o seu paquímetro mostrou na peça impressa";
         conferir.addEventListener("click", () => {
@@ -381,6 +382,7 @@ export function criarPaquimetro(ctx) {
         return li;
       }),
     );
+    $("vz-medidas-contagem").textContent = medidas.length ? String(medidas.length) : "";
     $("vz-medidas-vazio").hidden = medidas.length > 0;
     $("vz-limpar-medidas").hidden = medidas.length === 0;
     $("vz-ficha").hidden = medidas.length === 0;
@@ -410,7 +412,7 @@ export function criarPaquimetro(ctx) {
     }
     if (!pendente) {
       pendente = ponto;
-      ctx.dica(modo === "profundidade" ? "Agora clique no fundo (ou no outro degrau)." : "Agora clique no segundo ponto.");
+      ctx.dica(modo === "profundidade" ? "Agora clique no fundo ou no outro degrau" : "Agora clique no segundo ponto");
       desenhar();
       return;
     }

@@ -187,94 +187,134 @@
       </section>
     </main>
 
-    <main class="tela oculta" id="tela-visualizador">
-      <section class="painel visualizador">
-        <div class="zona-arquivo" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
-          <p><strong>Arraste um arquivo .stl, .3mf, .obj ou .ply aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · abre na mesma posição do fatiador, com as cores do arquivo</p>
-          <input type="file" id="arquivo-stl" accept=".stl,.3mf,.obj,.ply" hidden />
-        </div>
+    <main class="tela oculta vz-tela" id="tela-visualizador">
+      <section class="vz-area">
         <div class="vz-barra" id="vz-ferramentas" hidden>
           <div class="vz-grupo" role="group" aria-label="O que o mouse faz">
-            <button type="button" class="vz-botao" data-vz-modo="vista">Vista</button>
-            <button type="button" class="vz-botao" data-vz-modo="mover">Mover</button>
-            <button type="button" class="vz-botao" data-vz-modo="girar">Girar</button>
+            <button type="button" class="vz-botao" data-vz-modo="vista" title="Girar a vista com o mouse">Vista</button>
+            <button type="button" class="vz-botao" data-vz-modo="mover" title="Mover a peça sobre a mesa">Mover</button>
+            <button type="button" class="vz-botao" data-vz-modo="girar" title="Girar a peça">Girar</button>
             <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
           </div>
           <div class="vz-grupo" role="group" aria-label="Paquímetro">
-            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos ou entre faces paralelas">📏 Distância</button>
-            <button type="button" class="vz-botao" data-vz-modo="diametro" title="Diâmetro de furo ou pino">⌀ Diâmetro</button>
-            <button type="button" class="vz-botao" data-vz-modo="profundidade" title="Profundidade de furo ou altura de degrau">↧ Profundidade</button>
+            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos ou entre faces paralelas">Distância</button>
+            <button type="button" class="vz-botao" data-vz-modo="diametro" title="Diâmetro de furo ou pino">Diâmetro</button>
+            <button type="button" class="vz-botao" data-vz-modo="profundidade" title="Profundidade de furo ou altura de degrau">Profundidade</button>
           </div>
-          <div class="vz-grupo" role="group" aria-label="Girar 90 graus">
-            <button type="button" class="vz-botao" data-vz-girar="x:90" title="Girar 90° em X">↻ X</button>
-            <button type="button" class="vz-botao" data-vz-girar="y:90" title="Girar 90° em Y">↻ Y</button>
-            <button type="button" class="vz-botao" data-vz-girar="z:90" title="Girar 90° em Z (em pé)">↻ Z</button>
-          </div>
-          <div class="vz-grupo" role="group" aria-label="Vistas">
-            <button type="button" class="vz-botao" data-vz-vista="iso">3D</button>
-            <button type="button" class="vz-botao" data-vz-vista="frente">Frente</button>
-            <button type="button" class="vz-botao" data-vz-vista="topo">Topo</button>
-            <button type="button" class="vz-botao" data-vz-vista="lado">Lado</button>
-          </div>
-          <div class="vz-grupo">
-            <button type="button" class="vz-botao" id="vz-centralizar">Centralizar</button>
-            <button type="button" class="vz-botao" id="vz-restaurar">Restaurar</button>
-          </div>
+          <span class="espaco"></span>
+          <button type="button" class="vz-botao solto" id="vz-abrir" title="Abrir outro arquivo">Abrir arquivo</button>
         </div>
-        <div class="palco" id="palco"><p class="ajuda" id="palco-vazio">Nenhum modelo carregado.</p></div>
-        <p class="ajuda pequeno" id="vz-dica"></p>
-      </section>
-      <aside class="painel info-modelo">
-        <h2>Modelo</h2>
-        <dl id="info-modelo">
-          <dt>Arquivo</dt><dd>—</dd>
-          <dt>Dimensões X × Y × Z (mm)</dt><dd>—</dd>
-          <dt>Volume (cm³)</dt><dd>—</dd>
-          <dt>Peso estimado</dt><dd>—</dd>
-          <dt>Triângulos</dt><dd>—</dd>
-        </dl>
-        <p class="vz-cabe" id="vz-cabe"></p>
 
-        <section class="vz-paquimetro">
-          <div class="historico-topo">
-            <h3>Paquímetro</h3>
+        <div class="palco" id="palco">
+          <div class="zona-arquivo vz-zona" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
+            <p><strong>Arraste um arquivo aqui</strong></p>
+            <p class="ajuda">ou clique para escolher · STL, 3MF, OBJ ou PLY</p>
+            <input type="file" id="arquivo-stl" accept=".stl,.3mf,.obj,.ply" hidden />
+          </div>
+          <p class="ajuda vz-status" id="palco-vazio" hidden></p>
+          <div class="vz-flutuante vz-cantos" id="vz-flutuante" hidden>
+            <div class="vz-grupo vidro" role="group" aria-label="Vistas">
+              <button type="button" class="vz-botao" data-vz-vista="iso" title="Vista 3D">3D</button>
+              <button type="button" class="vz-botao" data-vz-vista="frente" title="Vista de frente">Frente</button>
+              <button type="button" class="vz-botao" data-vz-vista="topo" title="Vista de cima">Topo</button>
+              <button type="button" class="vz-botao" data-vz-vista="lado" title="Vista de lado">Lado</button>
+            </div>
+            <div class="vz-grupo vidro" role="group" aria-label="Girar 90 graus">
+              <button type="button" class="vz-botao" data-vz-girar="x:90" title="Girar 90° em X">↻X</button>
+              <button type="button" class="vz-botao" data-vz-girar="y:90" title="Girar 90° em Y">↻Y</button>
+              <button type="button" class="vz-botao" data-vz-girar="z:90" title="Girar 90° em Z">↻Z</button>
+            </div>
+            <div class="vz-grupo vidro">
+              <button type="button" class="vz-botao" id="vz-centralizar" title="Pôr no meio da mesa">Centralizar</button>
+              <button type="button" class="vz-botao" id="vz-restaurar" title="Voltar como abriu">Restaurar</button>
+            </div>
+          </div>
+          <p class="vz-dica" id="vz-dica"></p>
+        </div>
+      </section>
+
+      <aside class="vz-lado">
+        <div class="vz-resumo">
+          <p class="ajuda" id="vz-resumo-vazio">Abra um arquivo para ver as medidas, o peso e se a peça cabe na mesa.</p>
+          <dl id="info-modelo" hidden>
+            <dt>Arquivo</dt><dd>—</dd>
+            <dt>Medidas (mm)</dt><dd>—</dd>
+            <dt>Volume (cm³)</dt><dd>—</dd>
+            <dt>Peso</dt><dd>—</dd>
+            <dt>Triângulos</dt><dd>—</dd>
+          </dl>
+          <p class="vz-cabe" id="vz-cabe"></p>
+        </div>
+
+        <div class="vz-abas" id="vz-abas" role="tablist" hidden>
+          <button type="button" role="tab" data-vz-aba="peca" class="ativo">Peça</button>
+          <button type="button" role="tab" data-vz-aba="medidas">Medidas <span class="contagem-texto" id="vz-medidas-contagem"></span></button>
+          <button type="button" role="tab" data-vz-aba="analise">Análise <span class="contagem-texto" id="an-contagem"></span></button>
+        </div>
+
+        <div class="vz-painel" data-vz-painel="peca" hidden>
+          <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
+          <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
+          <div class="campo">
+            <span>Escala</span>
+            <div class="vz-linha">
+              <div class="entrada"><input id="vz-escala" inputmode="decimal" value="100" aria-label="Escala em porcentagem" /><em>%</em></div>
+              <button type="button" class="botao-texto pequeno" id="vz-polegadas" title="Multiplica por 25,4">Veio em polegadas</button>
+            </div>
+            <p class="ajuda pequeno vz-alerta" id="vz-polegadas-aviso" hidden>Peça bem pequena: se o arquivo foi feito em polegadas, clique em "Veio em polegadas".</p>
+          </div>
+          <div class="vz-opcoes">
+            <label class="md-opcao" id="vz-cores-linha" hidden><input type="checkbox" id="vz-cores-arquivo" checked /> Cores do arquivo</label>
+            <label class="md-opcao"><input type="color" id="vz-cor" value="#7aa5ff" /> Cor</label>
+            <label class="md-opcao"><input type="checkbox" id="vz-aramado" /> Malha</label>
+          </div>
+          <div class="vz-acoes">
+            <button type="button" class="botao-primario" id="vz-custo">Calcular custo</button>
+            <button type="button" class="botao-secundario" id="vz-fatiador" title="Abrir no fatiador como está">Fatiador</button>
+            <button type="button" class="botao-secundario" id="vz-salvar-3mf" title="Salvar como 3MF">3MF</button>
+            <button type="button" class="botao-secundario" id="vz-salvar-stl" title="Salvar como STL">STL</button>
+          </div>
+          <p class="ajuda pequeno">Salva na posição, no giro e na escala escolhidos. O peso considera a peça maciça.</p>
+        </div>
+
+        <div class="vz-painel" data-vz-painel="medidas" hidden>
+          <div class="vz-linha vz-config-medidas">
+            <label class="md-opcao" title="Os pontos grudam nos cantos e arestas da peça"><input type="checkbox" id="vz-snap" checked /> Grudar</label>
+            <label class="md-opcao" title="Na distância, mede a partir do centro dos furos"><input type="checkbox" id="vz-centro-furos" /> Centro dos furos</label>
             <select class="seletor pequeno" id="vz-unidade" aria-label="Unidade das medidas">
               <option value="mm">mm</option>
-              <option value="pol">polegadas</option>
+              <option value="pol">pol</option>
             </select>
           </div>
-          <label class="md-opcao"><input type="checkbox" id="vz-snap" checked /> Grudar em vértices e arestas</label>
-          <label class="md-opcao"><input type="checkbox" id="vz-centro-furos" /> Na distância, usar o centro dos furos</label>
           <ul class="vz-medidas" id="vz-medidas"></ul>
-          <p class="ajuda pequeno" id="vz-medidas-vazio">Escolha 📏 Distância, ⌀ Diâmetro ou ↧ Profundidade e clique na peça.</p>
-          <div class="an-acoes vz-rodape-medidas">
-            <button type="button" class="botao-secundario pequeno" id="vz-ficha" hidden>Salvar ficha de medidas (imagem)</button>
-            <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas as medidas</button>
+          <p class="ajuda pequeno" id="vz-medidas-vazio">Escolha Distância, Diâmetro ou Profundidade na barra e clique na peça.</p>
+          <div class="vz-linha vz-rodape-medidas">
+            <button type="button" class="botao-secundario pequeno" id="vz-ficha" hidden>Salvar ficha (imagem)</button>
+            <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas</button>
           </div>
-          <h4 class="an-titulo">Real × modelo</h4>
-          <label class="campo"><span>Filamento da peça impressa</span>
-            <div class="entrada"><input id="vz-filamento" list="vz-filamentos-lista" maxlength="80" placeholder="Ex.: PLA Preto Voolt" autocomplete="off" /></div>
-            <datalist id="vz-filamentos-lista"></datalist>
-          </label>
-          <p class="ajuda pequeno" id="vz-calibracao"></p>
-          <button type="button" class="botao-texto pequeno" id="vz-apagar-calibracao" hidden>Apagar a calibração deste filamento</button>
-          <p class="ajuda pequeno">Imprimiu a peça? Em cada medida, clique em "Medi na peça impressa…" e digite o que o seu paquímetro mostrou. O programa aprende quanto este filamento muda as medidas e passa a mostrar como a peça deve sair.</p>
-        </section>
+          <details class="vz-detalhes">
+            <summary>Real × modelo</summary>
+            <label class="campo"><span>Filamento da peça impressa</span>
+              <div class="entrada"><input id="vz-filamento" list="vz-filamentos-lista" maxlength="80" placeholder="Ex.: PLA Preto Voolt" autocomplete="off" /></div>
+              <datalist id="vz-filamentos-lista"></datalist>
+            </label>
+            <p class="ajuda pequeno" id="vz-calibracao"></p>
+            <button type="button" class="botao-texto pequeno" id="vz-apagar-calibracao" hidden>Apagar a calibração deste filamento</button>
+            <p class="ajuda pequeno">Imprimiu? Em cada medida, use "Medi na impressa" e digite o que o paquímetro mostrou. O programa aprende quanto este filamento muda as medidas.</p>
+          </details>
+        </div>
 
-        <section class="vz-paquimetro" id="an-painel" hidden>
-          <div class="historico-topo">
-            <h3>Análise automática</h3>
-            <button type="button" class="botao-secundario pequeno" id="an-analisar" hidden>Analisar peça</button>
-          </div>
+        <div class="vz-painel" data-vz-painel="analise" id="an-painel" hidden>
           <p class="ajuda pequeno" id="an-estado"></p>
-          <h4 class="an-titulo">Furos e pinos <span class="contagem-texto" id="an-contagem"></span></h4>
-          <ul class="an-lista" id="an-furos"></ul>
-          <p class="ajuda pequeno" id="an-furos-vazio"></p>
+          <button type="button" class="botao-secundario pequeno" id="an-analisar" hidden>Analisar peça</button>
           <p class="an-folga" id="an-folga"></p>
-          <h4 class="an-titulo">Paredes</h4>
-          <div class="vz-linha">
-            <label class="md-opcao"><input type="checkbox" id="an-mostrar-finas" checked /> Mostrar paredes finas na peça</label>
+          <ul class="an-lista" id="an-furos"></ul>
+          <button type="button" class="botao-texto pequeno" id="an-mais" hidden></button>
+          <p class="ajuda pequeno" id="an-furos-vazio"></p>
+          <div class="vz-linha an-paredes-topo">
+            <strong>Paredes</strong>
+            <span class="espaco"></span>
+            <label class="md-opcao" title="Pinta na peça os lugares finos"><input type="checkbox" id="an-mostrar-finas" /> Mostrar</label>
             <select class="seletor pequeno" id="an-bico" aria-label="Bico da impressora">
               <option value="0.2">bico 0,2</option>
               <option value="0.4">bico 0,4</option>
@@ -283,34 +323,7 @@
             </select>
           </div>
           <p class="ajuda pequeno" id="an-paredes"></p>
-        </section>
-
-        <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
-        <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
-
-        <div class="campo">
-          <span>Escala (%)</span>
-          <div class="vz-linha">
-            <div class="entrada"><input id="vz-escala" inputmode="decimal" value="100" aria-label="Escala em porcentagem" /><em>%</em></div>
-            <button type="button" class="botao-secundario pequeno" id="vz-polegadas" title="Multiplica por 25,4">Veio em polegadas</button>
-          </div>
-          <p class="ajuda pequeno vz-alerta" id="vz-polegadas-aviso" hidden>A peça está bem pequena. Se o arquivo foi feito em polegadas, clique em "Veio em polegadas".</p>
         </div>
-
-        <div class="campo">
-          <span>Aparência</span>
-          <label class="md-opcao" id="vz-cores-linha" hidden><input type="checkbox" id="vz-cores-arquivo" checked /> Cores do arquivo</label>
-          <label class="md-opcao"><input type="color" id="vz-cor" value="#7aa5ff" /> Cor da peça</label>
-          <label class="md-opcao"><input type="checkbox" id="vz-aramado" /> Mostrar a malha (aramado)</label>
-        </div>
-
-        <div class="vz-acoes">
-          <button type="button" class="botao-primario" id="vz-custo">Calcular custo</button>
-          <button type="button" class="botao-secundario" id="vz-fatiador">Abrir no fatiador</button>
-          <button type="button" class="botao-secundario" id="vz-salvar-3mf">Salvar 3MF</button>
-          <button type="button" class="botao-secundario" id="vz-salvar-stl">Salvar STL</button>
-        </div>
-        <p class="ajuda pequeno">Medidas em milímetros, como nos fatiadores. Os arquivos salvos saem na posição, no giro e na escala escolhidos. O peso considera a peça maciça; o valor exato é o que o fatiador mostra.</p>
       </aside>
     </main>
 

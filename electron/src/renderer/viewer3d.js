@@ -20,13 +20,13 @@ import { estado as app, mostrarAviso, salvarConfig } from "./shell.js";
 
 const MODOS_MEDIDA = ["distancia", "diametro", "profundidade"];
 const DICAS = {
-  vista: "Arraste para girar a vista, botão direito para deslocar, roda para zoom.",
-  mover: "Arraste as setas para mover a peça sobre a mesa.",
-  girar: "Arraste os anéis para girar a peça. Ela continua apoiada na mesa.",
-  face: "Clique na face que deve ficar encostada na mesa.",
-  distancia: "Clique em dois pontos. Em faces paralelas, mede como os bicos do paquímetro. Esc cancela.",
-  diametro: "Clique na parede de dentro de um furo (ou na lateral de um pino).",
-  profundidade: "Clique na borda (a face de cima) e depois no fundo ou no outro degrau. Esc cancela.",
+  vista: "",
+  mover: "Arraste as setas para mover sobre a mesa",
+  girar: "Arraste os anéis para girar",
+  face: "Clique na face que vai para a mesa",
+  distancia: "Clique em dois pontos · Esc cancela",
+  diametro: "Clique na parede do furo ou do pino",
+  profundidade: "Clique na borda e depois no fundo · Esc cancela",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -211,6 +211,15 @@ function desenharMesa() {
 }
 
 // ---------- Abrir arquivos ----------
+// Abas do painel lateral: Peça, Medidas, Análise (só uma aparece por vez).
+function mostrarAba(aba) {
+  for (const b of document.querySelectorAll("[data-vz-aba]")) {
+    b.classList.toggle("ativo", b.dataset.vzAba === aba);
+    b.setAttribute("aria-selected", String(b.dataset.vzAba === aba));
+  }
+  for (const p of document.querySelectorAll("[data-vz-painel]")) p.hidden = p.dataset.vzPainel !== aba;
+}
+
 function ligarArquivo() {
   const zona = $("zona-arquivo");
   const entrada = $("arquivo-stl");
@@ -225,17 +234,21 @@ function ligarArquivo() {
     if (entrada.files[0]) carregarArquivo(entrada.files[0]);
     entrada.value = "";
   });
-  zona.addEventListener("dragover", (ev) => {
+  $("vz-abrir").addEventListener("click", () => entrada.click());
+  // dá para soltar um arquivo em qualquer parte da área 3D, com ou sem peça aberta
+  const palco = $("palco");
+  palco.addEventListener("dragover", (ev) => {
     ev.preventDefault();
-    zona.classList.add("sobre");
+    palco.classList.add("sobre");
   });
-  zona.addEventListener("dragleave", () => zona.classList.remove("sobre"));
-  zona.addEventListener("drop", (ev) => {
+  palco.addEventListener("dragleave", () => palco.classList.remove("sobre"));
+  palco.addEventListener("drop", (ev) => {
     ev.preventDefault();
-    zona.classList.remove("sobre");
+    palco.classList.remove("sobre");
     const arquivo = ev.dataTransfer.files[0];
     if (arquivo) carregarArquivo(arquivo);
   });
+  for (const b of document.querySelectorAll("[data-vz-aba]")) b.addEventListener("click", () => mostrarAba(b.dataset.vzAba));
   $("vz-placa").addEventListener("change", () => {
     if (estado.arquivo) carregarArquivo(estado.arquivo, { placa: $("vz-placa").value });
   });
@@ -297,12 +310,13 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   }
   $("palco-vazio").hidden = false;
   $("palco-vazio").textContent = "Abrindo…";
+  $("zona-arquivo").hidden = true;
   let lido;
   try {
     lido = await lerPartes(arquivo, extensao, opcoes);
   } catch (erro) {
-    $("palco-vazio").textContent = estado.peca.children.length ? "" : "Nenhum modelo carregado.";
-    $("palco-vazio").hidden = estado.peca.children.length > 0;
+    $("palco-vazio").hidden = true;
+    $("zona-arquivo").hidden = estado.peca.children.length > 0;
     mostrarAviso(erro.message || "Não foi possível abrir este arquivo.");
     return;
   }
@@ -333,6 +347,13 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   enquadrar("iso");
   $("palco-vazio").hidden = true;
   $("vz-ferramentas").hidden = false;
+  $("vz-flutuante").hidden = false;
+  if ($("vz-abas").hidden) {
+    $("vz-abas").hidden = false;
+    $("info-modelo").hidden = false;
+    $("vz-resumo-vazio").hidden = true;
+    mostrarAba("peca");
+  }
   atualizarInfo();
   // medidas guardadas: mesmo nome, tamanho, placa e quantidade de triângulos
   estado.paquimetro.definirArquivo({ chave: `${arquivo.name}|${arquivo.size}|${triangulos}|${lido.placa ?? ""}`, nome: arquivo.name });
@@ -447,6 +468,7 @@ function mudarModo(modo) {
   }
   renderizador.domElement.style.cursor = modo === "face" || MODOS_MEDIDA.includes(modo) ? "crosshair" : "";
   $("vz-dica").textContent = DICAS[modo];
+  if (MODOS_MEDIDA.includes(modo)) mostrarAba("medidas");
 }
 
 // ---------- Câmera ----------
@@ -510,7 +532,7 @@ function atualizarInfo() {
     estado.arquivo?.name ?? "—",
     `${medida(tamanho.x)} × ${medida(tamanho.y)} × ${medida(tamanho.z)}`,
     (volume / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
-    `≈ ${gramas.toLocaleString("pt-BR", { maximumFractionDigits: gramas < 10 ? 1 : 0 })} g (PLA maciço)`,
+    `≈ ${gramas.toLocaleString("pt-BR", { maximumFractionDigits: gramas < 10 ? 1 : 0 })} g`,
     estado.triangulos.toLocaleString("pt-BR"),
   ];
   dados.forEach((texto, i) => {

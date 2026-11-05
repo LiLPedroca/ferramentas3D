@@ -116,12 +116,14 @@ export function criarAnalise(ctx) {
       const p = (n / total) * 100;
       return p < 0.1 ? "menos de 0,1%" : `${p.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
     };
-    if (finas === 0) return `Parede mais fina: ${mm(paredes.minima)}. Tudo com pelo menos 2 linhas do bico de ${bico.toLocaleString("pt-BR")} mm.`;
-    return (
-      `Parede mais fina: ${mm(paredes.minima)}. ` +
-      (naoImprime ? `${pct(naoImprime)} da superfície com menos de ${mm(bico, 1)} (vermelho: o bico não consegue fazer). ` : "") +
-      `${pct(finas)} com menos de ${mm(bico * 2, 1)} (laranja: só 1 linha, fica frágil).`
-    );
+    if (finas === 0) return `Mais fina: ${mm(paredes.minima)}. Tudo com 2 linhas ou mais.`;
+    return [
+      `Mais fina: ${mm(paredes.minima)}`,
+      naoImprime ? `${pct(naoImprime)} abaixo de ${mm(bico, 1)} (vermelho, o bico não faz)` : "",
+      `${pct(finas)} abaixo de ${mm(bico * 2, 1)} (laranja, frágil)`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
 
   // ---------- Lista ----------
@@ -135,49 +137,60 @@ export function criarAnalise(ctx) {
     return `Folga: ${mm(folga)} → ${classificarFolga(folga, { bico: bicoEscolhido() })}.`;
   }
 
+  // Ø de um item; furos cônicos/chanfrados mostram a faixa (menor–maior)
+  function diametroTexto(furo, e) {
+    const [a, b] = [(furo.raioMin ?? furo.raio) * 2 * e, (furo.raioMax ?? furo.raio) * 2 * e];
+    if (b - a < 0.05) return `Ø ${mm(furo.raio * 2 * e)}`;
+    return `Ø ${formatarMedida(a, ctx.unidade()).replace(/ mm$/, "")}–${mm(b)}`;
+  }
+
+  const MOSTRAR_POUCOS = 8;
+  let mostrarTodos = false;
+
   function renderizar() {
     const lista = $("an-furos");
     const e = ctx.escala();
+    const visiveis = mostrarTodos ? itens : itens.slice(0, MOSTRAR_POUCOS);
+    const variasPecas = itens.some((x) => x.nomeMalha !== itens[0]?.nomeMalha);
     lista.replaceChildren(
-      ...itens.map((item, i) => {
+      ...visiveis.map((item) => {
+        const i = itens.indexOf(item);
         const { furo } = item;
         const li = el("li", "an-item");
         const marca = el("input");
         marca.type = "checkbox";
         marca.checked = escolhidos.has(i);
-        marca.title = "Marcar para calcular a folga";
+        marca.title = "Marque um furo e um pino para ver a folga";
         marca.addEventListener("change", () => {
           if (marca.checked) escolhidos.add(i);
           else escolhidos.delete(i);
           $("an-folga").textContent = textoFolga();
         });
         const texto = el("div", "an-texto");
+        const conico = (furo.raioMax ?? furo.raio) - (furo.raioMin ?? furo.raio) >= 0.025;
         texto.append(
-          el("strong", "", `${furo.tipo === "furo" ? "Furo" : "Pino"} Ø ${mm(furo.raio * 2 * e)}`),
-          el(
-            "span",
-            "cliente-sub",
-            `${furo.tipo === "furo" ? "Profundidade" : "Comprimento"} ${mm(furo.profundidade * e, 1)} · eixo ${furo.eixoNome} · ${furo.lados} lados${itens.some((x) => x.nomeMalha !== item.nomeMalha) ? ` · ${item.nomeMalha}` : ""}`,
-          ),
+          el("strong", "", `${furo.tipo === "furo" ? "Furo" : "Pino"} ${diametroTexto(furo, e)}`),
+          el("span", "cliente-sub", [mm(furo.profundidade * e, 1), `eixo ${furo.eixoNome}`, conico ? "cônico" : "", variasPecas ? item.nomeMalha : ""].filter(Boolean).join(" · ")),
         );
-        const acoes = el("div", "an-acoes");
-        const medir = el("button", "botao-texto pequeno", "+ Medida");
+        const medir = el("button", "an-icone", "+");
         medir.type = "button";
-        medir.title = "Põe na lista do paquímetro";
+        medir.title = "Pôr na lista de medidas";
         medir.addEventListener("click", () => ctx.paquimetro.adicionarDiametro(furo));
-        const encaixe = el("button", "botao-texto pequeno", furo.tipo === "furo" ? "Fazer pino que encaixa" : "Fazer furo para este pino");
+        const encaixe = el("button", "an-icone", "⇄");
         encaixe.type = "button";
+        encaixe.title = furo.tipo === "furo" ? "Fazer um pino que encaixa (Encaixes e tolerâncias)" : "Fazer um furo para este pino (Encaixes e tolerâncias)";
         encaixe.addEventListener("click", () => abrirEncaixeCom(furo.raio * 2 * e));
-        acoes.append(medir, encaixe);
-        li.append(marca, texto, acoes);
+        li.append(marca, texto, medir, encaixe);
         li.addEventListener("mouseenter", () => destacar(item));
         li.addEventListener("mouseleave", () => destacar(null));
         return li;
       }),
     );
+    $("an-mais").hidden = itens.length <= MOSTRAR_POUCOS;
+    $("an-mais").textContent = mostrarTodos ? "Mostrar menos" : `Mostrar todos (${itens.length})`;
     $("an-furos-vazio").hidden = itens.length > 0;
-    $("an-furos-vazio").textContent = "Nenhum furo ou pino redondo encontrado.";
-    $("an-contagem").textContent = itens.length ? `(${itens.length})` : "";
+    $("an-furos-vazio").textContent = paredes ? "Nenhum furo ou pino redondo encontrado." : "";
+    $("an-contagem").textContent = itens.length ? `${itens.length}` : "";
     $("an-folga").textContent = textoFolga();
     $("an-paredes").textContent = textoParedes();
     desenharFinas();
@@ -234,11 +247,10 @@ export function criarAnalise(ctx) {
     itens = [];
     paredes = null;
     escolhidos = new Set();
+    mostrarTodos = false;
     destacar(null);
     limparGrupo(pontosFinos);
-    $("an-painel").hidden = false;
     renderizar();
-    $("an-furos-vazio").textContent = "";
     if (triangulos <= LIMITE_AUTOMATICO) analisar();
     else {
       $("an-estado").textContent = `Peça grande (${triangulos.toLocaleString("pt-BR")} triângulos): a análise pode levar alguns segundos.`;
@@ -247,6 +259,10 @@ export function criarAnalise(ctx) {
   }
 
   $("an-analisar").addEventListener("click", analisar);
+  $("an-mais").addEventListener("click", () => {
+    mostrarTodos = !mostrarTodos;
+    renderizar();
+  });
   $("an-mostrar-finas").addEventListener("change", desenharFinas);
   $("an-bico").value = String(bicoEscolhido());
   $("an-bico").addEventListener("change", () => {

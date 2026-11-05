@@ -212,14 +212,20 @@ export function acharFurosEPinos(pos, { niveis = [0.06, 0.2, 0.35, 0.5, 0.65, 0.
       const n = normalDoTriangulo(pos, t);
       const area = n.length();
       if (area < 1e-12 || Math.abs(n.dot(g.eixo)) / area > 0.35) continue;
+      // o meio do triângulo precisa estar na parede; os cantos podem se afastar um pouco
+      // (furo levemente cônico: o triângulo alto vai de um diâmetro a outro)
+      const radialDe = (p) => {
+        const rel = p.clone().sub(g.centro);
+        const h = rel.dot(g.eixo);
+        return { h, radial: rel.sub(g.eixo.clone().multiplyScalar(h)).length() };
+      };
+      const meio = radialDe(vertice(pos, t * 3).add(vertice(pos, t * 3 + 1)).add(vertice(pos, t * 3 + 2)).divideScalar(3));
+      if (Math.abs(meio.radial - g.raio) > tol) continue;
       let todos = true;
       const alturas = [];
       for (let k = 0; k < 3; k++) {
-        const p = vertice(pos, t * 3 + k);
-        const rel = p.clone().sub(g.centro);
-        const h = rel.dot(g.eixo);
-        const radial = rel.sub(g.eixo.clone().multiplyScalar(h)).length();
-        if (Math.abs(radial - g.raio) > tol) {
+        const { h, radial } = radialDe(vertice(pos, t * 3 + k));
+        if (Math.abs(radial - g.raio) > Math.max(tol, g.raio * 0.12)) {
           todos = false;
           break;
         }
@@ -240,9 +246,44 @@ export function acharFurosEPinos(pos, { niveis = [0.06, 0.2, 0.35, 0.5, 0.65, 0.
     delete g.v;
   }
   // sem comprimento = corte de um cone ou chanfro, não é furo nem pino
-  return lista
-    .filter((g) => g.profundidade >= 0.3)
-    .sort((a, b) => (a.tipo === b.tipo ? a.raio - b.raio : a.tipo === "furo" ? -1 : 1));
+  return juntarParecidos(lista.filter((g) => g.profundidade >= 0.3)).sort((a, b) =>
+    a.tipo === b.tipo ? a.raio - b.raio : a.tipo === "furo" ? -1 : 1,
+  );
+}
+
+// Junta o que é o mesmo furo/pino visto em alturas diferentes: mesmo eixo, centro quase igual e
+// diâmetro parecido (furos cônicos, chanfrados ou com textura dão círculos um pouco diferentes).
+// O resultado guarda o diâmetro menor e o maior (raioMin/raioMax) e o comprimento somado.
+function juntarParecidos(lista) {
+  const grupos = [];
+  for (const g of lista) {
+    const igual = grupos.find((x) => {
+      if (x.tipo !== g.tipo || x.eixoNome !== g.eixoNome) return false;
+      const d = g.centro.clone().sub(x.centro);
+      const lateral = d.sub(x.eixo.clone().multiplyScalar(d.dot(x.eixo))).length();
+      const r = Math.max(x.raio, g.raio);
+      const dentroDaFaixa = g.raio >= x.raioMin - Math.max(0.3, r * 0.03) && g.raio <= x.raioMax + Math.max(0.3, r * 0.03);
+      return lateral < Math.max(0.5, r * 0.03) && dentroDaFaixa;
+    });
+    if (!igual) {
+      grupos.push({ ...g, raioMin: g.raio, raioMax: g.raio });
+      continue;
+    }
+    igual.raioMin = Math.min(igual.raioMin, g.raio);
+    igual.raioMax = Math.max(igual.raioMax, g.raio);
+    // comprimento: junta as duas faixas ao longo do eixo
+    const base = igual.inicio.dot(igual.eixo);
+    const alturas = [igual.inicio, igual.fim, g.inicio, g.fim].map((p) => p.dot(igual.eixo) - base);
+    const [ini, fim] = [Math.min(...alturas), Math.max(...alturas)];
+    const lateral = igual.inicio.clone().sub(igual.eixo.clone().multiplyScalar(base));
+    igual.inicio = lateral.clone().addScaledVector(igual.eixo, base + ini);
+    igual.fim = lateral.clone().addScaledVector(igual.eixo, base + fim);
+    igual.profundidade = fim - ini;
+    igual.centro = igual.inicio.clone().lerp(igual.fim, 0.5);
+    igual.raio = (igual.raioMin + igual.raioMax) / 2;
+    igual.lados = Math.max(igual.lados, g.lados);
+  }
+  return grupos;
 }
 
 // Espessura de parede: para cada amostra, raio para dentro da peça a partir da face; a distância até

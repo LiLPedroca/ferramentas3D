@@ -111,6 +111,17 @@ describe("paquímetro", () => {
     expect(acharFurosEPinos(posicoes(new THREE.BoxGeometry(10, 10, 10)))).toEqual([]);
   });
 
+  it("furo cônico vira um item só, com o diâmetro menor e o maior", () => {
+    // tronco de cone oco: furo de Ø 10 embaixo a Ø 11 em cima, dentro de um cilindro de Ø 30
+    const pontos = [new THREE.Vector2(5, 0), new THREE.Vector2(15, 0), new THREE.Vector2(15, 20), new THREE.Vector2(5.5, 20)];
+    const geo = new THREE.LatheGeometry([...pontos, pontos[0]], 64);
+    const r = acharFurosEPinos(posicoes(geo)).filter((x) => x.tipo === "furo");
+    expect(r).toHaveLength(1);
+    expect(r[0].raioMin * 2).toBeLessThan(10.4);
+    expect(r[0].raioMax * 2).toBeGreaterThan(10.6);
+    expect(r[0].profundidade).toBeGreaterThan(15);
+  });
+
   it("mede a espessura das paredes", () => {
     // tubo: raio de fora 10, de dentro 9 → parede de 1 mm
     const forma = new THREE.Shape();
