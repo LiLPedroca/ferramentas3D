@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld("arquivos", {
   abrirPasta: (caminho) => ipcRenderer.invoke("arquivos:abrir-pasta", caminho),
 });
 
+contextBridge.exposeInMainWorld("stl", {
+  printables: (termo, pagina) => ipcRenderer.invoke("stl:printables", termo, pagina ?? 1),
+  miniatura: (url) => ipcRenderer.invoke("stl:miniatura", url),
+});
+
 contextBridge.exposeInMainWorld("modelos", {
   lerFonte: (nome) => ipcRenderer.invoke("fontes:ler", nome),
   lerMotor: () => ipcRenderer.invoke("modelos:wasm"),

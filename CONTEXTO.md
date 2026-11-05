@@ -161,6 +161,12 @@ Etapas (marcar [x] ao publicar):
 - WebP: agora só ficam os blocos da imagem (VP8, VP8L, VP8X, ALPH, ANIM, ANMF, ICCP). Antes o bloco `C2PA` e blocos desconhecidos passavam pela limpeza.
 - A tela avisa que marcas d'água invisíveis nos pixels continuam na cópia. Combinado com o Pedro: não fazer nada para esconder ou apagar marcas de IA nos pixels.
 
+## Caçador de STL: resultados do Printables dentro do programa (v0.27.0, 05/11/2026)
+- Busca pela API GraphQL que o próprio site do Printables usa (`api.printables.com/graphql/`, `searchPrints2`). **Não é documentada e pode mudar:** se falhar, a tela mostra o erro e um botão para abrir a busca no navegador.
+- `core/printables.cjs` (consulta com variáveis, leitura e validação da resposta, miniatura 320×240: pasta `jpg` para .jpg/.jpeg e `png` para o resto) e `main/printables.cjs` (pedidos no processo principal, cache de 5 min, miniaturas só de `media.printables.com` e só as que vieram na busca, devolvidas como data URL por causa da CSP). Canais `stl:printables` e `stl:miniatura`, `window.stl` no preload.
+- Os outros sites marcados viram botões "Ver também no navegador". O Thingiverse por dentro (como no Codex) usava `api.thingiverse.com/v2/auth/view`, que em 05/11/2026 devolve 403; o caminho oficial exige uma chave do usuário (thingiverse.com/developers). MakerWorld, Cults3D, MyMiniFactory e Thangs bloqueiam buscas automáticas: ficam no navegador.
+- GitHub CLI instalado neste PC em 05/11/2026 e logado como LiLPedroca.
+
 **Pendente (pedido do Pedro):** teste pela TELA do Anycubic Slicer Next, com fotos para ele: gerar o Chaveiro de nome, "Abrir no fatiador" escolhendo "Sem AMS", fatiar no programa aberto normalmente e conferir na pré-visualização a pausa na camada 13 (2,6 mm); também o arquivo "Com AMS" (troca para o filamento 2). Falta confirmar se a abertura pela janela (não pela linha de comando) também lê o `custom_gcode_per_layer.xml`. Precisa do Computer use ligado no app do Claude (Configurações → Este computador → Computer use); em 04/11/2026 estava desligado.
 
 Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.

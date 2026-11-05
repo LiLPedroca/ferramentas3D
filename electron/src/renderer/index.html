@@ -844,16 +844,28 @@
     <main class="tela oculta pagina" id="tela-stl">
       <div class="pagina-conteudo estreito">
         <h1 class="titulo-pagina">Caçador de STL</h1>
-        <p class="ajuda md-intro">Pesquise o mesmo modelo em vários sites de uma vez (as buscas abrem no seu navegador) e guarde os links que você gostar. Confira sempre a licença e o preço no site original.</p>
+        <p class="ajuda md-intro">Pesquise modelos e guarde os links que você gostar. Os resultados do Printables aparecem aqui mesmo; os outros sites abrem no seu navegador. Confira sempre a licença e o preço no site original.</p>
 
         <form class="painel cartao-config" id="stl-form-busca">
           <h2>Buscar modelos</h2>
           <div class="stl-busca">
             <div class="entrada"><input id="stl-termo" maxlength="120" placeholder="Ex.: vaso espiral, suporte de fone…" autocomplete="off" aria-label="O que você procura" /></div>
-            <button class="botao-primario" type="submit">Buscar</button>
+            <button class="botao-primario" id="stl-buscar" type="submit">Buscar</button>
           </div>
           <div class="stl-sites" id="stl-sites" role="group" aria-label="Sites da busca"></div>
         </form>
+
+        <section class="painel cartao-config" id="stl-resultados-painel" hidden>
+          <div class="historico-topo">
+            <h2>Resultados no Printables <span class="contagem-texto" id="stl-total"></span></h2>
+          </div>
+          <div class="stl-externos" id="stl-externos" hidden></div>
+          <p class="ajuda" id="stl-estado"></p>
+          <div class="stl-grade" id="stl-resultados"></div>
+          <div class="acoes-form">
+            <button class="botao-secundario" id="stl-mais" type="button" hidden>Carregar mais</button>
+          </div>
+        </section>
 
         <section class="painel cartao-config">
           <div class="historico-topo">
