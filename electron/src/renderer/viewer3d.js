@@ -16,7 +16,7 @@ import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
 import { criarAnalise } from "./analise-tela.js";
 import { criarPaquimetro } from "./paquimetro.js";
-import { mostrarAviso } from "./shell.js";
+import { estado as app, mostrarAviso, salvarConfig } from "./shell.js";
 
 const MODOS_MEDIDA = ["distancia", "diametro", "profundidade"];
 const DICAS = {
@@ -109,6 +109,8 @@ export function iniciarVisualizador() {
       estado.analise?.atualizar();
     },
     avisar: mostrarAviso,
+    config: () => app.config,
+    salvarConfig,
     dica: (texto) => {
       $("vz-dica").textContent = texto;
     },
@@ -305,7 +307,6 @@ async function carregarArquivo(arquivo, opcoes = {}) {
     return;
   }
   limparPeca();
-  estado.paquimetro.limpar();
   const { peca } = estado;
   let triangulos = 0;
   for (const parte of lido.partes) {
@@ -333,6 +334,8 @@ async function carregarArquivo(arquivo, opcoes = {}) {
   $("palco-vazio").hidden = true;
   $("vz-ferramentas").hidden = false;
   atualizarInfo();
+  // medidas guardadas: mesmo nome, tamanho, placa e quantidade de triângulos
+  estado.paquimetro.definirArquivo({ chave: `${arquivo.name}|${arquivo.size}|${triangulos}|${lido.placa ?? ""}`, nome: arquivo.name });
   estado.analise.aoCarregar(triangulos);
 }
 
@@ -560,6 +563,92 @@ async function mandarAoFatiador() {
   await abrirNoFatiador(bytes, `${estado.nome}-posicionado`, "3mf");
 }
 
+// ---------- Ficha de medidas (imagem PNG) ----------
+function quebrarLinhas(ctx2d, texto, largura) {
+  const linhas = [];
+  let atual = "";
+  for (const palavra of texto.split(" ")) {
+    const teste = atual ? `${atual} ${palavra}` : palavra;
+    if (ctx2d.measureText(teste).width > largura && atual) {
+      linhas.push(atual);
+      atual = palavra;
+    } else atual = teste;
+  }
+  if (atual) linhas.push(atual);
+  return linhas;
+}
+
+async function salvarFicha() {
+  const { renderizador, cena, camera } = estado;
+  if (!estado.peca.children.length) return;
+  const itens = estado.paquimetro.paraFicha();
+  renderizador.render(cena, camera);
+  const tela = renderizador.domElement;
+  const [L, A] = [tela.width, tela.height];
+  const escalaTexto = Math.max(1, L / 900);
+  const margem = 28 * escalaTexto;
+  const cv = document.createElement("canvas");
+  const c = cv.getContext("2d");
+  const fonte = (tam, peso = 400) => `${peso} ${tam * escalaTexto}px "Segoe UI", sans-serif`;
+
+  // altura da tabela: mede antes de desenhar
+  c.font = fonte(14);
+  const larguraTexto = L - margem * 2;
+  const linhasPorItem = itens.map((i) => quebrarLinhas(c, i.detalhe + (i.real ? ` · Na peça impressa: ${i.real}` : ""), larguraTexto - 260 * escalaTexto));
+  const alturaTabela = linhasPorItem.reduce((s, l) => s + (24 + l.length * 19) * escalaTexto, 0) + 40 * escalaTexto;
+  const topo = 96 * escalaTexto;
+  cv.width = L;
+  cv.height = topo + A + alturaTabela + margem;
+
+  c.fillStyle = "#ffffff";
+  c.fillRect(0, 0, cv.width, cv.height);
+  c.fillStyle = "#11151d";
+  c.font = fonte(24, 700);
+  c.fillText(`Ficha de medidas · ${estado.nome}`, margem, margem + 18 * escalaTexto);
+  c.font = fonte(14);
+  c.fillStyle = "#4a5263";
+  const dims = $("info-modelo").querySelectorAll("dd")[1].textContent;
+  c.fillText(`Dimensões X × Y × Z: ${dims}${estado.paquimetro.unidade() === "pol" ? "" : " mm"} · escala ${$("vz-escala").value}% · ${new Date().toLocaleDateString("pt-BR")}`, margem, margem + 46 * escalaTexto);
+
+  c.fillStyle = "#1c2333";
+  c.fillRect(0, topo, L, A);
+  c.drawImage(tela, 0, topo);
+  // rótulos sobre a imagem
+  c.font = fonte(13, 700);
+  for (const i of itens) {
+    if (!i.visivel) continue;
+    const x = i.x * L;
+    const y = topo + i.y * A;
+    const texto = `${i.nome.replace(/^\D+/, "")}: ${i.texto}`;
+    const w = c.measureText(texto).width + 14 * escalaTexto;
+    const h = 22 * escalaTexto;
+    c.fillStyle = "#ffc857";
+    c.beginPath();
+    c.roundRect(x - w / 2, y - h * 1.3, w, h, 6 * escalaTexto);
+    c.fill();
+    c.fillStyle = "#1a1400";
+    c.fillText(texto, x - w / 2 + 7 * escalaTexto, y - h * 1.3 + 15.5 * escalaTexto);
+  }
+
+  // tabela
+  let y = topo + A + 34 * escalaTexto;
+  itens.forEach((i, k) => {
+    c.fillStyle = "#11151d";
+    c.font = fonte(15, 700);
+    c.fillText(`${i.nome}: ${i.texto}`, margem, y);
+    c.font = fonte(13);
+    c.fillStyle = "#4a5263";
+    linhasPorItem[k].forEach((linha, n) => c.fillText(linha, margem + 260 * escalaTexto, y + n * 19 * escalaTexto));
+    y += (24 + linhasPorItem[k].length * 19) * escalaTexto;
+  });
+
+  const blob = await new Promise((r) => cv.toBlob(r, "image/png"));
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const resposta = await window.arquivos.salvarCopias([{ nome: `${estado.nome} - ficha de medidas.png`, bytes }]);
+  if (!resposta.ok) mostrarAviso(resposta.erro);
+  else if (resposta.dados) mostrarAviso(`Ficha salva em ${resposta.dados.pasta}.`);
+}
+
 // ---------- Botões ----------
 function ligarControles() {
   for (const b of document.querySelectorAll("[data-vz-modo]")) b.addEventListener("click", () => mudarModo(b.dataset.vzModo));
@@ -580,6 +669,7 @@ function ligarControles() {
   $("vz-salvar-stl").addEventListener("click", () => salvar("stl"));
   $("vz-salvar-3mf").addEventListener("click", () => salvar("3mf"));
   $("vz-fatiador").addEventListener("click", mandarAoFatiador);
+  $("vz-ficha").addEventListener("click", salvarFicha);
   $("vz-custo").addEventListener("click", () => {
     if (!estado.peca.children.length) return;
     preencherDoModelo({ nome: estado.nome, pesoG: estado.gramas ?? 0, detalhe: "volume do arquivo em PLA, peça maciça" });

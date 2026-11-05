@@ -2,6 +2,7 @@
 // profundidade/ressalto. Os pontos grudam em vértices e arestas e, se pedido, no centro dos furos.
 // As medidas ficam guardadas nas coordenadas da peça: acompanham quando ela é girada, movida ou escalada.
 import * as THREE from "three";
+import { previsaoImpressa, resumoCalibracao, textoDiferenca, textoDoResumo, tipoDaCalibracao } from "./modelos/calibracao.js";
 import { arestasMarcantes, formatarMedida, medirDiametro, medirDistancia, medirProfundidade } from "./modelos/medidas.js";
 
 // Arestas reais de cada malha, calculadas uma vez por malha (na primeira medida).
@@ -18,7 +19,37 @@ const NOMES = { distancia: "Distância", diametro: "Diâmetro", profundidade: "P
 const PIXELS_VERTICE = 10;
 const PIXELS_ARESTA = 7;
 
-// ctx: { cena, camera, renderizador, peca, palco, escala(), aoEscalar(fator), aoMudar() }
+// ---------- Guardar e restaurar (coordenadas da peça, em listas simples) ----------
+const lista3 = (v) => [v.x, v.y, v.z];
+const vetor = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+
+function paraGuardar(m) {
+  const base =
+    m.tipo === "diametro"
+      ? { tipo: "diametro", furo: { centro: lista3(m.furo.centro), eixo: lista3(m.furo.eixo), raio: m.furo.raio, rms: m.furo.rms, lados: m.furo.lados, tipo: m.furo.tipo } }
+      : { tipo: m.tipo, a: { p: lista3(m.a.p), n: lista3(m.a.n) }, b: { p: lista3(m.b.p), n: lista3(m.b.n) } };
+  return m.real ? { ...base, real: m.real } : base;
+}
+
+function deGuardado(g) {
+  const m =
+    g.tipo === "diametro"
+      ? { tipo: "diametro", furo: { ...g.furo, centro: vetor(g.furo.centro), eixo: vetor(g.furo.eixo) } }
+      : { tipo: g.tipo, a: { p: vetor(g.a.p), n: vetor(g.a.n) }, b: { p: vetor(g.b.p), n: vetor(g.b.n) } };
+  if (g.real) m.real = g.real;
+  return m;
+}
+
+function filamentoEscolhido() {
+  try {
+    return localStorage.getItem("visualizador-filamento") || "";
+  } catch {
+    return "";
+  }
+}
+
+// ctx: { cena, camera, renderizador, peca, palco, escala(), aoEscalar(fator), aoMudar(),
+//        config(), salvarConfig(alteracao), avisar(texto), dica(texto), dicaPadrao() }
 export function criarPaquimetro(ctx) {
   const { cena, camera, renderizador, peca, palco } = ctx;
   const desenhos = new THREE.Group();
@@ -33,6 +64,71 @@ export function criarPaquimetro(ctx) {
   let pendente = null; // primeiro ponto já clicado
   let contador = 0;
   let unidade = "mm";
+  let arquivo = null; // { chave, nome } do arquivo aberto (para guardar as medidas)
+  const temporizadores = new Map(); // um por arquivo: trocar de arquivo não perde o que falta gravar
+
+  const filamento = () => $("vz-filamento").value.trim() || "Geral";
+  const resumo = () => resumoCalibracao(ctx.config()?.calibracoes, filamento());
+
+  // Guarda as medidas deste arquivo nas configurações (um pouco depois da última mudança).
+  function agendarSalvar() {
+    if (!arquivo) return;
+    const { chave, nome } = arquivo;
+    clearTimeout(temporizadores.get(chave));
+    const guardadas = medidas.map(paraGuardar);
+    temporizadores.set(chave, setTimeout(async () => {
+      temporizadores.delete(chave);
+      const outras = (ctx.config()?.medidasSalvas ?? []).filter((x) => x.chave !== chave);
+      const lista = guardadas.length ? [...outras, { chave, nome, data: new Date().toISOString(), medidas: guardadas.slice(-60) }] : outras;
+      const r = await ctx.salvarConfig({ medidasSalvas: lista.slice(-100) });
+      if (!r.ok) ctx.avisar(`Não foi possível guardar as medidas: ${r.erro}`);
+    }, 800));
+  }
+
+  // Abre um arquivo: traz de volta as medidas guardadas dele, se houver.
+  function definirArquivo(novo) {
+    arquivo = novo;
+    marcador.visible = false;
+    medidas = [];
+    pendente = null;
+    contador = 0;
+    const salvo = (ctx.config()?.medidasSalvas ?? []).find((x) => x.chave === novo.chave);
+    if (salvo) {
+      for (const g of salvo.medidas) {
+        contador++;
+        const m = deGuardado(g);
+        medidas.push({ ...m, id: contador, nome: `${NOMES[m.tipo]} ${contador}` });
+      }
+      ctx.avisar(`${salvo.medidas.length} medida(s) deste arquivo foram trazidas de volta.`);
+    }
+    atualizar();
+  }
+
+  async function guardarReal(m, real, principal) {
+    const nova = { filamento: filamento(), tipo: tipoDaCalibracao(m), modelo: principal, real, data: new Date().toISOString() };
+    const lista = [...(ctx.config()?.calibracoes ?? []), nova].slice(-300);
+    const r = await ctx.salvarConfig({ calibracoes: lista });
+    if (!r.ok) {
+      ctx.avisar(r.erro);
+      return;
+    }
+    m.real = real;
+    m.realModelo = principal;
+    agendarSalvar();
+    atualizar();
+    ctx.avisar(`Anotado para ${nova.filamento}.`);
+  }
+
+  async function apagarCalibracao() {
+    const f = filamento();
+    const lista = (ctx.config()?.calibracoes ?? []).filter((c) => c.filamento !== f);
+    const r = await ctx.salvarConfig({ calibracoes: lista });
+    if (!r.ok) ctx.avisar(r.erro);
+    else {
+      renderizarLista();
+      ctx.avisar(`Calibração de ${f} apagada.`);
+    }
+  }
 
   const tamanhoMarcador = () => {
     const caixa = new THREE.Box3().setFromObject(peca);
@@ -104,6 +200,15 @@ export function criarPaquimetro(ctx) {
 
   // ---------- Valores ----------
   function valor(m) {
+    const v = valorDoModelo(m);
+    const previsto = previsaoImpressa(tipoDaCalibracao(m), v.principal, resumo());
+    if (previsto !== null && Math.abs(previsto - v.principal) >= 0.005) {
+      v.previsao = `Com ${filamento()}, deve sair ≈ ${m.tipo === "diametro" ? "Ø " : ""}${formatarMedida(previsto, unidade)}`;
+    }
+    return v;
+  }
+
+  function valorDoModelo(m) {
     const escala = ctx.escala();
     if (m.tipo === "diametro") {
       const d = m.furo.raio * 2 * escala;
@@ -210,10 +315,13 @@ export function criarPaquimetro(ctx) {
         apagar.setAttribute("aria-label", `Apagar ${m.nome}`);
         apagar.addEventListener("click", () => {
           medidas = medidas.filter((x) => x !== m);
+          agendarSalvar();
           atualizar();
         });
         topo.append(apagar);
         li.append(topo, el("span", "cliente-sub", v.detalhe));
+        if (v.previsao) li.append(el("span", "vz-previsao", v.previsao));
+        if (m.real) li.append(el("span", "vz-real", `Na peça impressa: ${formatarMedida(m.real, unidade)} · ${textoDiferenca(m.realModelo ?? v.principal, m.real)}`));
 
         const ajustar = el("button", "botao-texto pequeno", "Quero que tenha… (ajustar escala)");
         ajustar.type = "button";
@@ -239,12 +347,46 @@ export function criarPaquimetro(ctx) {
           entrada.focus();
           entrada.select();
         });
-        li.append(ajustar);
+
+        const conferir = el("button", "botao-texto pequeno", m.real ? "Corrigir a medida da peça impressa" : "Medi na peça impressa…");
+        conferir.type = "button";
+        conferir.title = "Digite o que o seu paquímetro mostrou na peça impressa";
+        conferir.addEventListener("click", () => {
+          const linhaReal = el("form", "vz-linha");
+          const caixa = el("div", "entrada");
+          const entrada = el("input");
+          entrada.inputMode = "decimal";
+          entrada.placeholder = "medida real";
+          entrada.setAttribute("aria-label", "Medida na peça impressa");
+          caixa.append(entrada, el("em", "", unidade === "pol" ? "pol" : "mm"));
+          const ok = el("button", "botao-secundario pequeno", "Anotar");
+          ok.type = "submit";
+          linhaReal.append(caixa, ok);
+          linhaReal.addEventListener("submit", (ev) => {
+            ev.preventDefault();
+            let real = Number(entrada.value.replace(",", "."));
+            if (unidade === "pol") real *= 25.4;
+            if (!(real > 0)) {
+              entrada.focus();
+              return;
+            }
+            guardarReal(m, real, v.principal);
+          });
+          conferir.replaceWith(linhaReal);
+          entrada.focus();
+        });
+        const botoes = el("div", "an-acoes");
+        botoes.append(ajustar, conferir);
+        li.append(botoes);
         return li;
       }),
     );
     $("vz-medidas-vazio").hidden = medidas.length > 0;
     $("vz-limpar-medidas").hidden = medidas.length === 0;
+    $("vz-ficha").hidden = medidas.length === 0;
+    const texto = textoDoResumo(resumo());
+    $("vz-calibracao").textContent = texto ? `Com ${filamento()}: ${texto.charAt(0).toLowerCase()}${texto.slice(1)}` : "Ainda sem medidas da peça impressa para este filamento.";
+    $("vz-apagar-calibracao").hidden = !texto;
   }
 
   function atualizar() {
@@ -280,7 +422,19 @@ export function criarPaquimetro(ctx) {
     contador++;
     medidas.push({ ...m, id: contador, nome: `${NOMES[m.tipo]} ${contador}` });
     ctx.dicaPadrao();
+    agendarSalvar();
     atualizar();
+  }
+
+  // Para a ficha de medidas: texto de cada medida e onde o rótulo está na tela.
+  function paraFicha() {
+    quadro();
+    const r = renderizador.domElement.getBoundingClientRect();
+    return medidas.map((m) => {
+      const v = valor(m);
+      const s = naTela(m.ancora);
+      return { nome: m.nome, texto: v.texto, detalhe: [v.detalhe, v.previsao].filter(Boolean).join(" · "), real: m.real ? formatarMedida(m.real, unidade) : "", x: s.x / r.width, y: s.y / r.height, visivel: !s.atras };
+    });
   }
 
   // Marcador que mostra onde o ponto vai grudar.
@@ -308,6 +462,7 @@ export function criarPaquimetro(ctx) {
     pendente = null;
     contador = 0;
     marcador.visible = false;
+    agendarSalvar();
     atualizar();
   }
 
@@ -317,9 +472,30 @@ export function criarPaquimetro(ctx) {
     atualizar();
     ctx.aoMudar();
   });
+  $("vz-filamento").value = filamentoEscolhido();
+  $("vz-filamento").addEventListener("change", () => {
+    try {
+      localStorage.setItem("visualizador-filamento", $("vz-filamento").value.trim());
+    } catch {
+      // tudo bem
+    }
+    atualizar();
+  });
+  $("vz-filamento").addEventListener("focus", async () => {
+    const r = await window.dados.filamentos.listar();
+    if (!r.ok) return;
+    const nomes = [...new Set(r.dados.map((f) => `${f.material} ${f.cor}${f.marca ? ` ${f.marca}` : ""}`))];
+    $("vz-filamentos-lista").replaceChildren(...nomes.map((n) => new Option(n)));
+  });
+  $("vz-apagar-calibracao").addEventListener("click", apagarCalibracao);
 
   // Usado pela análise automática: põe um furo/pino encontrado na lista de medidas.
-  const adicionarDiametro = (furo) => adicionar({ tipo: "diametro", furo });
+  // O anel fica na boca de cima do furo (a ponta mais alta na mesa), onde dá para ver.
+  const adicionarDiametro = (furo) => {
+    const [a, b] = [paraMundo(furo.inicio ?? furo.centro), paraMundo(furo.fim ?? furo.centro)];
+    const boca = (a.y >= b.y ? furo.inicio : furo.fim) ?? furo.centro;
+    adicionar({ tipo: "diametro", furo: { ...furo, centro: boca.clone() } });
+  };
 
-  return { clicar, mover, atualizar, quadro, cancelar, limpar, adicionarDiametro, unidade: () => unidade };
+  return { clicar, mover, atualizar, quadro, cancelar, limpar, adicionarDiametro, definirArquivo, paraFicha, unidade: () => unidade };
 }

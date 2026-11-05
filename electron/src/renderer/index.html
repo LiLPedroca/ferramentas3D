@@ -248,7 +248,18 @@
           <label class="md-opcao"><input type="checkbox" id="vz-centro-furos" /> Na distância, usar o centro dos furos</label>
           <ul class="vz-medidas" id="vz-medidas"></ul>
           <p class="ajuda pequeno" id="vz-medidas-vazio">Escolha 📏 Distância, ⌀ Diâmetro ou ↧ Profundidade e clique na peça.</p>
-          <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas as medidas</button>
+          <div class="an-acoes vz-rodape-medidas">
+            <button type="button" class="botao-secundario pequeno" id="vz-ficha" hidden>Salvar ficha de medidas (imagem)</button>
+            <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas as medidas</button>
+          </div>
+          <h4 class="an-titulo">Real × modelo</h4>
+          <label class="campo"><span>Filamento da peça impressa</span>
+            <div class="entrada"><input id="vz-filamento" list="vz-filamentos-lista" maxlength="80" placeholder="Ex.: PLA Preto Voolt" autocomplete="off" /></div>
+            <datalist id="vz-filamentos-lista"></datalist>
+          </label>
+          <p class="ajuda pequeno" id="vz-calibracao"></p>
+          <button type="button" class="botao-texto pequeno" id="vz-apagar-calibracao" hidden>Apagar a calibração deste filamento</button>
+          <p class="ajuda pequeno">Imprimiu a peça? Em cada medida, clique em "Medi na peça impressa…" e digite o que o seu paquímetro mostrou. O programa aprende quanto este filamento muda as medidas e passa a mostrar como a peça deve sair.</p>
         </section>
 
         <section class="vz-paquimetro" id="an-painel" hidden>

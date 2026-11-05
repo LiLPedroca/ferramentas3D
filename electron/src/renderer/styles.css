@@ -867,6 +867,25 @@ input:focus-visible,
   display: none;
 }
 
+.vz-previsao {
+  color: #3ad6e8;
+  font-size: 12.5px;
+}
+
+.vz-real {
+  color: var(--verde);
+  font-size: 12.5px;
+}
+
+.vz-rodape-medidas {
+  margin: 6px 0 4px;
+  align-items: center;
+}
+
+.vz-paquimetro .campo input {
+  width: 100%;
+}
+
 .vz-rotulo {
   position: absolute;
   top: 0;
