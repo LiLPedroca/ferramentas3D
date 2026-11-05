@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.24.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.25.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -150,7 +150,9 @@ Etapas (marcar [x] ao publicar):
 - [x] Salvar modelos → ferramenta **Meus modelos** (grupo Modelos personalizados). Cadastro interno "projetos" (o nome "modelos" já era usado pelos canais de arquivo): `core/projeto.cjs` (tipo chaveiro/logo/palavras, nome, opcoes da tela em JSON até 20 mil caracteres, miniatura PNG, no logo a imagem reduzida em data URL), `main/projetos.cjs`, canais `projetos:*`, entra no backup ("modelos salvos"). Telas: botão "Salvar modelo" (janela com nome; se veio de Meus modelos, "Salvar alterações" ou "Salvar como novo"), `salvarEmMeusModelos`/`registrarAbridor` em `modelos-ui.js`, `miniatura()` em `previa2d.js`, tela `projetos-tela.js` (busca, Abrir, Excluir com confirmação). (v0.22.0)
 - [x] **Estoque de filamentos** (grupo Gestão financeira): `core/filamento.cjs` (material, marca, cor + amostra, peso do rolo, restante, preço/kg em centavos; `descontar`, `acabando` = < 15% ou < 100 g, `valorRestanteCentavos`), `main/filamentos.cjs` (+ canal `filamentos:descontar`), entra no backup ("rolos de filamento"). Tela `filamentos-tela.js`: cartões com amostra, barra do restante, aviso "Acabando", resumo (kg e R$ em estoque), "Usar" (desconta gramas; negativo devolve). Calculadora: "Rolo do estoque" preenche o preço/kg e "Descontar X g do rolo" (com confirmação). (v0.23.0)
 - [x] **Etiquetas** (grupo Gestão financeira): `core/etiquetas.cjs` (tamanhos A4 3×8 70×37, A4 2×5 99×57, térmicas 50×30, 60×40, 100×150; etiquetas de produtos com empresa, nome, preço, peso e medidas; de pedidos com número, cliente, telefone, cidade e remetente; QR do WhatsApp da empresa com mensagem, via `qrcode-generator` 1.4.4 MIT; HTML todo escapado). Canal `etiquetas:pdf`: a tela manda só ids e cópias, o processo principal lê os dados gravados e gera o PDF com `htmlParaPdf` (janela sem JavaScript). Tela `etiquetas-tela.js` com lista marcável, cópias, prévia "Como fica" e resumo de folhas. (v0.24.0)
-- [ ] Encaixes e tolerâncias (calculadora de folga + peça de teste em 3MF).
+- [x] **Encaixes e tolerâncias** (grupo Ferramentas): `modelos/encaixes.js` — `calcularEncaixe` (folga diametral: justo 0,10, deslizante 0,20, folgado 0,40 mm; + material PETG/ABS/ASA 0,05, TPU 0,10; × bico/0,4 acima de 0,4; ou a "folga calibrada" do usuário) e `gerarPecaTeste` (placa com N furos de folgas crescentes, valor gravado 0,6 mm acima de cada furo com a fonte Fredoka, + pino da medida exata; Manifold). Tela `encaixes-tela.js` com resultado (folga, furo, pino), prévia 2D/3D e exportação 3MF/STL/fatiador (filamento 1). (v0.25.0)
+
+**Plano de 04/11/2026 concluído (v0.20.0 a v0.25.0).**
 
 **Pendente (pedido do Pedro):** teste pela TELA do Anycubic Slicer Next, com fotos para ele: gerar o Chaveiro de nome, "Abrir no fatiador" escolhendo "Sem AMS", fatiar no programa aberto normalmente e conferir na pré-visualização a pausa na camada 13 (2,6 mm); também o arquivo "Com AMS" (troca para o filamento 2). Falta confirmar se a abertura pela janela (não pela linha de comando) também lê o `custom_gcode_per_layer.xml`. Precisa do Computer use ligado no app do Claude (Configurações → Este computador → Computer use); em 04/11/2026 estava desligado.
 

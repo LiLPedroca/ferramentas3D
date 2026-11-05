@@ -133,6 +133,15 @@ export const FERRAMENTAS = [
     tela: "svg",
   },
   {
+    id: "encaixes",
+    grupo: "ferramentas",
+    titulo: "Encaixes e tolerâncias",
+    descricao: "Folga certa entre pino e furo, e peça de teste para calibrar.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "encaixes",
+  },
+  {
     id: "stl",
     grupo: "ferramentas",
     titulo: "Caçador de STL",

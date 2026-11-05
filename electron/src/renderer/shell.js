@@ -16,6 +16,7 @@ const TELAS = {
   clientes: { elemento: "tela-clientes" },
   filamentos: { elemento: "tela-filamentos" },
   etiquetas: { elemento: "tela-etiquetas" },
+  encaixes: { elemento: "tela-encaixes" },
   orcamentos: { elemento: "tela-orcamentos" },
   metadados: { elemento: "tela-metadados" },
   detector: { elemento: "tela-detector" },

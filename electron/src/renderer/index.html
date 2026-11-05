@@ -322,6 +322,109 @@
       </div>
     </dialog>
 
+    <main class="tela oculta pagina" id="tela-encaixes">
+      <div class="pagina-conteudo largo">
+        <div class="modelo-trabalho">
+          <aside class="painel modelo-opcoes ch-painel">
+            <nav class="ch-abas" aria-label="Partes da ferramenta">
+              <button type="button" data-alvo="en-sec-calculo">Folga</button>
+              <button type="button" data-alvo="en-sec-teste">Peça de teste</button>
+            </nav>
+            <div class="ch-rolagem">
+              <section id="en-sec-calculo">
+                <h2 class="ch-titulo">Calcular a folga</h2>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Medida da peça</span>
+                    <div class="entrada"><input id="en-medida" inputmode="decimal" value="8" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Material</span>
+                    <select id="en-material" class="seletor largo-total"></select>
+                  </label>
+                </div>
+                <label class="campo">
+                  <span>Encaixe</span>
+                  <select id="en-encaixe" class="seletor largo-total"></select>
+                </label>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Bico</span>
+                    <select id="en-bico" class="seletor largo-total">
+                      <option value="0.2">0,2 mm</option>
+                      <option value="0.4" selected>0,4 mm</option>
+                      <option value="0.6">0,6 mm</option>
+                      <option value="0.8">0,8 mm</option>
+                    </select>
+                  </label>
+                  <label class="campo">
+                    <span>Folga calibrada</span>
+                    <div class="entrada"><input id="en-calibrada" inputmode="decimal" placeholder="opcional" /><em>mm</em></div>
+                  </label>
+                </div>
+                <div class="en-resultado" id="en-resultado"></div>
+                <p class="ajuda">Furos impressos em pé (eixo na vertical) costumam sair um pouco menores. Se a peça de teste mostrar outra folga, coloque em "Folga calibrada".</p>
+              </section>
+
+              <section id="en-sec-teste">
+                <h2 class="ch-titulo">Peça de teste</h2>
+                <p class="ajuda">Uma placa com furos de folgas crescentes (o valor fica gravado em cima de cada um) e um pino da medida exata. Veja em qual furo o pino entra do jeito que você quer.</p>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Diâmetro do pino</span>
+                    <div class="entrada"><input id="en-diametro" inputmode="decimal" value="8" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Furos</span>
+                    <div class="entrada"><input id="en-quantidade" inputmode="numeric" value="6" /></div>
+                  </label>
+                </div>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Primeira folga</span>
+                    <div class="entrada"><input id="en-folga-inicial" inputmode="decimal" value="0,1" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Aumento por furo</span>
+                    <div class="entrada"><input id="en-passo" inputmode="decimal" value="0,05" /><em>mm</em></div>
+                  </label>
+                </div>
+                <label class="campo">
+                  <span>Espessura da placa</span>
+                  <div class="entrada"><input id="en-espessura" inputmode="decimal" value="4" /><em>mm</em></div>
+                </label>
+              </section>
+            </div>
+          </aside>
+          <section class="painel modelo-previa">
+            <div class="ch-barra">
+              <span class="cliente-sub" id="en-folgas"></span>
+              <div class="ch-grupo" role="group" aria-label="Tipo de prévia">
+                <button type="button" class="ch-mini" id="en-ver-2d" aria-pressed="true">2D</button>
+                <button type="button" class="ch-mini" id="en-ver-3d" aria-pressed="false">3D</button>
+              </div>
+            </div>
+            <div class="palco-modelo ch-palco" id="en-palco">
+              <canvas id="en-2d" class="ch-canvas"></canvas>
+              <div class="ch-3d" id="en-3d" hidden></div>
+            </div>
+            <div class="ch-barra">
+              <span class="cliente-sub" id="en-medidas"></span>
+            </div>
+            <p class="ch-status" id="en-status" role="status"></p>
+            <div class="modelo-rodape">
+              <span class="cliente-sub">Placa e pino no mesmo arquivo, um ao lado do outro.</span>
+              <div class="acoes-form">
+                <button class="botao-secundario" id="en-stl" type="button" disabled>Salvar STL</button>
+                <button class="botao-secundario" id="en-3mf" type="button" disabled>Salvar 3MF</button>
+                <button class="botao-primario" id="en-fatiador" type="button" disabled>Abrir no fatiador</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
     <main class="tela oculta pagina" id="tela-etiquetas">
       <div class="pagina-conteudo largo">
         <h1 class="titulo-pagina">Etiquetas</h1>

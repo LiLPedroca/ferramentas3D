@@ -3056,3 +3056,27 @@ textarea:focus {
 .et-copias input {
   padding: 6px 0;
 }
+
+/* Encaixes e tolerâncias */
+.en-resultado {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.en-bloco {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.en-bloco strong {
+  grid-row: span 2;
+  font-size: 20px;
+  color: var(--acento-forte);
+}
