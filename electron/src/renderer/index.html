@@ -765,48 +765,32 @@
       </div>
     </main>
 
-    <main class="tela oculta pagina" id="tela-metadados">
-      <div class="pagina-conteudo estreito">
-        <h1 class="titulo-pagina">Removedor de metadados</h1>
-        <p class="ajuda md-intro">Fotos guardam informações escondidas, como o local onde foram tiradas, a câmera e o programa usado. Veja o que cada imagem carrega e salve cópias limpas. Os arquivos originais nunca são alterados.</p>
-
-        <div class="zona-arquivo" id="md-zona" tabindex="0" role="button" aria-label="Escolher fotos">
-          <p><strong>Arraste fotos aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
-          <input type="file" id="md-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
-        </div>
-
-        <div class="md-acoes" id="md-acoes" hidden>
-          <p class="ajuda" id="md-resumo"></p>
-          <label class="md-opcao"><input type="checkbox" id="md-manter-cor" checked /> Manter o perfil de cor (recomendado: não identifica ninguém e mantém as cores certas)</label>
-          <div class="acoes-form">
-            <button class="botao-texto" id="md-limpar" type="button">Limpar lista</button>
-            <button class="botao-primario" id="md-salvar" type="button">Salvar cópias sem metadados</button>
-          </div>
-          <div class="bk-previa" id="md-resultado" hidden>
-            <p id="md-resultado-texto"></p>
-            <div class="acoes-form">
-              <button class="botao-secundario" id="md-abrir-pasta" type="button">Abrir pasta</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="md-lista" id="md-lista"></div>
-      </div>
-    </main>
-
     <main class="tela oculta pagina" id="tela-detector">
       <div class="pagina-conteudo estreito">
-        <h1 class="titulo-pagina">Detector de IA</h1>
-        <p class="ajuda md-intro">Procura no arquivo marcas deixadas por geradores de imagem: credenciais de conteúdo (C2PA), a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração. Os pixels não são analisados, e a imagem não sai do seu computador.</p>
+        <h1 class="titulo-pagina">Detector de IA e metadados</h1>
+        <p class="ajuda md-intro">Mostra o que cada imagem carrega: indícios de IA (credenciais de conteúdo C2PA, a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração), local (GPS), câmera, data e programa. Diz onde cada indício foi achado e salva cópias sem metadados. Os pixels não são analisados, a imagem não sai do seu computador e os arquivos originais nunca são alterados.</p>
         <div class="zona-arquivo" id="ia-zona" tabindex="0" role="button" aria-label="Escolher imagens">
           <p><strong>Arraste imagens aqui</strong></p>
           <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
           <input type="file" id="ia-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
         </div>
-        <div class="acoes-form">
-          <button class="botao-texto" id="ia-limpar" type="button" hidden>Limpar resultados</button>
+
+        <div class="md-acoes" id="ia-acoes" hidden>
+          <p class="ajuda" id="ia-resumo"></p>
+          <label class="md-opcao"><input type="checkbox" id="ia-manter-cor" checked /> Manter o perfil de cor (recomendado: não identifica ninguém e mantém as cores certas)</label>
+          <p class="ajuda">A cópia sai sem metadados. Marcas d'água invisíveis gravadas nos pixels, se a imagem tiver, continuam nela.</p>
+          <div class="acoes-form">
+            <button class="botao-texto" id="ia-limpar" type="button">Limpar lista</button>
+            <button class="botao-primario" id="ia-salvar-todas" type="button">Salvar cópias sem metadados</button>
+          </div>
+          <div class="bk-previa" id="ia-resultado" hidden>
+            <p id="ia-resultado-texto"></p>
+            <div class="acoes-form">
+              <button class="botao-secundario" id="ia-abrir-pasta" type="button">Abrir pasta</button>
+            </div>
+          </div>
         </div>
+
         <div class="ia-resultados" id="ia-resultados"></div>
       </div>
     </main>

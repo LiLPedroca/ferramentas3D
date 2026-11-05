@@ -154,6 +154,13 @@ Etapas (marcar [x] ao publicar):
 
 **Plano de 04/11/2026 concluído (v0.20.0 a v0.25.0).**
 
+## Detector de IA e metadados numa tela só (v0.26.0, 05/11/2026, branch `detector-metadados-unificado`)
+- O antigo "Removedor de metadados" entrou no Detector de IA: tela `detector` ("Detector de IA e metadados"), `renderer/detector-tela.js`; `metadados-tela.js` e a tela `tela-metadados` saíram.
+- Cada cartão mostra o veredito, os indícios com **onde** foram achados (ex.: "XMP", "EXIF · Programa", `Texto PNG "parameters"`, "C2PA") e o **trecho** encontrado, a lista de metadados e "Salvar cópia sem metadados" (ou todas de uma vez). A cópia é conferida de novo pelo detector antes de salvar.
+- `analisarImagem` devolve também `fontes` ([{ onde, texto }]) e `c2pa` (bytes). `lerC2pa` (detector-ia.js) lê do CBOR o `claim_generator`/`claim_generator_info.name`, as ações `c2pa.*` e as organizações dos certificados (OID 2.5.4.10). Sem validar a assinatura: a tela manda para contentcredentials.org/verify.
+- WebP: agora só ficam os blocos da imagem (VP8, VP8L, VP8X, ALPH, ANIM, ANMF, ICCP). Antes o bloco `C2PA` e blocos desconhecidos passavam pela limpeza.
+- A tela avisa que marcas d'água invisíveis nos pixels continuam na cópia. Combinado com o Pedro: não fazer nada para esconder ou apagar marcas de IA nos pixels.
+
 **Pendente (pedido do Pedro):** teste pela TELA do Anycubic Slicer Next, com fotos para ele: gerar o Chaveiro de nome, "Abrir no fatiador" escolhendo "Sem AMS", fatiar no programa aberto normalmente e conferir na pré-visualização a pausa na camada 13 (2,6 mm); também o arquivo "Com AMS" (troca para o filamento 2). Falta confirmar se a abertura pela janela (não pela linha de comando) também lê o `custom_gcode_per_layer.xml`. Precisa do Computer use ligado no app do Claude (Configurações → Este computador → Computer use); em 04/11/2026 estava desligado.
 
 Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.

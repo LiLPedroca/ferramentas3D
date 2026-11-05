@@ -1627,6 +1627,38 @@ kbd {
   color: var(--texto-suave);
 }
 
+.ia-evidencias li .ia-onde {
+  font-size: 12px;
+}
+
+.ia-trecho {
+  display: block;
+  margin-top: 3px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--superficie-2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ia-subtitulo {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ia-cartao .md-chips {
+  margin-top: 6px;
+}
+
+.ia-acoes-cartao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* ---------- Conversor SVG ---------- */
 .svg-trabalho {
   display: grid;

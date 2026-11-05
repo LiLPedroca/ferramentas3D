@@ -18,7 +18,6 @@ const TELAS = {
   etiquetas: { elemento: "tela-etiquetas" },
   encaixes: { elemento: "tela-encaixes" },
   orcamentos: { elemento: "tela-orcamentos" },
-  metadados: { elemento: "tela-metadados" },
   detector: { elemento: "tela-detector" },
   stl: { elemento: "tela-stl" },
   chaveiro: { elemento: "tela-chaveiro" },

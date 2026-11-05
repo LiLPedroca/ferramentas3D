@@ -62,6 +62,25 @@ export function lerExif(tiff) {
   return resultado;
 }
 
+const NOMES_EXIF = {
+  fabricante: "Fabricante",
+  modelo: "Modelo",
+  programa: "Programa",
+  data: "Data",
+  autor: "Autor",
+  direitos: "Direitos autorais",
+};
+
+// Campos de texto do EXIF, cada um com o lugar de onde veio (usado pelo Detector de IA).
+function fontesDoExif(tiff) {
+  const { campos } = lerExif(tiff);
+  return Object.entries(campos).map(([campo, valor]) => ({ onde: `EXIF · ${NOMES_EXIF[campo] || campo}`, texto: valor }));
+}
+
+function fonteBruta(onde, dados) {
+  return { onde, texto: ascii(dados, 0, Math.min(dados.length, 2 * 1024 * 1024)) };
+}
+
 function itensDoExif(tiff) {
   const { campos, temGps } = lerExif(tiff);
   const itens = [];
@@ -111,24 +130,32 @@ function percorrerJpeg(bytes, aoSegmento) {
   }
 }
 
+const ITEM_C2PA = { tipo: "c2pa", rotulo: "Credenciais de conteúdo (C2PA)", detalhe: "Registro de origem e edição da imagem." };
+
 function classificarJpeg(marcador, dados) {
-  if (marcador === 0xe1 && comeca(dados, "Exif\0\0")) return { tipo: "exif", itens: itensDoExif(dados.subarray(6)) };
-  if (marcador === 0xe1 && comeca(dados, XMP)) {
-    return { tipo: "xmp", itens: [{ tipo: "xmp", rotulo: "XMP", detalhe: "Dados de edição e descrição." }], texto: ascii(dados, XMP.length, dados.length) };
+  if (marcador === 0xe1 && comeca(dados, "Exif\0\0")) {
+    return { tipo: "exif", itens: itensDoExif(dados.subarray(6)), fontes: fontesDoExif(dados.subarray(6)) };
   }
-  if (marcador === 0xed) return { tipo: "iptc", itens: [{ tipo: "iptc", rotulo: "IPTC", detalhe: "Legenda, autor ou palavras-chave." }] };
+  if (marcador === 0xe1 && comeca(dados, XMP)) {
+    const texto = ascii(dados, XMP.length, dados.length);
+    return { tipo: "xmp", itens: [{ tipo: "xmp", rotulo: "XMP", detalhe: "Dados de edição e descrição." }], texto, fontes: [{ onde: "XMP", texto }] };
+  }
+  if (marcador === 0xed) {
+    return { tipo: "iptc", itens: [{ tipo: "iptc", rotulo: "IPTC", detalhe: "Legenda, autor ou palavras-chave." }], fontes: [fonteBruta("IPTC", dados)] };
+  }
   if (marcador === 0xeb && (comeca(dados, "JP") || ascii(dados, 0, Math.min(dados.length, 64)).includes("jumb"))) {
-    return { tipo: "c2pa", itens: [{ tipo: "c2pa", rotulo: "Credenciais de conteúdo (C2PA)", detalhe: "Registro de origem e edição da imagem." }] };
+    return { tipo: "c2pa", itens: [ITEM_C2PA], c2pa: dados, fontes: [fonteBruta("C2PA", dados)] };
   }
   if (marcador === 0xfe) {
     const texto = ascii(dados, 0, Math.min(dados.length, 120)).replace(/[^\x20-\x7e]/g, "").trim();
-    return { tipo: "comentario", itens: [{ tipo: "comentario", rotulo: "Comentário", detalhe: texto || "(sem texto)" }] };
+    return { tipo: "comentario", itens: [{ tipo: "comentario", rotulo: "Comentário", detalhe: texto || "(sem texto)" }], fontes: [fonteBruta("Comentário", dados)] };
   }
   if (marcador === 0xe2 && comeca(dados, "ICC_PROFILE\0")) return { tipo: "icc", itens: [] };
   if (marcador === 0xe0 && (comeca(dados, "JFIF\0") || comeca(dados, "JFXX\0"))) return { tipo: "jfif", itens: [] };
   if (marcador === 0xee && comeca(dados, "Adobe")) return { tipo: "adobe", itens: [] };
   if (marcador >= 0xe0 && marcador <= 0xef) {
-    return { tipo: "outro", itens: [{ tipo: "outro", rotulo: `Bloco APP${marcador - 0xe0}`, detalhe: "Dados extras do programa que criou a imagem." }] };
+    const nome = `Bloco APP${marcador - 0xe0}`;
+    return { tipo: "outro", itens: [{ tipo: "outro", rotulo: nome, detalhe: "Dados extras do programa que criou a imagem." }], fontes: [fonteBruta(nome, dados)] };
   }
   return { tipo: "imagem", itens: [] };
 }
@@ -173,15 +200,17 @@ function classificarPng(tipo, dados) {
   if (tipo === "tEXt" || tipo === "iTXt" || tipo === "zTXt") {
     const { chave, valor } = textoPng(tipo, dados);
     const resumo = valor ? `${chave}: ${valor.slice(0, 80)}${valor.length > 80 ? "…" : ""}` : chave;
-    return { itens: [{ tipo: "texto", rotulo: "Texto embutido", detalhe: resumo }], texto: `${chave}\n${valor}` };
+    return {
+      itens: [{ tipo: "texto", rotulo: "Texto embutido", detalhe: resumo }],
+      texto: `${chave}\n${valor}`,
+      fontes: [{ onde: `Texto PNG "${chave}"`, texto: valor || chave }],
+    };
   }
-  if (tipo === "eXIf") return { itens: itensDoExif(dados) };
+  if (tipo === "eXIf") return { itens: itensDoExif(dados), fontes: fontesDoExif(dados) };
   if (tipo === "tIME") return { itens: [{ tipo: "data", rotulo: "Data de modificação", detalhe: "Registrada no arquivo." }] };
-  if (tipo === "caBX") {
-    return { itens: [{ tipo: "c2pa", rotulo: "Credenciais de conteúdo (C2PA)", detalhe: "Registro de origem e edição da imagem." }] };
-  }
+  if (tipo === "caBX") return { itens: [ITEM_C2PA], c2pa: dados, fontes: [fonteBruta("C2PA", dados)] };
   if (tipo === "iCCP" || PNG_MANTER.has(tipo)) return { itens: [] };
-  return { itens: [{ tipo: "outro", rotulo: `Bloco ${tipo}`, detalhe: "Dados extras." }] };
+  return { itens: [{ tipo: "outro", rotulo: `Bloco ${tipo}`, detalhe: "Dados extras." }], fontes: [fonteBruta(`Bloco ${tipo}`, dados)] };
 }
 
 // ---------- WebP ----------
@@ -198,23 +227,33 @@ function percorrerWebp(bytes, aoBloco) {
   }
 }
 
+// Blocos que formam a imagem WebP. Qualquer outro é metadado (EXIF, XMP, C2PA ou desconhecido).
+const WEBP_MANTER = new Set(["VP8 ", "VP8L", "VP8X", "ALPH", "ANIM", "ANMF", "ICCP"]);
+
 function classificarWebp(tipo, dados) {
-  if (tipo === "EXIF") return { itens: itensDoExif(dados) };
+  if (tipo === "EXIF") return { itens: itensDoExif(dados), fontes: fontesDoExif(dados) };
   if (tipo === "XMP ") {
-    return { itens: [{ tipo: "xmp", rotulo: "XMP", detalhe: "Dados de edição e descrição." }], texto: new TextDecoder().decode(dados) };
+    const texto = new TextDecoder().decode(dados);
+    return { itens: [{ tipo: "xmp", rotulo: "XMP", detalhe: "Dados de edição e descrição." }], texto, fontes: [{ onde: "XMP", texto }] };
   }
-  return { itens: [] };
+  if (tipo === "C2PA") return { itens: [ITEM_C2PA], c2pa: dados, fontes: [fonteBruta("C2PA", dados)] };
+  if (WEBP_MANTER.has(tipo)) return { itens: [] };
+  const nome = `Bloco ${tipo.trim()}`;
+  return { itens: [{ tipo: "outro", rotulo: nome, detalhe: "Dados extras." }], fontes: [fonteBruta(nome, dados)] };
 }
 
 // ---------- API ----------
-// Lista o que a imagem carrega. textos: XMP e textos PNG (usados também pelo Detector de IA).
+// Lista o que a imagem carrega. Para o Detector de IA:
+// textos = XMP e textos PNG; fontes = [{ onde, texto }] de cada bloco; c2pa = bytes das credenciais.
 export function analisarImagem(bytes) {
   const formato = detectarFormato(bytes);
-  const resultado = { formato, itens: [], textos: [], temIcc: false };
+  const resultado = { formato, itens: [], textos: [], fontes: [], c2pa: [], temIcc: false };
   if (!formato) return resultado;
   const juntar = (c) => {
     resultado.itens.push(...c.itens);
     if (c.texto) resultado.textos.push(c.texto);
+    if (c.fontes) resultado.fontes.push(...c.fontes);
+    if (c.c2pa) resultado.c2pa.push(c.c2pa);
   };
   if (formato === "jpeg") {
     percorrerJpeg(bytes, (s) => {
@@ -275,10 +314,11 @@ export function limparImagem(bytes, { manterCor = true } = {}) {
     return juntarPartes(partes);
   }
 
-  // WebP: remove EXIF e XMP (e ICCP se pedido) e corrige os sinalizadores do VP8X.
+  // WebP: fica só com os blocos da imagem (tira EXIF, XMP, C2PA e desconhecidos; ICCP se pedido)
+  // e corrige os sinalizadores do VP8X.
   const blocos = [];
   percorrerWebp(bytes, (b) => {
-    if (b.tipo === "EXIF" || b.tipo === "XMP " || (b.tipo === "ICCP" && !manterCor)) return;
+    if (!WEBP_MANTER.has(b.tipo) || (b.tipo === "ICCP" && !manterCor)) return;
     const copia = bytes.slice(b.inicio, b.fim);
     if (b.tipo === "VP8X" && copia.length > 8) {
       copia[8] &= ~(0x08 | 0x04); // sem EXIF, sem XMP

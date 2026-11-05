@@ -146,4 +146,17 @@ describe("WebP", () => {
     expect(limpo[20] & 0x0c).toBe(0); // sinalizadores EXIF/XMP desligados
     expect(limpo[20] & 0x20).toBe(0x20); // ICC mantido
   });
+
+  it("encontra e remove C2PA e blocos desconhecidos", () => {
+    const vp8 = [...txt("VP8 "), ...u32le(4), 1, 2, 3, 4];
+    const c2pa = [...txt("C2PA"), ...u32le(6), ...txt("jumbc2")];
+    const outro = [...txt("ABCD"), ...u32le(2), 9, 9];
+    const corpo = [...txt("WEBP"), ...vp8, ...c2pa, ...outro];
+    const original = new Uint8Array([...txt("RIFF"), ...u32le(corpo.length), ...corpo]);
+    const tipos = analisarImagem(original).itens.map((i) => i.tipo);
+    expect(tipos).toEqual(expect.arrayContaining(["c2pa", "outro"]));
+    const limpo = limparImagem(original);
+    expect(analisarImagem(limpo).itens).toEqual([]);
+    expect(limpo.length).toBe(12 + vp8.length);
+  });
 });
