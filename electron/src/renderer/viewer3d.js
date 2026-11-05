@@ -13,7 +13,20 @@ import { abrirNoFatiador } from "./fatiador-ui.js";
 import { DENSIDADE_PLA } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
+import { formatarMedida } from "./modelos/medidas.js";
+import { criarPaquimetro } from "./paquimetro.js";
 import { mostrarAviso } from "./shell.js";
+
+const MODOS_MEDIDA = ["distancia", "diametro", "profundidade"];
+const DICAS = {
+  vista: "Arraste para girar a vista, botão direito para deslocar, roda para zoom.",
+  mover: "Arraste as setas para mover a peça sobre a mesa.",
+  girar: "Arraste os anéis para girar a peça. Ela continua apoiada na mesa.",
+  face: "Clique na face que deve ficar encostada na mesa.",
+  distancia: "Clique em dois pontos. Em faces paralelas, mede como os bicos do paquímetro. Esc cancela.",
+  diametro: "Clique na parede de dentro de um furo (ou na lateral de um pino).",
+  profundidade: "Clique na borda (a face de cima) e depois no fundo ou no outro degrau. Esc cancela.",
+};
 
 const $ = (id) => document.getElementById(id);
 const COR_PADRAO = "#7aa5ff";
@@ -86,9 +99,27 @@ export function iniciarVisualizador() {
   new ResizeObserver(ajustarTamanho).observe(palco);
   ajustarTamanho();
 
+  estado.paquimetro = criarPaquimetro({
+    cena, camera, renderizador, peca, palco,
+    escala: () => estado.escala,
+    aoEscalar: (fator) => definirEscala(fator),
+    aoMudar: () => atualizarInfo(),
+    avisar: mostrarAviso,
+    dica: (texto) => {
+      $("vz-dica").textContent = texto;
+    },
+    dicaPadrao: () => {
+      $("vz-dica").textContent = DICAS[estado.modo];
+    },
+  });
+
+  // Usado só pelos roteiros do modo de captura (testes da tela), para achar pontos na peça.
+  window.__visualizadorTeste = { estado, THREE };
+
   const animar = () => {
     controles.update();
     renderizador.render(cena, camera);
+    estado.paquimetro.quadro();
     requestAnimationFrame(animar);
   };
   animar();
@@ -263,6 +294,7 @@ async function carregarArquivo(arquivo, opcoes = {}) {
     return;
   }
   limparPeca();
+  estado.paquimetro.limpar();
   const { peca } = estado;
   let triangulos = 0;
   for (const parte of lido.partes) {
@@ -332,6 +364,7 @@ function apoiarNaMesa() {
 function depoisDeMexer() {
   apoiarNaMesa();
   atualizarInfo();
+  estado.paquimetro?.atualizar();
 }
 
 const EIXOS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 0, -1), z: new THREE.Vector3(0, 1, 0) };
@@ -386,6 +419,7 @@ function deitarNaFace(ev) {
 
 function mudarModo(modo) {
   const { transformador, peca, renderizador } = estado;
+  if (estado.modo !== modo) estado.paquimetro?.cancelar();
   estado.modo = modo;
   for (const b of document.querySelectorAll("[data-vz-modo]")) b.classList.toggle("ativo", b.dataset.vzModo === modo);
   if (modo === "mover" || modo === "girar") {
@@ -395,13 +429,8 @@ function mudarModo(modo) {
   } else {
     transformador.detach();
   }
-  renderizador.domElement.style.cursor = modo === "face" ? "crosshair" : "";
-  $("vz-dica").textContent = {
-    vista: "Arraste para girar a vista, botão direito para deslocar, roda para zoom.",
-    mover: "Arraste as setas para mover a peça sobre a mesa.",
-    girar: "Arraste os anéis para girar a peça. Ela continua apoiada na mesa.",
-    face: "Clique na face que deve ficar encostada na mesa.",
-  }[modo];
+  renderizador.domElement.style.cursor = modo === "face" || MODOS_MEDIDA.includes(modo) ? "crosshair" : "";
+  $("vz-dica").textContent = DICAS[modo];
 }
 
 // ---------- Câmera ----------
@@ -446,6 +475,7 @@ function volumeMm3(geometria) {
 }
 
 const mm = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const medida = (n) => (estado.paquimetro?.unidade() === "pol" ? formatarMedida(n, "pol") : mm(n));
 
 function atualizarInfo() {
   const valores = $("info-modelo").querySelectorAll("dd");
@@ -462,7 +492,7 @@ function atualizarInfo() {
   estado.gramas = gramas;
   const dados = [
     estado.arquivo?.name ?? "—",
-    `${mm(tamanho.x)} × ${mm(tamanho.y)} × ${mm(tamanho.z)}`,
+    `${medida(tamanho.x)} × ${medida(tamanho.y)} × ${medida(tamanho.z)}`,
     (volume / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 }),
     `≈ ${gramas.toLocaleString("pt-BR", { maximumFractionDigits: gramas < 10 ? 1 : 0 })} g (PLA maciço)`,
     estado.triangulos.toLocaleString("pt-BR"),
@@ -541,8 +571,26 @@ function ligarControles() {
     if (!estado.peca.children.length) return;
     preencherDoModelo({ nome: estado.nome, pesoG: estado.gramas ?? 0, detalhe: "volume do arquivo em PLA, peça maciça" });
   });
-  estado.renderizador.domElement.addEventListener("click", (ev) => {
+  // Clique sem arrastar (arrastar gira a vista e não deve marcar ponto).
+  const tela = estado.renderizador.domElement;
+  let inicio = null;
+  tela.addEventListener("pointerdown", (ev) => {
+    inicio = { x: ev.clientX, y: ev.clientY };
+  });
+  tela.addEventListener("click", (ev) => {
+    if (inicio && Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y) > 4) return;
     if (estado.modo === "face") deitarNaFace(ev);
+    else if (MODOS_MEDIDA.includes(estado.modo)) estado.paquimetro.clicar(ev, estado.modo);
+  });
+  tela.addEventListener("pointermove", (ev) => {
+    if (ev.buttons === 0) estado.paquimetro.mover(ev, MODOS_MEDIDA.includes(estado.modo) ? estado.modo : null);
+  });
+  tela.addEventListener("pointerleave", () => estado.paquimetro.mover(null, null));
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && MODOS_MEDIDA.includes(estado.modo)) {
+      estado.paquimetro.cancelar();
+      $("vz-dica").textContent = DICAS[estado.modo];
+    }
   });
   mudarModo("vista");
 }

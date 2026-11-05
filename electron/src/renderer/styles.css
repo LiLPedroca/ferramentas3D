@@ -742,6 +742,83 @@ input:focus-visible,
   background: none;
 }
 
+/* altura fixa: a dica muda de tamanho e não pode encolher a área 3D */
+#vz-dica {
+  min-height: 2.8em;
+  margin: 0;
+}
+
+.vz-paquimetro {
+  margin: 4px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.vz-paquimetro h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.vz-paquimetro .seletor.pequeno {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 12.5px;
+}
+
+.vz-medidas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.vz-medida {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 3px solid #ffc857;
+  border-radius: 8px;
+  background: var(--superficie-2);
+  font-size: 13px;
+}
+
+.vz-medida-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vz-medida .botao-texto {
+  align-self: flex-start;
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.vz-medida .vz-linha .entrada {
+  padding: 0 8px;
+}
+
+.vz-rotulo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: #ffc857;
+  color: #1a1400;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 .vz-acoes {
   display: grid;
   grid-template-columns: 1fr 1fr;

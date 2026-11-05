@@ -201,6 +201,11 @@
             <button type="button" class="vz-botao" data-vz-modo="girar">Girar</button>
             <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
           </div>
+          <div class="vz-grupo" role="group" aria-label="Paquímetro">
+            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos ou entre faces paralelas">📏 Distância</button>
+            <button type="button" class="vz-botao" data-vz-modo="diametro" title="Diâmetro de furo ou pino">⌀ Diâmetro</button>
+            <button type="button" class="vz-botao" data-vz-modo="profundidade" title="Profundidade de furo ou altura de degrau">↧ Profundidade</button>
+          </div>
           <div class="vz-grupo" role="group" aria-label="Girar 90 graus">
             <button type="button" class="vz-botao" data-vz-girar="x:90" title="Girar 90° em X">↻ X</button>
             <button type="button" class="vz-botao" data-vz-girar="y:90" title="Girar 90° em Y">↻ Y</button>
@@ -230,6 +235,21 @@
           <dt>Triângulos</dt><dd>—</dd>
         </dl>
         <p class="vz-cabe" id="vz-cabe"></p>
+
+        <section class="vz-paquimetro">
+          <div class="historico-topo">
+            <h3>Paquímetro</h3>
+            <select class="seletor pequeno" id="vz-unidade" aria-label="Unidade das medidas">
+              <option value="mm">mm</option>
+              <option value="pol">polegadas</option>
+            </select>
+          </div>
+          <label class="md-opcao"><input type="checkbox" id="vz-snap" checked /> Grudar em vértices e arestas</label>
+          <label class="md-opcao"><input type="checkbox" id="vz-centro-furos" /> Na distância, usar o centro dos furos</label>
+          <ul class="vz-medidas" id="vz-medidas"></ul>
+          <p class="ajuda pequeno" id="vz-medidas-vazio">Escolha 📏 Distância, ⌀ Diâmetro ou ↧ Profundidade e clique na peça.</p>
+          <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas as medidas</button>
+        </section>
 
         <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
         <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
