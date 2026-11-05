@@ -1,6 +1,6 @@
 // Leitor de 3MF para o Visualizador: geometria (com componentes, transformações e a extensão
 // "production" do Bambu/Orca, em que cada objeto fica num arquivo .model separado) e cores.
-// Cores, em ordem de prioridade: pintura por triângulo (paint_color, só triângulos inteiros),
+// Cores, em ordem de prioridade: pintura por triângulo (paint_color, inclusive triângulos subdivididos),
 // cor do triângulo (basematerials/colorgroup), cor do objeto, filamento do objeto/parte
 // (Metadata/model_settings.config + filament_colour do project_settings.config).
 // Devolve coordenadas como no fatiador (Z para cima, em mm).
@@ -37,15 +37,84 @@ function corHex(texto) {
   return m ? `#${m[1].toLowerCase()}` : null;
 }
 
-// Pintura do Bambu/Orca (TriangleSelector): só o caso de triângulo inteiro numa cor.
-// "4" → filamento 1, "8" → 2, "0C" → 3, "1C" → 4, … Triângulos subdivididos ficam com a cor do objeto.
+// Pintura do Bambu/Orca (TriangleSelector do OrcaSlicer/PrusaSlicer).
+// O texto em hexadecimal é lido de trás para frente, cada dígito com o bit menos significativo
+// primeiro. Cada triângulo começa com 4 bits: os 2 de baixo dizem em quantos lados ele foi dividido
+// (0 = folha). Folha: os 2 de cima são o filamento (0 = cor do objeto, 1, 2); se forem "11",
+// o próximo nibble + 3 é o filamento (nibble 15 → mais um nibble + 18). Dividido: os 2 de cima
+// são o lado especial e os filhos vêm em seguida, do último para o primeiro.
+function bitsDaPintura(codigo) {
+  const bits = [];
+  for (let i = codigo.length - 1; i >= 0; i--) {
+    const d = parseInt(codigo[i], 16);
+    if (Number.isNaN(d)) return null;
+    for (let b = 0; b < 4; b++) bits.push((d >> b) & 1);
+  }
+  return bits;
+}
+
+const meio = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+
+// Filhos de um triângulo dividido, na mesma ordem do TriangleSelector::perform_split.
+function dividir(v, lados, especial) {
+  const [a, b, c] = [v[especial % 3], v[(especial + 1) % 3], v[(especial + 2) % 3]];
+  if (lados === 1) {
+    const m = meio(c, b);
+    return [[a, b, m], [m, c, a]];
+  }
+  if (lados === 2) {
+    const mab = meio(b, a);
+    const mac = meio(a, c);
+    return [[a, mab, mac], [mab, b, mac], [b, c, mac]];
+  }
+  const mab = meio(b, a);
+  const mbc = meio(c, b);
+  const mca = meio(a, c);
+  return [[a, mab, mca], [mab, b, mbc], [mbc, c, mca], [mab, mbc, mca]];
+}
+
+// Divide o triângulo (3 vértices [x,y,z]) como a pintura manda. Devolve [{ v, filamento }]
+// (filamento 0 = cor do objeto) ou null se o código não der para ler.
+export function lerPintura(codigo, vertices) {
+  if (!codigo) return null;
+  const bits = bitsDaPintura(codigo);
+  if (!bits) return null;
+  let i = 0;
+  const nibble = () => {
+    if (i + 4 > bits.length) throw new Error("fim");
+    const n = bits[i] | (bits[i + 1] << 1) | (bits[i + 2] << 2) | (bits[i + 3] << 3);
+    i += 4;
+    return n;
+  };
+  const saida = [];
+  const ler = (v, profundidade) => {
+    if (profundidade > 24) throw new Error("fundo demais");
+    const codigoNo = nibble();
+    const lados = codigoNo & 0b11;
+    if (!lados) {
+      let filamento = codigoNo >> 2;
+      if (filamento === 3) {
+        const n = nibble();
+        filamento = n === 0b1111 ? nibble() + 18 : n + 3;
+      }
+      saida.push({ v, filamento });
+      return;
+    }
+    const filhos = dividir(v, lados, lados === 3 ? 0 : codigoNo >> 2);
+    for (let k = filhos.length - 1; k >= 0; k--) ler(filhos[k], profundidade + 1);
+  };
+  try {
+    ler(vertices, 0);
+  } catch {
+    return null;
+  }
+  return saida;
+}
+
+// Só o caso de triângulo inteiro numa cor: "4" → filamento 1, "8" → 2, "0C" → 3, "1C" → 4, …
 export function filamentoDaPintura(codigo) {
-  if (!codigo) return 0;
-  const c = codigo.toUpperCase();
-  if (c === "4") return 1;
-  if (c === "8") return 2;
-  const m = /^([0-9A-F])C$/.exec(c);
-  return m ? 3 + parseInt(m[1], 16) : 0;
+  const r = lerPintura(codigo, [[0, 0, 0], [1, 0, 0], [0, 1, 0]]);
+  return r?.length === 1 ? r[0].filamento : 0;
 }
 
 function lerModelo(texto, caminho) {
@@ -160,24 +229,45 @@ export function ler3mf(bytes, { placa = null } = {}) {
     const filamento = config.filamento.get(`p${objectid}`) ?? config.filamento.get(`o${objetoRaiz}`) ?? 0;
     const corBase =
       (objeto.pid && objeto.materiais.get(objeto.pid)?.[Number(objeto.pindex ?? 0)]) || corDoFilamento(filamento) || null;
-    const posicoes = new Float32Array(triangulos.length * 9);
+    // a pintura subdividida cria mais triângulos: a lista cresce conforme precisa
+    let posicoes = new Float32Array(triangulos.length * 9);
     const cores = [];
     let variaCor = false;
     let o = 0;
-    for (const t of triangulos) {
-      for (const k of ["v1", "v2", "v3"]) {
-        const i = Number(t[k]) * 3;
-        const [x, y, z] = [vertices[i], vertices[i + 1], vertices[i + 2]];
-        posicoes[o++] = x * matriz[0] + y * matriz[3] + z * matriz[6] + matriz[9];
-        posicoes[o++] = x * matriz[1] + y * matriz[4] + z * matriz[7] + matriz[10];
-        posicoes[o++] = x * matriz[2] + y * matriz[5] + z * matriz[8] + matriz[11];
+    const ponto = (i) => {
+      const [x, y, z] = [vertices[i], vertices[i + 1], vertices[i + 2]];
+      return [
+        x * matriz[0] + y * matriz[3] + z * matriz[6] + matriz[9],
+        x * matriz[1] + y * matriz[4] + z * matriz[7] + matriz[10],
+        x * matriz[2] + y * matriz[5] + z * matriz[8] + matriz[11],
+      ];
+    };
+    const guardar = (v, cor) => {
+      if (o + 9 > posicoes.length) {
+        const maior = new Float32Array(posicoes.length * 2 + 9);
+        maior.set(posicoes);
+        posicoes = maior;
       }
-      const pintada = corDoFilamento(filamentoDaPintura(t.paint_color ?? t["slic3rpe:mmu_segmentation"]));
-      const doTriangulo = t.pid || t.p1 ? objeto.materiais.get(t.pid ?? objeto.pid)?.[Number(t.p1 ?? 0)] : null;
-      const cor = pintada || doTriangulo || corBase;
+      for (const p of v) {
+        posicoes[o++] = p[0];
+        posicoes[o++] = p[1];
+        posicoes[o++] = p[2];
+      }
       if (cor !== corBase) variaCor = true;
       cores.push(cor);
+    };
+    for (const t of triangulos) {
+      const v = [ponto(Number(t.v1) * 3), ponto(Number(t.v2) * 3), ponto(Number(t.v3) * 3)];
+      const doTriangulo = t.pid || t.p1 ? objeto.materiais.get(t.pid ?? objeto.pid)?.[Number(t.p1 ?? 0)] : null;
+      const semPintura = doTriangulo || corBase;
+      const pedacos = lerPintura(t.paint_color ?? t["slic3rpe:mmu_segmentation"], v);
+      if (!pedacos) {
+        guardar(v, semPintura);
+        continue;
+      }
+      for (const p of pedacos) guardar(p.v, corDoFilamento(p.filamento) || semPintura);
     }
+    if (o < posicoes.length) posicoes = posicoes.slice(0, o);
     if (!corBase && !variaCor) semCor++;
     pecas.push({
       nome: objeto.nome || modelo(caminho).objetos.get(objetoRaiz)?.nome || `Peça ${pecas.length + 1}`,

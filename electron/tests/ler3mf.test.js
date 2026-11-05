@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { strToU8, zipSync } from "three/examples/jsm/libs/fflate.module.js";
 import { gerar3mf } from "../src/renderer/modelos/exportar.js";
-import { filamentoDaPintura, ler3mf } from "../src/renderer/modelos/ler3mf.js";
+import { filamentoDaPintura, ler3mf, lerPintura } from "../src/renderer/modelos/ler3mf.js";
 
 const tri = (v1, v2, v3, extra = "") => `<triangle v1="${v1}" v2="${v2}" v3="${v3}"${extra}/>`;
 const malha = `<mesh><vertices><vertex x="0" y="0" z="0"/><vertex x="10" y="0" z="0"/><vertex x="0" y="10" z="0"/><vertex x="0" y="0" z="5"/></vertices><triangles>${tri(0, 2, 1)}${tri(0, 1, 3, ' paint_color="8"')}${tri(1, 2, 3)}${tri(0, 3, 2)}</triangles></mesh>`;
@@ -73,10 +73,37 @@ describe("ler3mf", () => {
     expect(ler3mf(bambu({ placas: true }), { placa: "2" }).pecas[0].cor).toBe("#d4af37");
   });
 
-  it("código de pintura: só triângulos inteiros", () => {
+  it("código de pintura: triângulo inteiro numa cor", () => {
     expect([filamentoDaPintura("4"), filamentoDaPintura("8"), filamentoDaPintura("0C"), filamentoDaPintura("1C")]).toEqual([1, 2, 3, 4]);
-    expect(filamentoDaPintura("4C38")).toBe(0);
+    expect(filamentoDaPintura("0FC")).toBe(18);
+    expect(filamentoDaPintura("841")).toBe(0); // subdividido: não é uma cor só
     expect(filamentoDaPintura(undefined)).toBe(0);
+  });
+
+  it("pintura subdividida vira os pedaços com a cor de cada um", () => {
+    const [a, b, c] = [[0, 0, 0], [4, 0, 0], [0, 4, 0]];
+    // nibbles: 1 (dividido em 1 lado, lado 0), 4 (último filho: filamento 1), 8 (primeiro filho: filamento 2)
+    expect(lerPintura("841", [a, b, c])).toEqual([
+      { v: [[2, 2, 0], c, a], filamento: 1 },
+      { v: [a, b, [2, 2, 0]], filamento: 2 },
+    ]);
+    // dividido nos 3 lados: 4 filhos, o do meio pintado (filamento 1), os outros sem pintura
+    const tres = lerPintura("00043", [a, b, c]);
+    expect(tres).toHaveLength(4);
+    expect(tres.map((p) => p.filamento)).toEqual([1, 0, 0, 0]);
+    expect(tres[0].v).toEqual([[2, 0, 0], [2, 2, 0], [0, 2, 0]]);
+    expect(lerPintura("1", [a, b, c])).toBeNull(); // acabou no meio: ignora
+  });
+
+  it("3MF com pintura subdividida gera mais triângulos, com as cores", () => {
+    const modelo = `<model unit="millimeter"><resources><object id="1"><mesh><vertices><vertex x="0" y="0" z="0"/><vertex x="4" y="0" z="0"/><vertex x="0" y="4" z="0"/></vertices><triangles><triangle v1="0" v2="1" v3="2" paint_color="841"/></triangles></mesh></object></resources><build><item objectid="1"/></build></model>`;
+    const bytes = zipSync({
+      "3D/3dmodel.model": strToU8(modelo),
+      "Metadata/project_settings.config": strToU8('{ "filament_colour": ["#111111", "#22ff22"] }'),
+    });
+    const peca = ler3mf(bytes).pecas[0];
+    expect(peca.posicoes).toHaveLength(18);
+    expect(peca.coresTriangulos).toEqual(["#111111", "#22ff22"]);
   });
 
   it("unidade em polegadas vira milímetros", () => {
