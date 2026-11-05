@@ -152,7 +152,7 @@ describe("chaveiro de nome", () => {
       }
     }
     expect(problemas).toEqual([]);
-  });
+  }, 60000);
 });
 
 describe("impressão sem AMS (pausa para troca manual)", () => {

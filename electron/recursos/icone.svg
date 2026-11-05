@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b8def"/>
+      <stop offset="1" stop-color="#2f5fc4"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#fundo)"/>
+  <!-- cubo: mesmo desenho do ícone de boas-vindas, com faces preenchidas -->
+  <path d="M128 40 204 84 128 128 52 84Z" fill="#ffffff"/>
+  <path d="M52 84 128 128v88L52 172Z" fill="#ffffff" fill-opacity="0.78"/>
+  <path d="M204 84 128 128v88l76-44Z" fill="#ffffff" fill-opacity="0.55"/>
+  <!-- linhas de camada (impressão 3D) -->
+  <path d="M52 106 128 150M52 128 128 172M52 150 128 194" stroke="#2f5fc4" stroke-opacity="0.35" stroke-width="5" fill="none"/>
+  <path d="M204 106 128 150M204 128 128 172M204 150 128 194" stroke="#2f5fc4" stroke-opacity="0.35" stroke-width="5" fill="none"/>
+</svg>

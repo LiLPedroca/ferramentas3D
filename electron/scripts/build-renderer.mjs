@@ -37,6 +37,8 @@ for (const arquivo of ["index.html", "styles.css"]) {
   await copyFile(join(raiz, "src", "renderer", arquivo), join(saida, arquivo));
 }
 await cp(join(raiz, "src", "renderer", "assets"), join(saida, "assets"), { recursive: true });
+// Ícone da janela (o do executável e do instalador vem de recursos/icone.ico)
+await copyFile(join(raiz, "recursos", "icone.png"), join(saida, "assets", "icone.png"));
 // Manifold (geometria dos modelos personalizados): o .wasm é lido pelo processo principal
 await copyFile(join(raiz, "node_modules", "manifold-3d", "manifold.wasm"), join(saida, "assets", "manifold.wasm"));
 await copyFile(join(raiz, "node_modules", "manifold-3d", "LICENSE"), join(saida, "assets", "manifold-LICENSE.txt"));

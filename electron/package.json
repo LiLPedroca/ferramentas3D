@@ -1,7 +1,7 @@
 {
   "name": "programa-ferramentas-3d",
   "productName": "Programa Ferramentas 3D",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "Ferramentas para impressão 3D: calculadora de custo e visualizador de modelos.",
   "main": "src/main/main.cjs",
   "author": "Pedro Henrique",
@@ -32,7 +32,8 @@
     "appId": "com.pedrohenrique.programaferramentas3d",
     "productName": "Programa Ferramentas 3D",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "recursos"
     },
     "files": [
       "build/**/*",
@@ -41,6 +42,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "recursos/icone.ico",
       "target": [
         {
           "target": "nsis",
@@ -51,6 +53,8 @@
       ]
     },
     "nsis": {
+      "installerIcon": "recursos/icone.ico",
+      "uninstallerIcon": "recursos/icone.ico",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

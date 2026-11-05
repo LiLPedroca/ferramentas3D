@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.19.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.20.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -142,6 +142,15 @@ Ao "Salvar 3MF" ou "Abrir no fatiador", a janela "Como você vai imprimir?" (`pe
 - O fatiador coloca ali o `machine_pause_gcode` do perfil. A impressora do Pedro é a **Anycubic Kobra X 0.4** (perfil em `%APPDATA%\AnycubicSlicerNext\system\Anycubic\machine`), que usa **M600**.
 - O Anycubic prende a pausa à camada MAIS PRÓXIMA do valor; por isso a janela pergunta a altura de camada (padrão 0,20) e a primeira camada (0,2), e `camadaDaTroca(base, camada, primeira)` em `chaveiro.js` calcula o print_z exato da primeira camada só de texto (o fatiador corta cada camada no meio dela).
 - **Fatiar por linha de comando funciona** (para testar sem abrir o programa): `AnycubicSlicerNext.exe --slice 0 --outputdir <pasta> --load-settings "<machine.json>;<process.json>" --load-filaments "<filament.json>[;<filament.json>]" <arquivo.3mf>` → `plate_1.gcode`. Conferido: sem AMS → um M600 antes da camada 13 (2,6 mm) com 0,20; 2,48 com 0,12; 2,6 com 0,16; com AMS → troca T1 na camada de 2,6 mm (os filamentos do model_settings são respeitados).
+
+## Plano autorizado em 04/11/2026 ("faça, está autorizado a tudo")
+Etapas (marcar [x] ao publicar): 
+- [x] Sem AMS também nas Palavras (modo placa; letreiro não, as cores dividem as camadas) + ícone do programa (`recursos/icone.svg` → `npx electron scripts/gerar-icone.cjs` gera `recursos/icone.ico` e `icone.png`; `buildResources: recursos`, ícone no exe, instalador e janela). (v0.20.0)
+- [ ] Custo direto do modelo (volume das partes → gramas por cor → calculadora/produto/orçamento).
+- [ ] Salvar modelos (biblioteca dos chaveiros/placas criados, reabrir e reeditar).
+- [ ] Estoque de filamentos (rolos, preço/kg, peso restante, aviso de fim).
+- [ ] Etiquetas (PDF para produtos/pedidos, QR do WhatsApp).
+- [ ] Encaixes e tolerâncias (calculadora de folga + peça de teste em 3MF).
 
 **Pendente (pedido do Pedro):** teste pela TELA do Anycubic Slicer Next, com fotos para ele: gerar o Chaveiro de nome, "Abrir no fatiador" escolhendo "Sem AMS", fatiar no programa aberto normalmente e conferir na pré-visualização a pausa na camada 13 (2,6 mm); também o arquivo "Com AMS" (troca para o filamento 2). Falta confirmar se a abertura pela janela (não pela linha de comando) também lê o `custom_gcode_per_layer.xml`. Precisa do Computer use ligado no app do Claude (Configurações → Este computador → Computer use); em 04/11/2026 estava desligado.
 

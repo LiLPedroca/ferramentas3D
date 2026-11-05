@@ -121,7 +121,7 @@ function resumoImpressao() {
   }
   const troca = calcularTroca(camada, primeira);
   const mm = troca.z.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
-  $("imp-resumo").textContent = `A pausa fica antes da camada ${troca.numero} (${mm} mm), a primeira só de texto. No Anycubic, confira na pré-visualização.`;
+  $("imp-resumo").textContent = `A pausa fica antes da camada ${troca.numero} (${mm} mm), a primeira só com a cor de cima. No fatiador, confira na pré-visualização.`;
   return { ams: false, camada, primeira, ...troca };
 }
 

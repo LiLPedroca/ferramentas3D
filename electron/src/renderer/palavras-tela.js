@@ -4,10 +4,11 @@ import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { carregarFonte } from "./modelos/fontes.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
+import { camadaDaTroca } from "./modelos/chaveiro.js";
 import { gerarPalavras, LIMITES_PALAVRAS, PADRAO_PALAVRAS } from "./modelos/palavras.js";
 import { criarPrevia2d } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
-import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte } from "./modelos-ui.js";
+import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao } from "./modelos-ui.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
@@ -111,12 +112,38 @@ function mudarModo(novo) {
 
 const nomeArquivo = () => `Palavras ${modelo.opcoes.linhas.map((l) => l.texto).join(" ")}`.slice(0, 60);
 
+// Placa: cores em camadas diferentes (placa embaixo, texto em cima) → pergunta se é com AMS; sem AMS,
+// tudo no filamento 1 e pausa na primeira camada do texto. Letreiro: as cores dividem as mesmas
+// camadas, então só existe a impressão com AMS.
+async function arquivo3mf() {
+  const titulo = nomeArquivo();
+  if (modelo.opcoes.modo !== "placa") return { bytes: gerar3mf(partes, { titulo }), aviso: "" };
+  const base = modelo.opcoes.espessura;
+  const escolha = await perguntarImpressao((camada, primeira) => camadaDaTroca(base, camada, primeira));
+  if (!escolha) return null;
+  if (escolha.ams) return { bytes: gerar3mf(partes, { titulo }), aviso: "" };
+  const mm = escolha.z.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  return {
+    bytes: gerar3mf(
+      partes.map((p) => ({ ...p, slot: 1 })),
+      { titulo, pausas: [escolha.z] },
+    ),
+    aviso: ` Pausa para trocar o filamento na camada ${escolha.numero} (${mm} mm).`,
+  };
+}
+
 async function salvar(extensao) {
   if (!partes) return;
-  const bytes = extensao === "3mf" ? gerar3mf(partes, { titulo: nomeArquivo() }) : gerarStl(partes);
+  let bytes;
+  let aviso = "";
+  if (extensao === "3mf") {
+    const arquivo = await arquivo3mf();
+    if (!arquivo) return;
+    ({ bytes, aviso } = arquivo);
+  } else bytes = gerarStl(partes);
   const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
   if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.`);
+  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
 }
 
 export function iniciarPalavras() {
@@ -174,8 +201,12 @@ export function iniciarPalavras() {
 
   $("pl-3mf").addEventListener("click", () => salvar("3mf"));
   $("pl-stl").addEventListener("click", () => salvar("stl"));
-  $("pl-fatiador").addEventListener("click", () => {
-    if (partes) abrirNoFatiador(gerar3mf(partes, { titulo: nomeArquivo() }), nomeArquivo(), "3mf");
+  $("pl-fatiador").addEventListener("click", async () => {
+    if (!partes) return;
+    const arquivo = await arquivo3mf();
+    if (!arquivo) return;
+    await abrirNoFatiador(arquivo.bytes, nomeArquivo(), "3mf");
+    if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
   });
   preencherCampos();
   registrarAoAbrir("palavras", () => {

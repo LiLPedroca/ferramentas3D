@@ -41,6 +41,7 @@ function criarJanela() {
     title: "Programa Ferramentas 3D",
     backgroundColor: "#0b0d12",
     autoHideMenuBar: true,
+    icon: path.join(__dirname, "..", "..", "build", "renderer", "assets", "icone.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
