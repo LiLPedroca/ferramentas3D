@@ -235,3 +235,9 @@ Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de fil
 - Capturas usam exclusivamente FERRAMENTAS_DADOS em pasta temporária. Nenhum dado pessoal ou arquivo antigo foi apagado.
 - Última release consultada pela API pública: v0.35.0. `gh auth status` informa ausência de login; v0.35.1 preparada, publicação pendente.
 - Validação do bloco: 224 testes passaram. Uma execução anterior teve timeout de 5 s em `logo.test.js` (largura e fechamento nos três estilos); o teste isolado e a repetição completa passaram. Capturas de todas as telas básicas sem IDs repetidos.
+- Instalador v0.35.1 e blockmap gerados; manifest preservado em `electron/release/v0.35.1/latest.yml`. Commit d9d782c enviado para origin/electron.
+
+### Bloco 2 — ações comuns dos modelos (v0.35.2)
+- Extraídas para `renderer/modelos-acoes.js` as ações repetidas de prévia 2D/3D, zoom, enquadramento, salvar STL/3MF, enviar ao fatiador, calcular custo e converter imagens em data URL. As regras específicas de AMS/pausas permanecem nas telas. Código movido, sem eliminar funcionalidades.
+- 237 testes passaram (`npm test -- --maxWorkers=2`), incluindo testes das ações comuns. As nove combinações geométricas do logo agora são testes separados, com as mesmas verificações, evitando que a soma de nove gerações estoure 5 s em computadores ocupados.
+- v0.35.2 preparada; release pendente por falta de login no gh. Capturas novamente com dados temporários.

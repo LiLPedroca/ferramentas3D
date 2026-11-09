@@ -1,15 +1,12 @@
+import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
 // Tela do Chaveiro de logo: imagem -> cores vetorizadas -> relevo multicor sobre base com argola.
 import { criarPaleta, marcarPaleta, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
-import { preencherDoModelo } from "./calculadora-tela.js";
-import { abrirNoFatiador } from "./fatiador-ui.js";
-import { pesoCurto, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
-import { gerar3mf, gerarStl } from "./modelos/exportar.js";
+import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg, gerarLogo, LIMITES_LOGO, PADRAO_LOGO } from "./modelos/logo.js";
 import { familiaCss } from "./modelos/fontes.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
-import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el, ligarZonaArquivos } from "./util-tela.js";
 import { vetorizar } from "./vetorizar.js";
@@ -134,14 +131,7 @@ async function argolaSolta(t) {
 
 function mudarModo(novo) {
   modo = novo;
-  $("lg-ver-2d").setAttribute("aria-pressed", String(modo === "2d"));
-  $("lg-ver-3d").setAttribute("aria-pressed", String(modo === "3d"));
-  previa2d.ativar(modo === "2d");
-  $("lg-3d").hidden = modo !== "3d";
-  if (modo === "3d") {
-    previa3d ??= criarPrevia($("lg-3d"));
-    if (partes) previa3d.mostrar(partes);
-  }
+  previa3d = mudarPrevia("lg", modo, previa2d, previa3d, partes);
 }
 
 // salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes }).
@@ -178,31 +168,13 @@ async function carregar([arquivo], salvo = null) {
 }
 
 // imagem reduzida (a que vira o logo) como data URL PNG, para guardar em Meus modelos
-async function imagemComoTexto() {
-  const blob = await imagem.canvas.convertToBlob({ type: "image/png" });
-  return new Promise((ok, falha) => {
-    const leitor = new FileReader();
-    leitor.onload = () => ok(leitor.result);
-    leitor.onerror = () => falha(new Error("Não foi possível guardar a imagem."));
-    leitor.readAsDataURL(blob);
-  });
-}
 
-function arquivoDeTexto(dataUrl, nome) {
-  const [cabecalho, base64] = dataUrl.split(",");
-  const tipo = cabecalho.match(/data:([^;]+)/)?.[1] ?? "image/png";
-  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  return new File([bytes], nome, { type: tipo });
-}
 
 const nomeArquivo = () => `Chaveiro logo ${imagem.nome.replace(/\.[^.]+$/, "")}`.slice(0, 60);
 
 async function salvar(extensao) {
   if (!partes) return;
-  const bytes = extensao === "3mf" ? gerar3mf(partes, { titulo: nomeArquivo() }) : gerarStl(partes);
-  const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
-  if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.`);
+  await salvarModeloComo(extensao, partes, nomeArquivo());
 }
 
 export function iniciarLogo() {
@@ -245,9 +217,9 @@ export function iniciarLogo() {
   });
   $("lg-ver-2d").addEventListener("click", () => mudarModo("2d"));
   $("lg-ver-3d").addEventListener("click", () => mudarModo("3d"));
-  $("lg-zoom-menos").addEventListener("click", () => (modo === "3d" ? previa3d?.zoom(1.25) : previa2d.zoom(1.25)));
-  $("lg-zoom-mais").addEventListener("click", () => (modo === "3d" ? previa3d?.zoom(0.8) : previa2d.zoom(0.8)));
-  $("lg-ajustar").addEventListener("click", () => (modo === "3d" ? previa3d?.enquadrar() : previa2d.ajustar()));
+  $("lg-zoom-menos").addEventListener("click", () => zoomPrevia(modo, previa2d, previa3d, 1.25));
+  $("lg-zoom-mais").addEventListener("click", () => zoomPrevia(modo, previa2d, previa3d, 0.8));
+  $("lg-ajustar").addEventListener("click", () => ajustarPrevia(modo, previa2d, previa3d));
 
   $("lg-3mf").addEventListener("click", () => salvar("3mf"));
   $("lg-stl").addEventListener("click", () => salvar("stl"));
@@ -260,7 +232,7 @@ export function iniciarLogo() {
       montar: async () => ({
         opcoes: { ...opcoes, coresLogo: Number($("lg-cores").value), removerFundo: $("lg-fundo").checked, nomeImagem: imagem.nome },
         miniatura: miniatura(modelo),
-        imagem: await imagemComoTexto(),
+        imagem: await imagemComoTexto(imagem.canvas),
       }),
     });
     if (r) {
@@ -271,11 +243,10 @@ export function iniciarLogo() {
   registrarAbridor("logo", (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p));
   $("lg-custo").addEventListener("click", () => {
     if (!modelo) return;
-    const peso = pesoDasMalhas(modelo.malhas);
-    preencherDoModelo({ nome: nomeArquivo(), pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });
+    calcularCustoModelo(modelo, nomeArquivo());
   });
   $("lg-fatiador").addEventListener("click", () => {
-    if (partes) abrirNoFatiador(gerar3mf(partes, { titulo: nomeArquivo() }), nomeArquivo(), "3mf");
+    if (partes) enviarModeloAoFatiador(partes, nomeArquivo());
   });
   registrarAoAbrir("logo", () => {
     const nome = estado.config.fatiador?.nome;

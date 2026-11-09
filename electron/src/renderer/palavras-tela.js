@@ -1,15 +1,13 @@
+import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela das Palavras decorativas: até 3 linhas, placa ou letreiro, prévia 2D/3D.
-import { preencherDoModelo } from "./calculadora-tela.js";
-import { abrirNoFatiador } from "./fatiador-ui.js";
-import { pesoCurto, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
-import { gerar3mf, gerarStl } from "./modelos/exportar.js";
+import { pesoCurto } from "./modelos/estimativa.js";
+import { gerar3mf } from "./modelos/exportar.js";
 import { carregarFonte } from "./modelos/fontes.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { camadaDaTroca } from "./modelos/chaveiro.js";
 import { gerarPalavras, LIMITES_PALAVRAS, PADRAO_PALAVRAS } from "./modelos/palavras.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
-import { criarPrevia } from "./modelos/previa3d.js";
 import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
@@ -110,14 +108,7 @@ async function gerar() {
 
 function mudarModo(novo) {
   modo = novo;
-  $("pl-ver-2d").setAttribute("aria-pressed", String(modo === "2d"));
-  $("pl-ver-3d").setAttribute("aria-pressed", String(modo === "3d"));
-  previa2d.ativar(modo === "2d");
-  $("pl-3d").hidden = modo !== "3d";
-  if (modo === "3d") {
-    previa3d ??= criarPrevia($("pl-3d"));
-    if (partes) previa3d.mostrar(partes);
-  }
+  previa3d = mudarPrevia("pl", modo, previa2d, previa3d, partes);
 }
 
 const nomeArquivo = () => `Palavras ${modelo.opcoes.linhas.map((l) => l.texto).join(" ")}`.slice(0, 60);
@@ -144,16 +135,7 @@ async function arquivo3mf() {
 
 async function salvar(extensao) {
   if (!partes) return;
-  let bytes;
-  let aviso = "";
-  if (extensao === "3mf") {
-    const arquivo = await arquivo3mf();
-    if (!arquivo) return;
-    ({ bytes, aviso } = arquivo);
-  } else bytes = gerarStl(partes);
-  const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
-  if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
+  await salvarModeloComo(extensao, partes, nomeArquivo(), arquivo3mf);
 }
 
 export function iniciarPalavras() {
@@ -207,9 +189,9 @@ export function iniciarPalavras() {
   previa2d = criarPrevia2d($("pl-2d"));
   $("pl-ver-2d").addEventListener("click", () => mudarModo("2d"));
   $("pl-ver-3d").addEventListener("click", () => mudarModo("3d"));
-  $("pl-zoom-menos").addEventListener("click", () => (modo === "3d" ? previa3d?.zoom(1.25) : previa2d.zoom(1.25)));
-  $("pl-zoom-mais").addEventListener("click", () => (modo === "3d" ? previa3d?.zoom(0.8) : previa2d.zoom(0.8)));
-  $("pl-ajustar").addEventListener("click", () => (modo === "3d" ? previa3d?.enquadrar() : previa2d.ajustar()));
+  $("pl-zoom-menos").addEventListener("click", () => zoomPrevia(modo, previa2d, previa3d, 1.25));
+  $("pl-zoom-mais").addEventListener("click", () => zoomPrevia(modo, previa2d, previa3d, 0.8));
+  $("pl-ajustar").addEventListener("click", () => ajustarPrevia(modo, previa2d, previa3d));
 
   $("pl-3mf").addEventListener("click", () => salvar("3mf"));
   $("pl-stl").addEventListener("click", () => salvar("stl"));
@@ -236,15 +218,11 @@ export function iniciarPalavras() {
   });
   $("pl-custo").addEventListener("click", () => {
     if (!modelo) return;
-    const peso = pesoDasMalhas(modelo.malhas);
-    preencherDoModelo({ nome: nomeArquivo(), pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });
+    calcularCustoModelo(modelo, nomeArquivo());
   });
   $("pl-fatiador").addEventListener("click", async () => {
     if (!partes) return;
-    const arquivo = await arquivo3mf();
-    if (!arquivo) return;
-    await abrirNoFatiador(arquivo.bytes, nomeArquivo(), "3mf");
-    if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
+    await enviarModeloAoFatiador(partes, nomeArquivo(), arquivo3mf);
   });
   preencherCampos();
   registrarAoAbrir("palavras", () => {

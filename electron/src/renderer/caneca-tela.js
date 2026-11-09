@@ -1,11 +1,10 @@
+import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela da Caneca de chopp: medidas (padrão = copo showroom), emblema, faixas e cores à esquerda,
 // prévia 3D à direita.
-import { preencherDoModelo } from "./calculadora-tela.js";
-import { abrirNoFatiador } from "./fatiador-ui.js";
 import { capacidadeMl, COPO_SHOWROOM, FAIXAS, gerarCaneca, LIMITES_CANECA, PADRAO_CANECA, trocaDoEmblema, trocasDeCor } from "./modelos/caneca.js";
 import { lacosDoEmblema } from "./modelos/emblema.js";
-import { pesoCurto, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
-import { gerar3mf, gerarStl } from "./modelos/exportar.js";
+import { pesoCurto } from "./modelos/estimativa.js";
+import { gerar3mf } from "./modelos/exportar.js";
 import { carregarFonte } from "./modelos/fontes.js";
 import { geometriaDaMalha } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
@@ -286,11 +285,6 @@ async function arquivoEmblema() {
   };
 }
 
-async function salvarArquivo(bytes, nome, extensao, aviso = "") {
-  const resposta = await window.modelos.salvar(bytes, nome, extensao);
-  if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
-}
 
 // miniatura para Meus modelos: a prévia 3D reduzida
 function miniaturaDaPrevia() {
@@ -307,11 +301,6 @@ function miniaturaDaPrevia() {
   return c.toDataURL("image/png");
 }
 
-function arquivoDeTexto(dataUrl) {
-  const [cabecalho, base64] = dataUrl.split(",");
-  const tipo = cabecalho.match(/data:([^;]+)/)?.[1] ?? "image/png";
-  return new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], { type: tipo });
-}
 
 // ---------- Início ----------
 export function iniciarCaneca() {
@@ -374,32 +363,28 @@ export function iniciarCaneca() {
   for (const b of document.querySelectorAll("#tela-caneca .ch-abas button")) {
     b.addEventListener("click", () => $(b.dataset.alvo).scrollIntoView({ behavior: "smooth", block: "start" }));
   }
-  $("cn-zoom-menos").addEventListener("click", () => previa3d?.zoom(1.25));
-  $("cn-zoom-mais").addEventListener("click", () => previa3d?.zoom(0.8));
-  $("cn-ajustar").addEventListener("click", () => previa3d?.enquadrar());
+  $("cn-zoom-menos").addEventListener("click", () => zoomPrevia("3d", null, previa3d, 1.25));
+  $("cn-zoom-mais").addEventListener("click", () => zoomPrevia("3d", null, previa3d, 0.8));
+  $("cn-ajustar").addEventListener("click", () => ajustarPrevia("3d", null, previa3d));
 
   $("cn-3mf").addEventListener("click", async () => {
     if (!partes) return;
     const arquivo = await arquivoCaneca();
-    if (arquivo) await salvarArquivo(arquivo.bytes, nomeArquivo(), "3mf", arquivo.aviso);
+    if (arquivo) await salvarArquivoModelo(arquivo.bytes, nomeArquivo(), "3mf", arquivo.aviso);
   });
-  $("cn-stl").addEventListener("click", () => partes && salvarArquivo(gerarStl(partes), nomeArquivo(), "stl"));
+  $("cn-stl").addEventListener("click", () => partes && salvarModeloComo("stl", partes, nomeArquivo()));
   $("cn-emblema-3mf").addEventListener("click", async () => {
     if (!partes) return;
     const arquivo = await arquivoEmblema();
-    if (arquivo) await salvarArquivo(arquivo.bytes, arquivo.titulo, "3mf", arquivo.aviso);
+    if (arquivo) await salvarArquivoModelo(arquivo.bytes, arquivo.titulo, "3mf", arquivo.aviso);
   });
   $("cn-fatiador").addEventListener("click", async () => {
     if (!partes) return;
-    const arquivo = await arquivoCaneca();
-    if (!arquivo) return;
-    await abrirNoFatiador(arquivo.bytes, nomeArquivo(), "3mf");
-    if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
+    await enviarModeloAoFatiador(partes, nomeArquivo(), arquivoCaneca);
   });
   $("cn-custo").addEventListener("click", () => {
     if (!modelo) return;
-    const peso = pesoDasMalhas(modelo.malhas);
-    preencherDoModelo({ nome: nomeArquivo(), pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });
+    calcularCustoModelo(modelo, nomeArquivo());
   });
   $("cn-salvar-modelo").addEventListener("click", async () => {
     if (!modelo) return;
@@ -410,7 +395,7 @@ export function iniciarCaneca() {
       montar: async () => ({
         opcoes: structuredClone(opcoes),
         miniatura: miniaturaDaPrevia(),
-        imagem: emblema ? emblema.canvas.toDataURL("image/png") : "",
+        imagem: emblema ? await imagemComoTexto(emblema.canvas) : "",
       }),
     });
     if (r) {

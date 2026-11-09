@@ -45,14 +45,11 @@ describe("chaveiro de logo", () => {
     expect(r.dimensoes[2]).toBeCloseTo(2.4 + 1.2, 5);
   });
 
-  it("largura total exata e malhas fechadas nos três estilos", () => {
-    for (const estilo of ["contorno", "circulo", "retangular"]) {
-      for (const largura of [30, 50, 90]) {
-        const r = gerarLogo(M, cores, { estilo, largura });
-        expect(r.dimensoes[0], `${estilo} ${largura}`).toBeCloseTo(largura, 1);
-        for (const m of r.malhas) expect(fechada(m), `${estilo} ${largura} ${m.nome}`).toBe(true);
-      }
-    }
+  // Cada combinação tem seu próprio limite de tempo; mantém as nove verificações geométricas.
+  it.each(["contorno", "circulo", "retangular"].flatMap((estilo) => [30, 50, 90].map((largura) => [estilo, largura])))("%s com %s mm tem largura exata e malhas fechadas", (estilo, largura) => {
+    const r = gerarLogo(M, cores, { estilo, largura });
+    expect(r.dimensoes[0], `${estilo} ${largura}`).toBeCloseTo(largura, 1);
+    for (const m of r.malhas) expect(fechada(m), `${estilo} ${largura} ${m.nome}`).toBe(true);
   });
 
   it("contorno sem moldura: a base segue exatamente o logo (só a argola sobra, em cima)", () => {

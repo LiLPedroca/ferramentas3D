@@ -1,12 +1,11 @@
+import { salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela de Encaixes e tolerâncias: calculadora de folga e peça de teste para calibrar.
-import { abrirNoFatiador } from "./fatiador-ui.js";
 import { calcularEncaixe, ENCAIXES, gerarPecaTeste, MATERIAIS_ENCAIXE } from "./modelos/encaixes.js";
-import { gerar3mf, gerarStl } from "./modelos/exportar.js";
+import { gerar3mf } from "./modelos/exportar.js";
 import { carregarFonte } from "./modelos/fontes.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d } from "./modelos/previa2d.js";
-import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
 
@@ -100,25 +99,14 @@ function habilitar(pronto) {
 
 function mudarModo(novo) {
   modo = novo;
-  $("en-ver-2d").setAttribute("aria-pressed", String(modo === "2d"));
-  $("en-ver-3d").setAttribute("aria-pressed", String(modo === "3d"));
-  previa2d.ativar(modo === "2d");
-  $("en-3d").hidden = modo !== "3d";
-  if (modo === "3d") {
-    previa3d ??= criarPrevia($("en-3d"));
-    if (partes) previa3d.mostrar(partes);
-  }
+  previa3d = mudarPrevia("en", modo, previa2d, previa3d, partes);
 }
 
 const nomeArquivo = () => `Teste de encaixe ${String(modelo.opcoes.diametro).replace(".", ",")} mm`;
 
 async function salvar(extensao) {
   if (!partes) return;
-  // peça de uma cor: tudo no filamento 1
-  const bytes = extensao === "3mf" ? gerar3mf(partes.map((p) => ({ ...p, slot: 1 })), { titulo: nomeArquivo() }) : gerarStl(partes);
-  const resposta = await window.modelos.salvar(bytes, nomeArquivo(), extensao);
-  if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.`);
+  await salvarModeloComo(extensao, partes, nomeArquivo(), () => ({ bytes: gerar3mf(partes.map((p) => ({ ...p, slot: 1 })), { titulo: nomeArquivo() }) }));
 }
 
 // Chamado pelo Visualizador 3D: abre a calculadora com o diâmetro medido na peça.
@@ -145,7 +133,7 @@ export function iniciarEncaixes() {
   $("en-3mf").addEventListener("click", () => salvar("3mf"));
   $("en-stl").addEventListener("click", () => salvar("stl"));
   $("en-fatiador").addEventListener("click", () => {
-    if (partes) abrirNoFatiador(gerar3mf(partes.map((p) => ({ ...p, slot: 1 })), { titulo: nomeArquivo() }), nomeArquivo(), "3mf");
+    if (partes) enviarModeloAoFatiador(partes, nomeArquivo(), () => ({ bytes: gerar3mf(partes.map((p) => ({ ...p, slot: 1 })), { titulo: nomeArquivo() }) }));
   });
   calcular();
   registrarAoAbrir("encaixes", () => {
