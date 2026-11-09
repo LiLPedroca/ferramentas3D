@@ -1,4 +1,4 @@
-import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela da Caneca de chopp: medidas (padrão = copo showroom), emblema, faixas e cores à esquerda,
 // prévia 3D à direita.
 import { capacidadeMl, COPO_SHOWROOM, FAIXAS, gerarCaneca, LIMITES_CANECA, PADRAO_CANECA, trocaDoEmblema, trocasDeCor } from "./modelos/caneca.js";
@@ -240,7 +240,7 @@ function mostrarMedidas() {
     return;
   }
   const [l, p, a] = modelo.dimensoes;
-  $("cn-medidas").textContent = `Caneca ${formatar(l, 1)} × ${formatar(p, 1)} × ${formatar(a, 1)} mm · ${pesoCurto(modelo.malhas)}`;
+  $("cn-medidas").textContent = `Caneca ${formatar(l, 1)} × ${formatar(p, 1)} × ${formatar(a, 1)} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo("PETG"))}`;
 }
 
 // ---------- Exportação ----------
@@ -384,7 +384,7 @@ export function iniciarCaneca() {
   });
   $("cn-custo").addEventListener("click", () => {
     if (!modelo) return;
-    calcularCustoModelo(modelo, nomeArquivo());
+    calcularCustoModelo(modelo, nomeArquivo(), densidadeDoModelo("PETG"));
   });
   $("cn-salvar-modelo").addEventListener("click", async () => {
     if (!modelo) return;
@@ -424,6 +424,7 @@ export function iniciarCaneca() {
   preencherCampos();
   let primeira = true;
   registrarAoAbrir("caneca", () => {
+    mostrarMedidas();
     const nome = estado.config.fatiador?.nome;
     $("cn-fatiador").textContent = nome ? `Abrir no ${nome}` : "Abrir no fatiador";
     if (primeira) {

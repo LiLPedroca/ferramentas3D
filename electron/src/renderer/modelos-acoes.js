@@ -1,12 +1,20 @@
 // Ações compartilhadas pelas telas de modelos. As regras de cor e pausas ficam em cada modelo.
 import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
-import { pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
+import { listaDeRolos } from "./filamentos-tela.js";
+import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { mostrarAviso } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
+
+export function materialDoModelo(padrao = "PLA") {
+  const id = $("rolo-calc")?.value;
+  return listaDeRolos().find((rolo) => rolo.id === id)?.material ?? padrao;
+}
+
+export const densidadeDoModelo = (padrao) => densidadeDoMaterial(materialDoModelo(padrao));
 
 export function mudarPrevia(prefixo, modo, previa2d, previa3d, partes) {
   $(`${prefixo}-ver-2d`).setAttribute("aria-pressed", String(modo === "2d"));
@@ -51,7 +59,7 @@ export async function enviarModeloAoFatiador(partes, nome, montar3mf) {
   if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
 }
 
-export function calcularCustoModelo(modelo, nome, densidade) {
+export function calcularCustoModelo(modelo, nome, densidade = densidadeDoModelo()) {
   if (!modelo) return;
   const peso = pesoDasMalhas(modelo.malhas, densidade);
   preencherDoModelo({ nome, pesoG: peso.total, detalhe: textoDoPeso(peso).replace(/^≈ /, "") });

@@ -11,7 +11,7 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { preencherDoModelo } from "./calculadora-tela.js";
 import { criarCorte } from "./corte.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
-import { DENSIDADE_PLA } from "./modelos/estimativa.js";
+import { densidadeDoModelo, materialDoModelo } from "./modelos-acoes.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
@@ -47,7 +47,10 @@ let estado = null;
 
 // ---------- Cena ----------
 export function iniciarVisualizador() {
-  if (estado) return;
+  if (estado) {
+    atualizarInfo();
+    return;
+  }
 
   const palco = $("palco");
   const renderizador = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -549,7 +552,7 @@ function atualizarInfo() {
     geometria.dispose();
     return s + v;
   }, 0);
-  const gramas = (volume / 1000) * DENSIDADE_PLA;
+  const gramas = (volume / 1000) * densidadeDoModelo();
   estado.gramas = gramas;
   const dados = [
     estado.arquivo?.name ?? "—",
@@ -718,7 +721,8 @@ function ligarControles() {
   $("vz-ficha").addEventListener("click", salvarFicha);
   $("vz-custo").addEventListener("click", () => {
     if (!estado.peca.children.length) return;
-    preencherDoModelo({ nome: estado.nome, pesoG: estado.gramas ?? 0, detalhe: "volume do arquivo em PLA, peça maciça" });
+    atualizarInfo();
+    preencherDoModelo({ nome: estado.nome, pesoG: estado.gramas ?? 0, detalhe: `volume do arquivo em ${materialDoModelo()}, peça maciça` });
   });
   // Clique sem arrastar (arrastar gira a vista e não deve marcar ponto).
   const tela = estado.renderizador.domElement;

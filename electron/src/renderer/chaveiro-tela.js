@@ -1,4 +1,4 @@
-import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela do Chaveiro de nome: opções à esquerda, prévia 2D (argola arrastável) ou 3D à direita.
 import { pesoCurto } from "./modelos/estimativa.js";
 import { camadaDaTroca, gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
@@ -137,7 +137,7 @@ function mostrarMedidas() {
     $("ch-medidas").textContent = "";
     return;
   }
-  $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade} · ${pesoCurto(modelo.malhas)}`;
+  $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade} · ${pesoCurto(modelo.malhas, densidadeDoModelo())}`;
 }
 
 // A argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.

@@ -3,10 +3,20 @@ import { join } from "node:path";
 import * as opentype from "opentype.js";
 import { describe, expect, it } from "vitest";
 import { gerarChaveiro } from "../src/renderer/modelos/chaveiro.js";
-import { pesoCurto, pesoDasMalhas, textoDoPeso } from "../src/renderer/modelos/estimativa.js";
+import { densidadeDoMaterial, pesoCurto, pesoDasMalhas, textoDoPeso } from "../src/renderer/modelos/estimativa.js";
 import { carregarManifold } from "../src/renderer/modelos/manifold.js";
 
 describe("peso estimado do filamento", () => {
+  it.each([["PETG", 1.27], ["PLA", 1.24], ["PLA+", 1.24], ["Silk", 1.24], ["ABS", 1.05], ["ASA", 1.07], ["TPU", 1.22], ["Outro", 1.24]])("usa a densidade estimada do material %s", (material, densidade) => {
+    expect(pesoDasMalhas([{ nome: "Peça", volume: 1000 }], densidadeDoMaterial(material)).total).toBeCloseTo(densidade, 5);
+  });
+
+  it("prévia curta e custo usam a mesma densidade de PETG", () => {
+    const malhas = [{ nome: "Caneca", volume: 10000 }];
+    expect(pesoDasMalhas(malhas, densidadeDoMaterial("PETG")).total).toBeCloseTo(12.7, 5);
+    expect(pesoCurto(malhas, densidadeDoMaterial("PETG"))).toBe("≈ 13 g");
+  });
+
   it("volume (mm³) × densidade do PLA", () => {
     // cubo de 10 mm = 1 cm³ → 1,24 g
     const r = pesoDasMalhas([{ nome: "Base", volume: 1000 }, { nome: "Texto", volume: 500 }]);

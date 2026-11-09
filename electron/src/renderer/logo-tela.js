@@ -1,4 +1,4 @@
-import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
+import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
 // Tela do Chaveiro de logo: imagem -> cores vetorizadas -> relevo multicor sobre base com argola.
 import { criarPaleta, marcarPaleta, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
@@ -96,7 +96,7 @@ async function gerar() {
     status(erro.message, true);
     habilitar(false);
   }
-  $("lg-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas)}` : "";
+  $("lg-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo())}` : "";
   previa2d.mostrar(modelo);
 }
 
@@ -249,6 +249,7 @@ export function iniciarLogo() {
     if (partes) enviarModeloAoFatiador(partes, nomeArquivo());
   });
   registrarAoAbrir("logo", () => {
+    if (modelo) $("lg-medidas").textContent = `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo())}`;
     const nome = estado.config.fatiador?.nome;
     $("lg-fatiador").textContent = nome ? `Abrir no ${nome}` : "Abrir no fatiador";
   });

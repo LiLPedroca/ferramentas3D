@@ -4,6 +4,11 @@
 
 export const DENSIDADE_PLA = 1.24; // g/cm³
 
+// Valores típicos: variam com fabricante e aditivos. PLA/PETG seguem o padrão do programa;
+// ABS/TPU: fichas Bambu Lab; ASA: https://prusament.com/wp-content/uploads/2022/10/ASA_Prusament_TDS_2022_16_EN.pdf
+const DENSIDADES = { PLA: DENSIDADE_PLA, "PLA+": DENSIDADE_PLA, Silk: DENSIDADE_PLA, PETG: 1.27, ABS: 1.05, ASA: 1.07, TPU: 1.22 };
+export const densidadeDoMaterial = (material) => DENSIDADES[material] ?? DENSIDADE_PLA;
+
 // malhas: [{ nome, volume (mm³) }]. Devolve { partes: [{ nome, gramas }], total }.
 export function pesoDasMalhas(malhas, densidade = DENSIDADE_PLA) {
   const partes = malhas.map((m) => ({ nome: m.nome, gramas: ((m.volume ?? 0) / 1000) * densidade }));
@@ -19,4 +24,4 @@ export function textoDoPeso(peso) {
 }
 
 // "≈ 4,8 g" (para a linha de medidas da prévia)
-export const pesoCurto = (malhas) => `≈ ${g(pesoDasMalhas(malhas).total)} g`;
+export const pesoCurto = (malhas, densidade) => `≈ ${g(pesoDasMalhas(malhas, densidade).total)} g`;

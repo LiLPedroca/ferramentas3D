@@ -260,3 +260,10 @@ Estrutura atual, estado publicado, pendências e ideias reorganizados. O histór
 
 ### Item 4 — comentário do .gitignore
 Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "repositório" agora é lido corretamente. Nenhuma regra de exclusão mudou. Testes antes: 237 passaram.
+
+### Item 5 — peso por material (v0.36.0)
+- O material do rolo selecionado na Calculadora passa a determinar a densidade usada nos modelos personalizados e no Visualizador. Sem seleção: PLA (1,24 g/cm³), ou PETG (1,27) na Caneca. PLA+/Silk/Outro usam a aproximação de PLA. ABS 1,05, ASA 1,07 e TPU 1,22 são valores típicos, não uma calibração por marca.
+- Prévia e envio para a calculadora usam a mesma densidade. Ao voltar ao modelo/Visualizador, o peso é atualizado para a seleção atual. A estimativa continua considerando a peça maciça; o peso fatiado varia com preenchimento e paredes.
+- 247 testes passaram. Captura real com dados temporários: caneca padrão PETG 220,9 g; após selecionar rolo ABS na Calculadora e retornar à Caneca, 182,6 g, com o mesmo valor enviado ao cálculo.
+- Referências das aproximações adicionais: [ABS Bambu Lab](https://bambulab-us.myshopify.com/products/abs-filament), [TPU Bambu Lab](https://cdn.shopify.com/s/files/1/0584/7236/6216/files/Bambu_TPU_95A_HF_Technical_Data_Sheet.pdf?v=1700101819), [ASA Prusament](https://prusament.com/wp-content/uploads/2022/10/ASA_Prusament_TDS_2022_16_EN.pdf).
+- v0.36.0 preparada; publicação pendente por falta de login no gh. O item 4 também teve normalização final das quebras de linha e do comentário "Saídas", preservando todas as regras.

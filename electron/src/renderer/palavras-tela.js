@@ -1,4 +1,4 @@
-import { calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela das Palavras decorativas: até 3 linhas, placa ou letreiro, prévia 2D/3D.
 import { pesoCurto } from "./modelos/estimativa.js";
 import { gerar3mf } from "./modelos/exportar.js";
@@ -102,7 +102,7 @@ async function gerar() {
     status(erro.message, true);
     habilitar(false);
   }
-  $("pl-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas)}` : "";
+  $("pl-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo())}` : "";
   previa2d.mostrar(modelo);
 }
 

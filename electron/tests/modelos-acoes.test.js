@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
-import { arquivoDeTexto, imagemComoTexto, mudarPrevia, salvarArquivoModelo, salvarModeloComo } from "../src/renderer/modelos-acoes.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { carregarFilamentos } from "../src/renderer/filamentos-tela.js";
+import { arquivoDeTexto, calcularCustoModelo, densidadeDoModelo, imagemComoTexto, mudarPrevia, salvarArquivoModelo, salvarModeloComo } from "../src/renderer/modelos-acoes.js";
 
 describe("ações comuns dos modelos", () => {
   beforeEach(() => { document.body.innerHTML = '<button id="x-ver-2d"></button><button id="x-ver-3d"></button><div id="x-3d"></div>'; });
@@ -40,5 +43,20 @@ describe("ações comuns dos modelos", () => {
     window.modelos = { salvar: async (...args) => { salvos.push(args); return { ok: true, dados: null }; } };
     await salvarArquivoModelo(new Uint8Array([1, 2, 3]), "Peça com acento", "3mf");
     expect(salvos).toEqual([[new Uint8Array([1, 2, 3]), "Peça com acento", "3mf"]]);
+  });
+
+  it("peso enviado à calculadora usa o material do rolo selecionado", async () => {
+    document.body.innerHTML = readFileSync(join(__dirname, "../src/renderer/index.html"), "utf8").match(/<body[^>]*>([\s\S]*)<\/body>/)[1].replace(/<script[\s\S]*?<\/script>/g, "");
+    window.dados = { filamentos: { listar: async () => ({ ok: true, dados: [{ id: "rolo", material: "ABS", cor: "Preto", corHex: "#000000", marca: "", observacoes: "", pesoTotalG: 1000, restanteG: 500, precoKgCentavos: "10000" }] }) } };
+    await carregarFilamentos();
+    const campo = document.getElementById("rolo-calc");
+    campo.innerHTML = '<option value="">Digitar o preço</option><option value="rolo">ABS</option>';
+    campo.value = "rolo";
+    expect(densidadeDoModelo("PETG")).toBe(1.05);
+    calcularCustoModelo({ malhas: [{ nome: "Caneca", volume: 10000 }] }, "Caneca", densidadeDoModelo("PETG"));
+    expect(document.getElementById("peso").value).toBe("10,5");
+    campo.value = "";
+    expect(densidadeDoModelo("PETG")).toBe(1.27);
+    expect(densidadeDoModelo()).toBe(1.24);
   });
 });
