@@ -120,6 +120,13 @@ function resumoImpressao() {
     return undefined;
   }
   const troca = calcularTroca(camada, primeira);
+  // várias trocas (caneca com faixas): lista de { z, numero }
+  if (Array.isArray(troca)) {
+    const numeros = troca.map((t) => t.numero);
+    const lista = numeros.length > 1 ? `${numeros.slice(0, -1).join(", ")} e ${numeros[numeros.length - 1]}` : String(numeros[0]);
+    $("imp-resumo").textContent = `São ${troca.length} pausas para trocar o filamento, antes das camadas ${lista}. No fatiador, confira na pré-visualização.`;
+    return { ams: false, camada, primeira, trocas: troca };
+  }
   const mm = troca.z.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
   $("imp-resumo").textContent = `A pausa fica antes da camada ${troca.numero} (${mm} mm), a primeira só com a cor de cima. No fatiador, confira na pré-visualização.`;
   return { ams: false, camada, primeira, ...troca };

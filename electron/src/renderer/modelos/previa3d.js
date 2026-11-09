@@ -86,9 +86,9 @@ export function criarPrevia(container) {
       // distância para a peça caber na tela, na largura e na altura (campo de visão vertical de 35°)
       const tangente = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
       const pelaLargura = Math.max(tamanho.x, 10) / 2 / tangente / Math.max(camera.aspect, 0.6);
-      const pelaAltura = Math.max(tamanho.y, 10) / 2 / tangente;
+      const pelaAltura = Math.max(tamanho.y, tamanho.z, 10) / 2 / tangente;
       const distancia = Math.max(pelaLargura, pelaAltura * 1.15) * 1.25;
-      camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * 0.75, distancia * 0.65);
+      camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * 0.75, centro.z + distancia * 0.65);
       controles.target.copy(centro);
       controles.update();
     },

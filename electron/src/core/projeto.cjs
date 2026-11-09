@@ -1,10 +1,10 @@
 // "Meus modelos": chaveiros e placas salvos para reabrir e reeditar (CommonJS: processo principal e testes).
-// Guarda as opções da ferramenta (como a tela as usa), uma miniatura e, no logo, a imagem reduzida.
+// Guarda as opções da ferramenta (como a tela as usa), uma miniatura e, no logo e na caneca, a imagem reduzida.
 "use strict";
 
 const { ErroValidacao, ID, dataValida, texto } = require("./validacao.cjs");
 
-const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Chaveiro de logo", palavras: "Palavras decorativas" };
+const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Chaveiro de logo", palavras: "Palavras decorativas", caneca: "Caneca de chopp" };
 const LIMITES = { nome: 80, projetos: 2000, opcoes: 20_000, miniatura: 300_000, imagem: 2_000_000 };
 const IMAGEM = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
 
@@ -33,7 +33,7 @@ function montarProjeto(valores, { id, anterior, agora = new Date().toISOString()
     nome: texto(v.nome, "Nome", LIMITES.nome, { obrigatorio: true }),
     opcoes: opcoesDe(v.opcoes),
     miniatura: imagemDe(v.miniatura, "Miniatura", LIMITES.miniatura),
-    imagem: tipo === "logo" ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
+    imagem: tipo === "logo" || tipo === "caneca" ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };

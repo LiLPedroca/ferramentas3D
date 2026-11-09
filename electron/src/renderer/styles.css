@@ -3080,3 +3080,68 @@ textarea:focus {
   font-size: 20px;
   color: var(--acento-forte);
 }
+
+/* ---------- Caneca de chopp ---------- */
+.cn-emblema {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.cn-emblema-imagem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  padding: 6px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  /* xadrez para mostrar o fundo transparente */
+  background: repeating-conic-gradient(var(--superficie-2) 0 25%, var(--fundo) 0 50%) 50% / 14px 14px;
+  text-align: center;
+}
+
+.cn-emblema-imagem canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.cn-emblema-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cn-faixa {
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.cn-faixa-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.cn-faixa-topo .seletor {
+  padding: 6px 8px;
+  font-size: 12.5px;
+}
+
+.cn-avisos {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.cn-avisos li + li {
+  margin-top: 6px;
+}

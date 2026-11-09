@@ -1187,7 +1187,7 @@
             <input type="radio" name="imp-modo" value="manual" />
             <span class="fatiador-texto">
               <strong>Sem AMS (troca manual)</strong>
-              <span class="cliente-sub">O arquivo já sai com uma pausa na primeira camada da cor de cima: a impressora para, você troca o filamento e ela continua.</span>
+              <span class="cliente-sub">O arquivo já sai com uma pausa em cada troca de cor: a impressora para, você troca o filamento e ela continua.</span>
             </span>
           </label>
         </div>
@@ -1506,6 +1506,169 @@
         <button type="button" class="botao-primario" id="fatiador-salvar">Salvar</button>
       </footer>
     </dialog>
+
+    <main class="tela oculta pagina" id="tela-caneca">
+      <div class="pagina-conteudo largo">
+        <div class="modelo-trabalho">
+          <aside class="painel modelo-opcoes ch-painel">
+            <nav class="ch-abas" aria-label="Partes da caneca">
+              <button type="button" data-alvo="cn-sec-medidas">Medidas</button>
+              <button type="button" data-alvo="cn-sec-emblema">Emblema</button>
+              <button type="button" data-alvo="cn-sec-faixas">Faixas</button>
+              <button type="button" data-alvo="cn-sec-cores">Cores</button>
+            </nav>
+            <div class="ch-rolagem">
+              <section id="cn-sec-medidas">
+                <h2 class="ch-titulo">Medidas</h2>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Boca interna (diâmetro)</span>
+                    <div class="entrada"><input id="cn-boca" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Altura</span>
+                    <div class="entrada"><input id="cn-altura" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </div>
+                <p class="ajuda" id="cn-referencia"></p>
+                <button type="button" class="botao-texto" id="cn-showroom">Usar as medidas do copo showroom</button>
+                <details class="ch-detalhes">
+                  <summary>Estrutura</summary>
+                  <div class="linha">
+                    <label class="campo">
+                      <span>Parede</span>
+                      <div class="entrada"><input id="cn-parede" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                    <label class="campo">
+                      <span>Fundo</span>
+                      <div class="entrada"><input id="cn-fundo" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                  </div>
+                  <label class="campo">
+                    <span>Altura das faixas</span>
+                    <div class="entrada"><input id="cn-faixa" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </details>
+              </section>
+
+              <section id="cn-sec-emblema">
+                <h2 class="ch-titulo">Emblema</h2>
+                <div class="cn-emblema">
+                  <div class="cn-emblema-imagem" id="cn-emblema-imagem"></div>
+                  <div class="cn-emblema-acoes">
+                    <button type="button" class="botao-secundario" id="cn-escolher">Escolher imagem…</button>
+                    <button type="button" class="botao-texto" id="cn-exemplo">Usar exemplo</button>
+                    <button type="button" class="botao-texto" id="cn-sem-emblema">Sem emblema</button>
+                    <input type="file" id="cn-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+                  </div>
+                </div>
+                <p class="ajuda">Em duas cores: a parte escura vira a 2ª cor e a clara fica na cor da base. PNG com fundo transparente dá o contorno exato.</p>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Formato</span>
+                    <select id="cn-formato" class="seletor">
+                      <option value="contorno">Contorno</option>
+                      <option value="circulo">Círculo</option>
+                    </select>
+                  </label>
+                  <label class="campo">
+                    <span>Tamanho</span>
+                    <div class="entrada"><input id="cn-emblema-tamanho" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </div>
+                <label class="campo">
+                  <span>Aro em volta do desenho</span>
+                  <div class="entrada"><input id="cn-aro" inputmode="decimal" /><em>mm</em></div>
+                </label>
+                <label class="campo">
+                  <span>Limiar do emblema: <strong id="cn-limiar-valor">0,5</strong></span>
+                  <input type="range" id="cn-limiar" min="0.05" max="0.95" step="0.05" />
+                </label>
+                <label class="md-opcao"><input type="checkbox" id="cn-inverter" /> Inverter cores do emblema</label>
+                <label class="md-opcao"><input type="checkbox" id="cn-textura" /> Textura de emblemas pequenos no corpo</label>
+                <label class="md-opcao"><input type="checkbox" id="cn-textura-atras" /> Textura também atrás do emblema</label>
+                <p class="ajuda">Deixe desligado para colar o emblema numa área lisa.</p>
+                <label class="campo">
+                  <span>Tamanho dos emblemas pequenos</span>
+                  <div class="entrada"><input id="cn-textura-tamanho" inputmode="decimal" /><em>mm</em></div>
+                </label>
+              </section>
+
+              <section id="cn-sec-faixas">
+                <h2 class="ch-titulo">Faixas</h2>
+                <p class="ajuda">Frente fica do lado do emblema; verso, do lado oposto. Deixe em branco para uma faixa lisa.</p>
+                <div id="cn-faixas"></div>
+                <div class="campo">
+                  <span>Fonte</span>
+                  <div class="ch-fonte-linha">
+                    <button type="button" class="ch-fonte" id="cn-fonte"></button>
+                  </div>
+                </div>
+                <div class="linha">
+                  <label class="campo">
+                    <span>Tamanho das letras</span>
+                    <div class="entrada"><input id="cn-letra" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                  <label class="campo">
+                    <span>Relevo da escrita</span>
+                    <div class="entrada"><input id="cn-relevo" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </div>
+                <p class="ajuda">A escrita sai em relevo na mesma cor da faixa.</p>
+                <label class="campo">
+                  <span>Escada nas faixas de baixo</span>
+                  <div class="entrada"><input id="cn-escada" inputmode="decimal" /><em>mm</em></div>
+                </label>
+                <p class="ajuda">Cada faixa de baixo sai isso a mais que a de cima. 0 = sem escada. A boca interna não muda.</p>
+                <label class="md-opcao"><input type="checkbox" id="cn-alca" /> Com alça</label>
+              </section>
+
+              <section id="cn-sec-cores">
+                <h2 class="ch-titulo">Cores</h2>
+                <span class="ch-rotulo">Cor principal (corpo e base do emblema)</span>
+                <div class="ch-paleta" id="cn-paleta-principal"></div>
+                <span class="ch-rotulo">2ª cor (faixas e desenho do emblema)</span>
+                <div class="ch-paleta" id="cn-paleta-segunda"></div>
+                <ul class="cn-avisos">
+                  <li>Pra beber direto: a borda da boca é lisa e arredondada, e o interior é liso.</li>
+                  <li>Para alimento, imprima em PETG com parede sólida (paredes de 8 voltas ou 100% de preenchimento) e revista o interior com resina epóxi atóxica (food safe). Sem isso, não é seguro nem estanque.</li>
+                  <li>Só bebida gelada ou natural, nada quente, e lavar à mão.</li>
+                  <li>O emblema sai separado, deitado: aqueça para moldar na curva da caneca e cole.</li>
+                </ul>
+              </section>
+            </div>
+          </aside>
+          <section class="painel modelo-previa">
+            <div class="ch-barra">
+              <span class="cliente-sub" id="cn-capacidade"></span>
+            </div>
+            <div class="palco-modelo ch-palco">
+              <div class="ch-3d" id="cn-3d"></div>
+            </div>
+            <div class="ch-barra">
+              <span class="cliente-sub" id="cn-medidas"></span>
+              <div class="ch-grupo">
+                <button type="button" class="ch-mini" id="cn-zoom-menos" aria-label="Diminuir zoom">−</button>
+                <button type="button" class="ch-mini" id="cn-ajustar">Ajustar à tela</button>
+                <button type="button" class="ch-mini" id="cn-zoom-mais" aria-label="Aumentar zoom">+</button>
+              </div>
+            </div>
+            <p class="ch-status" id="cn-status" role="status"></p>
+            <div class="modelo-rodape">
+              <span class="cliente-sub">No 3MF, a cor principal vai no filamento 1 e a 2ª cor no filamento 2.</span>
+              <div class="acoes-form">
+                <button class="botao-secundario" id="cn-salvar-modelo" type="button" disabled>Salvar modelo</button>
+                <button class="botao-secundario" id="cn-custo" type="button" disabled>Calcular custo</button>
+                <button class="botao-secundario" id="cn-emblema-3mf" type="button" disabled>Salvar só o emblema</button>
+                <button class="botao-secundario" id="cn-stl" type="button" disabled>Salvar STL</button>
+                <button class="botao-secundario" id="cn-3mf" type="button" disabled>Salvar 3MF</button>
+                <button class="botao-primario" id="cn-fatiador" type="button" disabled>Abrir no fatiador</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
 
     <main class="tela oculta pagina" id="tela-grupo">
       <div class="pagina-conteudo">

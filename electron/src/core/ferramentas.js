@@ -106,6 +106,15 @@ export const FERRAMENTAS = [
     tela: "palavras",
   },
   {
+    id: "caneca",
+    grupo: "modelos",
+    titulo: "Caneca de chopp",
+    descricao: "Faixas com texto, alça e emblema do time, em duas cores.",
+    categoria: "Modelos personalizados",
+    disponivel: true,
+    tela: "caneca",
+  },
+  {
     id: "projetos",
     grupo: "modelos",
     titulo: "Meus modelos",

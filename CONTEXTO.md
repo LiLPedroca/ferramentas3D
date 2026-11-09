@@ -9,7 +9,7 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Código, funções e variáveis: português ou inglês técnico, com consistência dentro de cada módulo.
 
 ## Estado atual (novembro/2026)
-- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.25.0**.
+- **Versão ativa: Electron** (pasta `electron/`, branch `electron`). Versão publicada: **v0.26.0**.
 - **Versão antiga: Python/PySide6** (raiz do repositório, branch `main`, v0.2.0). Mantida só como referência das regras de cálculo. Não recebe mais atualizações.
 - Repositório: https://github.com/LiLPedroca/ferramentas3D
 
@@ -159,6 +159,14 @@ Etapas (marcar [x] ao publicar):
 Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.
 
 Para testar telas: o modo de captura (`FERRAMENTAS_*`, ver "Testes e modo de captura") com roteiros JS. Node em `C:\Program Files\nodejs` (adicionar ao PATH), git em `C:\Program Files\Git\cmd\git.exe`, gh em `C:\Program Files\GitHub CLI\gh.exe` (já logado).
+
+## Caneca de chopp (v0.26.0, 09/11/2026)
+Pedido do Pedro: replicar a "caneca de chopp" do Criador 3D do multiferramenta3d.com (vídeo de 09/11/2026), com a **boca interna e a altura do "copo showroom"** dele como padrão de todos os modelos, e opção de mudar à mão.
+- Medidas do copo showroom (`Downloads/copo showroom (1).3mf`, peça "tubo com trava e argola"): argola com **boca interna de 81,4 mm** (está no nome da peça) e tubo de **123 mm** de altura (corpo 108 + argola 15). A base drapeada é outra peça. `COPO_SHOWROOM` em `modelos/caneca.js`; a tela mostra "Usar as medidas do copo showroom" quando o usuário muda.
+- `modelos/caneca.js`: corpo girado (`revolve` 256) com boca lisa e arredondada (3 mm na cor principal acima da faixa de cima), fundo com canto arredondado, chanfro de 0,5 mm na base; 4 faixas (cima, 1, 2, 3) com texto frente/verso em relevo na cor da faixa (seção plana → `refineToLength(3)` → `warp` no cilindro; frente = −Y, verso = +Y); "escada" (cada faixa de baixo sai X mm a mais); alça em −X com a pega descendo até a mesa (os braços viram pontes, sem suporte); textura de emblemas pequenos (anel + desenho, `simplify(0,05)`, sem textura atrás do emblema por padrão, para colar). Cores só por altura (`regioesDeCor`), então sem AMS = pausas `trocasDeCor` (5 no padrão: camadas 71, 141, 211, 531, 601). A peça é dividida por `trimByPlane` em "cor principal" (filamento 1) e "2ª cor" (filamento 2).
+- `modelos/emblema.js`: imagem → escuro vira desenho (limiar, inverter), PNG transparente dá o contorno; `formasDoEmblema` (contorno ou círculo, aro). Emblema sai deitado ao lado (base 1,6 + desenho 0,8). Sem AMS o emblema fica fora do arquivo da caneca e sai em "Salvar só o emblema" (pausa em 1,6 mm).
+- `perguntarImpressao` aceita uma lista de trocas. Meus modelos ganhou o tipo `caneca` (guarda a imagem do emblema).
+- Conferido fatiando pela linha de comando (Kobra X, 0,20): sem AMS → 5 M600 em 14,2 / 28,2 / 42,2 / 106,2 / 120,2 mm, 615 camadas, ≈ 111 g e 3h44; com AMS → trocas T0/T1 nas mesmas alturas. Não impresso de verdade.
 
 ## Ideias para próximas ferramentas (não aparecem no app)
 Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de filamentos, Comparador de custos, Encaixes e tolerâncias, Medidas e escala, Ficha de impressão, Falhas de impressão, Biblioteca de projetos, Conversor SVG, Preparador de fotos, Organizador de arquivos, Backup e restauração.
