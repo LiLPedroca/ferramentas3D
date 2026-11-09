@@ -1,4 +1,4 @@
-import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela do Chaveiro de nome: opções à esquerda, prévia 2D (argola arrastável) ou 3D à direita.
 import { pesoCurto } from "./modelos/estimativa.js";
 import { camadaDaTroca, gerarChaveiro, LIMITES_CHAVEIRO, MODELOS_PRONTOS, PADRAO_CHAVEIRO } from "./modelos/chaveiro.js";
@@ -110,6 +110,7 @@ async function gerar() {
   const minha = ++geracao;
   const pedido = { ...opcoes };
   try {
+    conferirMedidas(MEDIDAS, LIMITES_CHAVEIRO, lerMedida, (n) => `${formatar(n)} ${unidade}`);
     const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(pedido.fonte)]);
     if (minha !== geracao) return;
     const resultado = gerarChaveiro(M, fonte, pedido);
@@ -234,6 +235,7 @@ export function iniciarChaveiro() {
     $(id).addEventListener("change", () => {
       preencherCampos();
       lembrar();
+      gerar();
     });
   }
   $("ch-unidade").addEventListener("change", () => {

@@ -1,4 +1,4 @@
-import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
+import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
 // Tela do Chaveiro de logo: imagem -> cores vetorizadas -> relevo multicor sobre base com argola.
 import { criarPaleta, marcarPaleta, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
@@ -74,6 +74,7 @@ async function gerar() {
   }
   const minha = ++geracao;
   try {
+    conferirMedidas(MEDIDAS, LIMITES_LOGO);
     const M = await motorDaTela();
     if (minha !== geracao) return;
     modelo = gerarLogo(M, cores, opcoes);
@@ -204,7 +205,10 @@ export function iniciarLogo() {
       opcoes = { ...opcoes, [chave]: valor };
       agendar();
     });
-    $(id).addEventListener("change", preencherCampos);
+    $(id).addEventListener("change", () => {
+      preencherCampos();
+      gerar();
+    });
   }
   for (const b of document.querySelectorAll("[data-lg-estilo]")) b.addEventListener("click", () => mudar({ estilo: b.dataset.lgEstilo }));
   $("lg-argola-auto").addEventListener("click", () => mudar({ argola: null }));

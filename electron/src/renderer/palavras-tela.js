@@ -1,4 +1,4 @@
-import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela das Palavras decorativas: até 3 linhas, placa ou letreiro, prévia 2D/3D.
 import { pesoCurto } from "./modelos/estimativa.js";
 import { gerar3mf } from "./modelos/exportar.js";
@@ -86,6 +86,7 @@ async function gerar() {
   const minha = ++geracao;
   const pedido = structuredClone(opcoes);
   try {
+    conferirMedidas({ ...MEDIDAS, "pl-tamanho-1": "tamanho", "pl-tamanho-2": "tamanho", "pl-tamanho-3": "tamanho" }, LIMITES_PALAVRAS, undefined, (n, chave) => `${formatar(n)} ${chave === "tamanho" ? "%" : "mm"}`);
     const usadas = pedido.linhas.filter((l) => l.texto.trim());
     const [M, ...lista] = await Promise.all([motorDaTela(), ...usadas.map((l) => carregarFonte(l.fonte))]);
     if (minha !== geracao) return;
@@ -179,7 +180,10 @@ export function iniciarPalavras() {
       opcoes = { ...opcoes, [chave]: v };
       agendar();
     });
-    $(id).addEventListener("change", preencherCampos);
+    $(id).addEventListener("change", () => {
+      preencherCampos();
+      gerar();
+    });
   }
   for (const b of document.querySelectorAll("[data-pl-modo]")) b.addEventListener("click", () => mudar({ modo: b.dataset.plModo }));
   for (const b of document.querySelectorAll("[data-pl-estilo]")) b.addEventListener("click", () => mudar({ estilo: b.dataset.plEstilo }));

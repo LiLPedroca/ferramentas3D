@@ -1,3 +1,14 @@
+/* Índice de seções (na ordem da cascata)
+ * Fundamentos: cores/temas, cabeçalho, menu, telas, formulário e resultado.
+ * Ferramentas: Visualizador, Início, grupos, Configurações, Clientes e Orçamentos.
+ * Arquivos: Backup, metadados/Detector de IA, Conversor SVG e Caçador de STL.
+ * Elementos comuns: modelos, fatiador, boas-vindas, avisos, botões, Produtos e diálogos.
+ * Modelos: Chaveiro de nome, Palavras, Meus modelos e Caneca de chopp.
+ * Gestão e calibração: Estoque de filamentos, Etiquetas e Encaixes.
+ * Visualizador: ajustes finais do layout e barra de abertura.
+ * A ordem foi preservada: regras posteriores podem complementar as anteriores.
+ */
+
 /* Cores em variáveis: tema escuro padrão, tema claro quando data-theme="claro". */
 :root,
 html[data-theme="escuro"] {

@@ -1,4 +1,4 @@
-import { densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela da Caneca de chopp: medidas (padrão = copo showroom), emblema, faixas e cores à esquerda,
 // prévia 3D à direita.
 import { capacidadeMl, COPO_SHOWROOM, FAIXAS, gerarCaneca, LIMITES_CANECA, PADRAO_CANECA, trocaDoEmblema, trocasDeCor } from "./modelos/caneca.js";
@@ -211,6 +211,7 @@ async function gerar() {
   const minha = ++geracao;
   const pedido = structuredClone(opcoes);
   try {
+    conferirMedidas(MEDIDAS, LIMITES_CANECA);
     if (emblema && !lacos) refazerLacos();
     const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(pedido.fonte)]);
     if (minha !== geracao) return;
@@ -322,7 +323,10 @@ export function iniciarCaneca() {
       mostrarReferencia();
       agendar();
     });
-    $(id).addEventListener("change", preencherCampos);
+    $(id).addEventListener("change", () => {
+      preencherCampos();
+      gerar();
+    });
   }
   for (const [id, chave] of Object.entries(CAIXAS)) {
     $(id).addEventListener("change", () => {

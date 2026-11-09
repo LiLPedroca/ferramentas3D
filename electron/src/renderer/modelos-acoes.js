@@ -16,6 +16,18 @@ export function materialDoModelo(padrao = "PLA") {
 
 export const densidadeDoModelo = (padrao) => densidadeDoMaterial(materialDoModelo(padrao));
 
+// Confere os campos atuais, inclusive quando outro campo disparou a geração.
+export function conferirMedidas(medidas, limites, ler = (id) => Number(String($(id).value).replace(",", ".")), formatar = (n) => `${n.toLocaleString("pt-BR")} mm`) {
+  for (const [id, chave] of Object.entries(medidas)) {
+    const valor = ler(id);
+    const [minimo, maximo] = limites[chave];
+    if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
+      const nome = $(id).closest("label")?.querySelector("span")?.textContent.trim() || "Medida";
+      throw new Error(`${nome}: use de ${formatar(minimo, chave)} a ${formatar(maximo, chave)}.`);
+    }
+  }
+}
+
 export function mudarPrevia(prefixo, modo, previa2d, previa3d, partes) {
   $(`${prefixo}-ver-2d`).setAttribute("aria-pressed", String(modo === "2d"));
   $(`${prefixo}-ver-3d`).setAttribute("aria-pressed", String(modo === "3d"));

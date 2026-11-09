@@ -57,4 +57,24 @@ describe("exportação durante alterações do modelo", () => {
     expect($("ch-stl").disabled).toBe(true);
     expect($("ch-status").classList.contains("erro")).toBe(true);
   });
+
+  it("restaurar o valor válido ao sair do campo recupera a peça e as ações", async () => {
+    digitar("ch-largura", "80");
+    await vi.waitFor(() => expect($("ch-stl").disabled).toBe(false));
+    digitar("ch-largura", "abc");
+    $("ch-largura").dispatchEvent(new Event("change"));
+    expect($("ch-largura").value).toBe("80");
+    await vi.waitFor(() => expect($("ch-stl").disabled).toBe(false));
+    expect($("ch-status").classList.contains("erro")).toBe(false);
+  });
+
+  it("alterar outra medida não libera exportação enquanto houver campo inválido", async () => {
+    digitar("ch-borda", "abc");
+    digitar("ch-largura", "90");
+    await new Promise((r) => setTimeout(r, 400));
+    expect($("ch-stl").disabled).toBe(true);
+    expect($("ch-status").classList.contains("erro")).toBe(true);
+    $("ch-borda").dispatchEvent(new Event("change"));
+    await vi.waitFor(() => expect($("ch-stl").disabled).toBe(false));
+  });
 });
