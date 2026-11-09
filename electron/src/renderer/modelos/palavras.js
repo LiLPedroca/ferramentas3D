@@ -113,9 +113,9 @@ export function gerarPalavras(M, fontes, entrada) {
         } else if (o.estilo === "capsula") {
           const altura = ct.max[1] - ct.min[1];
           const meio = (ct.min[1] + ct.max[1]) / 2;
-          placa = guardar(guardar(C.square([ct.max[0] - ct.min[0], 0.01]).translate([ct.min[0], meio])).offset(altura / 2 + o.borda, "Round", 2, 96));
+          placa = guardar(guardar(guardar(C.square([ct.max[0] - ct.min[0], 0.01])).translate([ct.min[0], meio])).offset(altura / 2 + o.borda, "Round", 2, 96));
         } else {
-          placa = guardar(guardar(C.square([ct.max[0] - ct.min[0], ct.max[1] - ct.min[1]]).translate(ct.min)).offset(o.borda, "Round", 2, 64));
+          placa = guardar(guardar(guardar(C.square([ct.max[0] - ct.min[0], ct.max[1] - ct.min[1]])).translate(ct.min)).offset(o.borda, "Round", 2, 64));
         }
         if (o.espessura < 1.6 || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência no fatiador.");
         partes = {
@@ -128,7 +128,7 @@ export function gerarPalavras(M, fontes, entrada) {
         const alturaLinha = ult.max[1] - ult.min[1];
         const alturaBarra = Math.max(2.4, alturaLinha * 0.16);
         const barra = guardar(
-          guardar(C.square([ult.max[0] - ult.min[0] + 2, alturaBarra]).translate([ult.min[0] - 1, ult.min[1] - alturaBarra * 0.45])).offset(0.6, "Round", 2, 24),
+          guardar(guardar(C.square([ult.max[0] - ult.min[0] + 2, alturaBarra])).translate([ult.min[0] - 1, ult.min[1] - alturaBarra * 0.45])).offset(0.6, "Round", 2, 24),
         );
         // tudo numa peça só: pontes entre letras soltas, acentos e linhas
         const inteira = unirIlhas(M, guardar, guardar(texto.add(barra)), o.ligacao);

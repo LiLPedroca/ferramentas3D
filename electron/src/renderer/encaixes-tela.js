@@ -55,7 +55,7 @@ function calcular() {
 }
 
 async function gerar() {
-  clearTimeout(temporizador);
+  invalidar();
   const minha = ++geracao;
   try {
     const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte("Fredoka")]);
@@ -82,8 +82,15 @@ async function gerar() {
   previa2d.mostrar(modelo);
 }
 
-function agendar() {
+// Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
+function invalidar() {
   clearTimeout(temporizador);
+  geracao += 1;
+  habilitar(false);
+}
+
+function agendar() {
+  invalidar();
   temporizador = setTimeout(gerar, 250);
 }
 

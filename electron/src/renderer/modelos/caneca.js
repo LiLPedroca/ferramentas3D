@@ -271,11 +271,11 @@ function alca(M, guardar, o) {
   const dentro = r[0] - 1;
   const fora = r[1] + ALCA.abertura + ALCA.pega;
   const inicio = r[0] - 12; // começa dentro da parede: os cantos arredondados de lá são cortados
-  const retangulo = (x0, z0, x1, z1, raio) => guardar(guardar(guardar(C.square([x1 - x0, z1 - z0]).translate([x0, z0])).offset(-raio, "Round", 2, 32)).offset(raio, "Round", 2, 32));
+  const retangulo = (x0, z0, x1, z1, raio) => guardar(guardar(guardar(guardar(C.square([x1 - x0, z1 - z0])).translate([x0, z0])).offset(-raio, "Round", 2, 32)).offset(raio, "Round", 2, 32));
   const externo = guardar(retangulo(inicio, -20, fora, topo, 6).intersect(guardar(C.square([fora + 1, topo + 1]))));
   const vaoMeio = retangulo(inicio, 3 * f, r[1] + ALCA.abertura, topo - f, 4);
   const vaoBaixo = retangulo(inicio, -10, r[1] + ALCA.abertura, 2 * f, 4);
-  const corte = guardar(C.square([fora - dentro + 1, topo + 2]).translate([dentro, -1]));
+  const corte = guardar(guardar(C.square([fora - dentro + 1, topo + 2])).translate([dentro, -1]));
   const secao = guardar(guardar(guardar(externo.subtract(vaoMeio)).subtract(vaoBaixo)).intersect(corte));
   return guardar(guardar(guardar(guardar(secao.extrude(ALCA.largura)).translate([0, 0, -ALCA.largura / 2])).rotate([90, 0, 0])).rotate([0, 0, 180]));
 }

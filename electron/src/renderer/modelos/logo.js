@@ -142,9 +142,9 @@ export function gerarLogo(M, svgOuCores, entrada) {
       } else if (o.estilo === "circulo") {
         let raio = 0;
         for (const laco of arte.toPolygons()) for (const p of laco) raio = Math.max(raio, Math.hypot(p[0] - meio[0], p[1] - meio[1]));
-        base = guardar(C.circle(raio + o.borda, 128).translate(meio));
+        base = guardar(guardar(C.circle(raio + o.borda, 128)).translate(meio));
       } else {
-        const miolo = guardar(C.square([cx.max[0] - cx.min[0], cx.max[1] - cx.min[1]]).translate(cx.min));
+        const miolo = guardar(guardar(C.square([cx.max[0] - cx.min[0], cx.max[1] - cx.min[1]])).translate(cx.min));
         base = guardar(miolo.offset(o.borda, "Round", 2, 80));
       }
       const presa = prenderArgola(M, guardar, base, arte, o, o.argola, [meio[0], 1e4]);

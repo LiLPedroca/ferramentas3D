@@ -130,8 +130,8 @@ export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao) {
   const raio = o.furo / 2 + o.parede;
   const afastamento = raio - Math.min(o.parede, 2);
   const centro = [ancora.ponto[0] + ancora.normal[0] * afastamento, ancora.ponto[1] + ancora.normal[1] * afastamento];
-  const disco = guardar(C.circle(raio, 96).translate(centro));
-  const furo = guardar(C.circle(o.furo / 2, 80).translate(centro));
+  const disco = guardar(guardar(C.circle(raio, 96)).translate(centro));
+  const furo = guardar(guardar(C.circle(o.furo / 2, 80)).translate(centro));
   if (guardar(arte.intersect(furo)).area() > 0.001) throw new Error("A argola ficou sobre o desenho. Arraste-a para outra posição na borda.");
   if (guardar(disco.intersect(guardar(base.offset(-0.5)))).area() < 1) throw new Error("A ligação da argola ficou fina. Arraste-a para outra posição na borda.");
   const nova = guardar(guardar(base.add(disco)).subtract(furo));
@@ -182,7 +182,7 @@ export function unirIlhas(M, guardar, secao, larguraPonte, maxPassadas = 60) {
       }
     }
     const r = larguraPonte / 2;
-    const ponte = guardar(C.hull([guardar(C.circle(r, 32).translate(melhor.a)), guardar(C.circle(r, 32).translate(melhor.b))]));
+    const ponte = guardar(C.hull([guardar(guardar(C.circle(r, 32)).translate(melhor.a)), guardar(guardar(C.circle(r, 32)).translate(melhor.b))]));
     secao = guardar(secao.add(ponte));
   }
   throw new Error("Não foi possível unir a base. Use Cápsula ou Retangular.");

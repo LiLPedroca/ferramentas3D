@@ -93,15 +93,22 @@ function mudar(mudancas, { lembrar: guardar = true, imediato = true } = {}) {
   else agendar();
 }
 
-function agendar() {
+// Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
+function invalidar() {
   clearTimeout(temporizador);
+  geracao += 1;
+  habilitar(false);
+}
+
+function agendar() {
+  invalidar();
   status("Atualizando a peça…");
   temporizador = setTimeout(gerar, 220);
 }
 
 // ---------- Geração ----------
 async function gerar() {
-  clearTimeout(temporizador);
+  invalidar();
   const minha = ++geracao;
   const pedido = { ...opcoes };
   try {
@@ -234,9 +241,9 @@ export function iniciarChaveiro() {
   for (const [id, chave] of Object.entries(MEDIDAS)) {
     $(id).addEventListener("input", () => {
       const valor = lerMedida(id);
-      if (!Number.isFinite(valor)) return;
+      invalidar();
       const [minimo, maximo] = LIMITES_CHAVEIRO[chave];
-      if (valor < minimo || valor > maximo) {
+      if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
         status(`${chave === "largura" ? "Largura total" : "Medida"}: use de ${formatar(minimo)} a ${formatar(maximo)} ${unidade}.`, true);
         habilitar(false);
         return;

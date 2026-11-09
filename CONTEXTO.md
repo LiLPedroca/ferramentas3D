@@ -225,3 +225,13 @@ Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de fil
 - Não guardar dados pessoais nem chaves de API no código.
 - Testar caminhos com espaços e acentos (ex.: "Pedro Henrique").
 - O app não deve exigir privilégios de administrador.
+
+## Trabalho do Codex (09/11/2026)
+
+### Bloco 1 — revisão de bugs (v0.35.1)
+- Base atualizada por `git pull origin electron`, confirmando o commit e6b9041. `npm install` concluído e os 216 testes originais passaram.
+- Chaveiro, Logo, Palavras, Caneca e Encaixes bloqueiam exportação/custo/salvamento enquanto a peça está sendo atualizada; entradas numéricas inválidas cancelam pedidos pendentes.
+- Corrigida a liberação de formas temporárias do Manifold (círculos, retângulos e transformações) nos modelos e nas argolas/pontes. Testes exercitam a geração real e verificam liberação dos objetos.
+- Capturas usam exclusivamente FERRAMENTAS_DADOS em pasta temporária. Nenhum dado pessoal ou arquivo antigo foi apagado.
+- Última release consultada pela API pública: v0.35.0. `gh auth status` informa ausência de login; v0.35.1 preparada, publicação pendente.
+- Validação do bloco: 224 testes passaram. Uma execução anterior teve timeout de 5 s em `logo.test.js` (largura e fechamento nos três estilos); o teste isolado e a repetição completa passaram. Capturas de todas as telas básicas sem IDs repetidos.

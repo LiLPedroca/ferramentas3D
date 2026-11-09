@@ -194,14 +194,21 @@ async function carregarArquivo(arquivo) {
 }
 
 // ---------- Geração ----------
-function agendar() {
+// Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
+function invalidar() {
   clearTimeout(temporizador);
+  geracao += 1;
+  habilitar(false);
+}
+
+function agendar() {
+  invalidar();
   status("Atualizando a caneca…");
   temporizador = setTimeout(gerar, 350);
 }
 
 async function gerar() {
-  clearTimeout(temporizador);
+  invalidar();
   const minha = ++geracao;
   const pedido = structuredClone(opcoes);
   try {
@@ -315,9 +322,9 @@ export function iniciarCaneca() {
   for (const [id, chave] of Object.entries(MEDIDAS)) {
     $(id).addEventListener("input", () => {
       const valor = Number(String($(id).value).replace(",", "."));
-      if (!Number.isFinite(valor)) return;
+      invalidar();
       const [minimo, maximo] = LIMITES_CANECA[chave];
-      if (valor < minimo || valor > maximo) {
+      if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
         status(`Use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, true);
         habilitar(false);
         return;

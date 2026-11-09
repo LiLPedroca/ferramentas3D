@@ -188,7 +188,7 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto) {
     } else {
       const meio = (cx.min[1] + cx.max[1]) / 2;
       const capsula = o.estilo === "capsula";
-      const miolo = guardar(C.square([cx.max[0] - cx.min[0], capsula ? 0.01 : altura]).translate([cx.min[0], capsula ? meio : cx.min[1]]));
+      const miolo = guardar(guardar(C.square([cx.max[0] - cx.min[0], capsula ? 0.01 : altura])).translate([cx.min[0], capsula ? meio : cx.min[1]]));
       base = guardar(miolo.offset(capsula ? altura / 2 + o.borda : o.borda, "Round", 2, 80));
     }
 

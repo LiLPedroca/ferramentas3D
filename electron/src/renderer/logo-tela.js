@@ -70,7 +70,7 @@ function vetorizarImagem() {
 }
 
 async function gerar() {
-  clearTimeout(temporizador);
+  invalidar();
   if (!cores) {
     habilitar(false);
     return;
@@ -103,8 +103,15 @@ async function gerar() {
   previa2d.mostrar(modelo);
 }
 
-function agendar() {
+// Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
+function invalidar() {
   clearTimeout(temporizador);
+  geracao += 1;
+  habilitar(false);
+}
+
+function agendar() {
+  invalidar();
   status("Atualizando a peça…");
   temporizador = setTimeout(gerar, 250);
 }
@@ -215,9 +222,9 @@ export function iniciarLogo() {
   for (const [id, chave] of Object.entries(MEDIDAS)) {
     $(id).addEventListener("input", () => {
       const valor = Number(String($(id).value).replace(",", "."));
-      if (!Number.isFinite(valor)) return;
+      invalidar();
       const [minimo, maximo] = LIMITES_LOGO[chave];
-      if (valor < minimo || valor > maximo) {
+      if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
         status(`${chave === "largura" ? "Largura total" : "Medida"}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, true);
         habilitar(false);
         return;

@@ -53,13 +53,13 @@ export function gerarPecaTeste(M, fonte, entrada) {
     const largura = passoX * o.quantidade + 4;
     const altura = maiorFuro + alturaNumero + 9;
     const cyFuro = 4.5 + maiorFuro / 2;
-    const placa = guardar(guardar(C.square([largura, altura])).offset(1.5, "Round", 2, 32).translate([1.5, 1.5]));
+    const placa = guardar(guardar(guardar(C.square([largura, altura])).offset(1.5, "Round", 2, 32)).translate([1.5, 1.5]));
     const segmentos = Math.max(96, Math.round(o.diametro * 12));
     let furos = null;
     let numeros = null;
     folgas.forEach((f, i) => {
       const cx = 3.5 + passoX * i + passoX / 2;
-      const furo = guardar(C.circle((o.diametro + f) / 2, segmentos).translate([cx, cyFuro]));
+      const furo = guardar(guardar(C.circle((o.diametro + f) / 2, segmentos)).translate([cx, cyFuro]));
       furos = furos ? guardar(furos.add(furo)) : furo;
       // número: "0,15" centralizado acima do furo, com a altura pedida
       const texto = secaoDoTexto(M, guardar, fonte, f.toFixed(2).replace(".", ","), 100);
@@ -91,7 +91,7 @@ export function gerarPecaTeste(M, fonte, entrada) {
       camadas: [
         { lacos: secaoPlaca.toPolygons(), cor: "#2563eb" },
         { lacos: numeros.toPolygons(), cor: "#93c5fd" },
-        { lacos: guardar(C.circle(o.diametro / 2, segmentos).translate([largura + 3 + 4 + o.diametro / 2, cyFuro])).toPolygons(), cor: "#f59e0b" },
+        { lacos: guardar(guardar(C.circle(o.diametro / 2, segmentos)).translate([largura + 3 + 4 + o.diametro / 2, cyFuro])).toPolygons(), cor: "#f59e0b" },
       ],
       caixa: { min: [0, 0], max: [larguraTotal, altura + 3] },
       perimetro: null,

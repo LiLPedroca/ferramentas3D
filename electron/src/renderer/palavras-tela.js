@@ -66,8 +66,15 @@ function mudar(mudancas) {
   gerar();
 }
 
-function agendar() {
+// Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
+function invalidar() {
   clearTimeout(temporizador);
+  geracao += 1;
+  habilitar(false);
+}
+
+function agendar() {
+  invalidar();
   status("Atualizando a peça…");
   temporizador = setTimeout(gerar, 250);
 }
@@ -77,7 +84,7 @@ function habilitar(pronto) {
 }
 
 async function gerar() {
-  clearTimeout(temporizador);
+  invalidar();
   const minha = ++geracao;
   const pedido = structuredClone(opcoes);
   try {
@@ -161,6 +168,7 @@ export function iniciarPalavras() {
     $(`pl-tamanho-${n}`).addEventListener("input", () => {
       const v = Number(String($(`pl-tamanho-${n}`).value).replace(",", "."));
       const [minimo, maximo] = LIMITES_PALAVRAS.tamanho;
+      invalidar();
       if (!Number.isFinite(v) || v < minimo || v > maximo) {
         status(`Tamanho da linha ${n}: use de ${minimo} a ${maximo}%.`, true);
         habilitar(false);
@@ -180,6 +188,7 @@ export function iniciarPalavras() {
     $(id).addEventListener("input", () => {
       const v = Number(String($(id).value).replace(",", "."));
       const [minimo, maximo] = LIMITES_PALAVRAS[chave];
+      invalidar();
       if (!Number.isFinite(v) || v < minimo || v > maximo) {
         status(`${NOMES[chave]}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, true);
         habilitar(false);
