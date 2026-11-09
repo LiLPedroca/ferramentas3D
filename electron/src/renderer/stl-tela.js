@@ -1,4 +1,5 @@
-// Tela do Caçador de STL: busca em vários sites (abre no navegador) e favoritos locais.
+// Tela do Caçador de STL: busca no Printables dentro do programa, os outros sites no navegador,
+// e favoritos locais.
 import modeloStl from "../core/stl.cjs";
 import { normalizar } from "../core/inicio.js";
 import { confirmar, mostrarAviso, registrarAoAbrir } from "./shell.js";
@@ -50,6 +51,89 @@ function montarSites() {
   );
 }
 
+// Printables: resultados dentro do programa. Os outros sites viram botões que abrem no navegador.
+const busca = { termo: "", pagina: 0, carregando: false };
+
+function botaoExterno(id, termo) {
+  const b = el("button", "botao-secundario pequeno", `${NOME_SITE[id]} ↗`);
+  b.type = "button";
+  b.title = "Abre a busca no navegador";
+  b.addEventListener("click", () => window.open(urlBusca(id, termo)));
+  return b;
+}
+
+function cartaoResultado(item) {
+  const cartao = el("div", "stl-resultado");
+  const foto = el("div", "stl-foto");
+  if (item.imagem) {
+    window.stl.miniatura(item.imagem).then((r) => {
+      if (!r.ok) return;
+      const img = el("img");
+      img.src = r.dados;
+      img.alt = "";
+      foto.append(img);
+    });
+  }
+  const corpo = el("div", "stl-resultado-corpo");
+  corpo.append(el("strong", "stl-resultado-titulo", item.titulo));
+  if (item.autor) corpo.append(el("span", "cliente-sub", `por ${item.autor}`));
+  const meta = el("span", "stl-fav-meta");
+  meta.append(el("span", `stl-preco ${item.preco}`, ROTULO_PRECO[item.preco]));
+  if (item.curtidas !== null) meta.append(el("span", "stl-chip-site", `♥ ${item.curtidas}`));
+  if (item.downloads !== null) meta.append(el("span", "stl-chip-site", `↓ ${item.downloads}`));
+  corpo.append(meta);
+
+  const acoes = el("div", "stl-resultado-acoes");
+  const abrir = el("button", "botao-secundario pequeno", "Abrir");
+  abrir.type = "button";
+  abrir.addEventListener("click", () => window.open(item.url));
+  const salvar = el("button", "botao-texto pequeno", "☆ Favoritar");
+  salvar.type = "button";
+  const jaSalvo = () => favoritos.some((f) => f.url === item.url);
+  const marcar = () => {
+    salvar.textContent = "★ Nos favoritos";
+    salvar.disabled = true;
+  };
+  if (jaSalvo()) marcar();
+  salvar.addEventListener("click", async () => {
+    const r = await window.dados.favoritos.salvar({ url: item.url, titulo: item.titulo, preco: item.preco, observacoes: item.autor ? `Printables · ${item.autor}` : "Printables" }, null);
+    if (!r.ok) {
+      mostrarAviso(r.erro);
+      return;
+    }
+    marcar();
+    mostrarAviso("Favorito salvo.");
+    await carregarFavoritos();
+  });
+  acoes.append(abrir, salvar);
+  corpo.append(acoes);
+  cartao.append(foto, corpo);
+  return cartao;
+}
+
+async function carregarPagina() {
+  if (busca.carregando) return;
+  busca.carregando = true;
+  const proxima = busca.pagina + 1;
+  $("stl-mais").hidden = true;
+  $("stl-buscar").disabled = true;
+  $("stl-estado").textContent = proxima === 1 ? "Buscando no Printables…" : "Carregando mais…";
+  const termo = busca.termo;
+  const r = await window.stl.printables(termo, proxima);
+  busca.carregando = false;
+  $("stl-buscar").disabled = false;
+  if (termo !== busca.termo) return; // chegou depois de uma busca nova
+  if (!r.ok) {
+    $("stl-estado").replaceChildren(document.createTextNode(`${r.erro} `), botaoExterno("printables", termo));
+    return;
+  }
+  busca.pagina = proxima;
+  $("stl-total").textContent = r.dados.total ? `(${r.dados.total.toLocaleString("pt-BR")})` : "";
+  $("stl-estado").textContent = r.dados.total === 0 ? "Nenhum modelo encontrado. Tente outras palavras, de preferência em inglês." : "";
+  $("stl-resultados").append(...r.dados.itens.map(cartaoResultado));
+  $("stl-mais").hidden = !r.dados.temMais;
+}
+
 function buscar(ev) {
   ev.preventDefault();
   const termo = $("stl-termo").value.trim();
@@ -62,8 +146,23 @@ function buscar(ev) {
     mostrarAviso("Escolha pelo menos um site.");
     return;
   }
-  for (const id of ids) window.open(urlBusca(id, termo));
-  mostrarAviso(ids.length === 1 ? "Busca aberta no navegador." : `Busca aberta em ${ids.length} abas do navegador.`);
+  const externos = ids.filter((id) => id !== "printables");
+  $("stl-externos").hidden = externos.length === 0;
+  $("stl-externos").replaceChildren(
+    ...(externos.length ? [el("span", "ajuda", "Ver também no navegador:"), ...externos.map((id) => botaoExterno(id, termo))] : []),
+  );
+  $("stl-resultados-painel").hidden = false;
+  $("stl-resultados").replaceChildren();
+  $("stl-total").textContent = "";
+  $("stl-mais").hidden = true;
+  busca.termo = termo;
+  busca.pagina = 0;
+  busca.carregando = false;
+  if (ids.includes("printables")) {
+    carregarPagina();
+  } else {
+    $("stl-estado").textContent = "Marque o Printables para ver resultados aqui. Os outros sites abrem pelos botões acima.";
+  }
 }
 
 // ---------- Favoritos ----------
@@ -164,6 +263,7 @@ async function excluirFavorito() {
 export function iniciarStl() {
   montarSites();
   $("stl-form-busca").addEventListener("submit", buscar);
+  $("stl-mais").addEventListener("click", carregarPagina);
   $("stl-filtro-site").replaceChildren(
     new Option("Todos os sites", ""),
     ...[...SITES, { id: "outro", nome: "Outro site" }].map((s) => new Option(s.nome, s.id)),

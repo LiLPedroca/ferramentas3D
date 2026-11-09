@@ -162,20 +162,11 @@ export const FERRAMENTAS = [
   {
     id: "detector",
     grupo: "ferramentas",
-    titulo: "Detector de IA",
-    descricao: "Procure sinais de imagem gerada por IA.",
+    titulo: "Detector de IA e metadados",
+    descricao: "Veja sinais de IA, GPS e câmera das fotos e salve cópias limpas.",
     categoria: "Ferramentas",
     disponivel: true,
     tela: "detector",
-  },
-  {
-    id: "metadados",
-    grupo: "ferramentas",
-    titulo: "Removedor de metadados",
-    descricao: "Veja e tire GPS, câmera e autor das fotos.",
-    categoria: "Ferramentas",
-    disponivel: true,
-    tela: "metadados",
   },
   {
     id: "backup",

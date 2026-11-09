@@ -187,24 +187,133 @@
       </section>
     </main>
 
-    <main class="tela oculta" id="tela-visualizador">
-      <section class="painel visualizador">
-        <div class="zona-arquivo" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo STL">
-          <p><strong>Arraste um arquivo .stl aqui</strong></p>
-          <p class="ajuda">ou clique para escolher</p>
-          <input type="file" id="arquivo-stl" accept=".stl" hidden />
+    <main class="tela oculta vz-tela" id="tela-visualizador">
+      <section class="vz-area">
+        <div class="vz-barra" id="vz-ferramentas">
+          <div class="vz-grupo" role="group" aria-label="O que o mouse faz" data-vz-com-peca hidden>
+            <button type="button" class="vz-botao" data-vz-modo="vista" title="Girar a vista com o mouse">Vista</button>
+            <button type="button" class="vz-botao" data-vz-modo="mover" title="Mover a peça sobre a mesa">Mover</button>
+            <button type="button" class="vz-botao" data-vz-modo="girar" title="Girar a peça">Girar</button>
+            <button type="button" class="vz-botao" data-vz-modo="face" title="Clique numa face para encostá-la na mesa">Deitar na face</button>
+          </div>
+          <div class="vz-grupo" role="group" aria-label="Paquímetro" data-vz-com-peca hidden>
+            <button type="button" class="vz-botao" data-vz-modo="paquimetro" title="Passe o mouse na peça: mostra o Ø de dentro e de fora em cada altura (camada)">Paquímetro</button>
+            <button type="button" class="vz-botao" data-vz-modo="distancia" title="Distância entre dois pontos que você escolhe">Distância</button>
+          </div>
+          <div class="vz-grupo" data-vz-com-peca hidden>
+            <button type="button" class="vz-botao" id="vz-corte" aria-pressed="false" title="Cortar a peça para ver o lado de dentro">Corte</button>
+          </div>
+          <span class="espaco"></span>
+          <button type="button" class="vz-botao solto" id="vz-abrir" title="Abrir outro arquivo">Abrir arquivo</button>
         </div>
-        <div class="palco" id="palco"><p class="ajuda" id="palco-vazio">Nenhum modelo carregado.</p></div>
+
+        <div class="palco" id="palco">
+          <div class="vz-zona" id="zona-arquivo" tabindex="0" role="button" aria-label="Escolher arquivo 3D">
+            Solte um arquivo na mesa ou <u>clique aqui</u> · STL, 3MF, OBJ, PLY
+            <input type="file" id="arquivo-stl" accept=".stl,.3mf,.obj,.ply" hidden />
+          </div>
+          <p class="ajuda vz-status" id="palco-vazio" hidden></p>
+          <div class="vz-flutuante vz-cantos" id="vz-flutuante" hidden>
+            <div class="vz-grupo vidro" role="group" aria-label="Vistas">
+              <button type="button" class="vz-botao" data-vz-vista="iso" title="Vista 3D">3D</button>
+              <button type="button" class="vz-botao" data-vz-vista="frente" title="Vista de frente">Frente</button>
+              <button type="button" class="vz-botao" data-vz-vista="topo" title="Vista de cima">Topo</button>
+              <button type="button" class="vz-botao" data-vz-vista="lado" title="Vista de lado">Lado</button>
+            </div>
+            <div class="vz-grupo vidro" role="group" aria-label="Girar 90 graus">
+              <button type="button" class="vz-botao" data-vz-girar="x:90" title="Girar 90° em X">↻X</button>
+              <button type="button" class="vz-botao" data-vz-girar="y:90" title="Girar 90° em Y">↻Y</button>
+              <button type="button" class="vz-botao" data-vz-girar="z:90" title="Girar 90° em Z">↻Z</button>
+            </div>
+            <div class="vz-grupo vidro">
+              <button type="button" class="vz-botao" id="vz-centralizar" title="Pôr no meio da mesa">Centralizar</button>
+              <button type="button" class="vz-botao" id="vz-restaurar" title="Voltar como abriu">Restaurar</button>
+            </div>
+          </div>
+          <div class="vz-corte-painel vidro" id="vz-corte-painel" hidden>
+            <div class="vz-grupo" role="group" aria-label="Direção do corte">
+              <button type="button" class="vz-botao" data-vz-corte="altura" title="Corta deitado: some o que está acima">Altura</button>
+              <button type="button" class="vz-botao" data-vz-corte="frente" title="Corta em pé: some a parte da frente">Frente</button>
+              <button type="button" class="vz-botao" data-vz-corte="lado" title="Corta em pé: some a parte da direita">Lado</button>
+            </div>
+            <input type="range" id="vz-corte-pos" min="0" max="1000" value="500" aria-label="Posição do corte" />
+            <span class="vz-corte-valor" id="vz-corte-valor"></span>
+          </div>
+          <p class="vz-dica" id="vz-dica"></p>
+        </div>
       </section>
-      <aside class="painel info-modelo">
-        <h2>Modelo</h2>
-        <dl id="info-modelo">
-          <dt>Arquivo</dt><dd>—</dd>
-          <dt>Dimensões (mm)</dt><dd>—</dd>
-          <dt>Volume (cm³)</dt><dd>—</dd>
-          <dt>Triângulos</dt><dd>—</dd>
-        </dl>
-        <p class="ajuda pequeno">Dimensões assumem que o STL está em milímetros, como o padrão dos fatiadores.</p>
+
+      <aside class="vz-lado">
+        <div class="vz-resumo">
+          <p class="ajuda" id="vz-resumo-vazio">Abra um arquivo para ver as medidas, o peso e se a peça cabe na mesa.</p>
+          <dl id="info-modelo" hidden>
+            <dt>Arquivo</dt><dd>—</dd>
+            <dt>Medidas (mm)</dt><dd>—</dd>
+            <dt>Volume (cm³)</dt><dd>—</dd>
+            <dt>Peso</dt><dd>—</dd>
+            <dt>Triângulos</dt><dd>—</dd>
+          </dl>
+          <p class="vz-cabe" id="vz-cabe"></p>
+        </div>
+
+        <div class="vz-abas" id="vz-abas" role="tablist" hidden>
+          <button type="button" role="tab" data-vz-aba="peca" class="ativo">Peça</button>
+          <button type="button" role="tab" data-vz-aba="medidas">Medidas <span class="contagem-texto" id="vz-medidas-contagem"></span></button>
+        </div>
+
+        <div class="vz-painel" data-vz-painel="peca" hidden>
+          <label class="campo"><span>Impressora</span><select class="seletor" id="vz-mesa"></select></label>
+          <label class="campo" id="vz-placa-linha" hidden><span>Placa do projeto</span><select class="seletor" id="vz-placa"></select></label>
+          <div class="campo">
+            <span>Escala</span>
+            <div class="vz-linha">
+              <div class="entrada"><input id="vz-escala" inputmode="decimal" value="100" aria-label="Escala em porcentagem" /><em>%</em></div>
+              <button type="button" class="botao-texto pequeno" id="vz-polegadas" title="Multiplica por 25,4">Veio em polegadas</button>
+            </div>
+            <p class="ajuda pequeno vz-alerta" id="vz-polegadas-aviso" hidden>Peça bem pequena: se o arquivo foi feito em polegadas, clique em "Veio em polegadas".</p>
+          </div>
+          <div class="vz-opcoes">
+            <label class="md-opcao" id="vz-cores-linha" hidden><input type="checkbox" id="vz-cores-arquivo" checked /> Cores do arquivo</label>
+            <label class="md-opcao"><input type="color" id="vz-cor" value="#7aa5ff" /> Cor</label>
+            <label class="md-opcao"><input type="checkbox" id="vz-aramado" /> Malha</label>
+          </div>
+          <div class="vz-acoes">
+            <button type="button" class="botao-primario" id="vz-custo">Calcular custo</button>
+            <button type="button" class="botao-secundario" id="vz-fatiador" title="Abrir no fatiador como está">Fatiador</button>
+            <button type="button" class="botao-secundario" id="vz-salvar-3mf" title="Salvar como 3MF">3MF</button>
+            <button type="button" class="botao-secundario" id="vz-salvar-stl" title="Salvar como STL">STL</button>
+          </div>
+          <p class="ajuda pequeno">Salva na posição, no giro e na escala escolhidos. O peso considera a peça maciça.</p>
+        </div>
+
+        <div class="vz-painel" data-vz-painel="medidas" hidden>
+          <div class="vz-linha vz-config-medidas">
+            <label class="md-opcao" title="Os pontos grudam nos cantos e arestas da peça"><input type="checkbox" id="vz-snap" checked /> Grudar</label>
+            <label class="md-opcao" title="Na distância, mede a partir do centro dos furos"><input type="checkbox" id="vz-centro-furos" /> Centro dos furos</label>
+            <select class="seletor pequeno" id="vz-unidade" aria-label="Unidade das medidas">
+              <option value="mm">mm</option>
+              <option value="pol">pol</option>
+            </select>
+          </div>
+          <ul class="vz-medidas" id="vz-medidas"></ul>
+          <p class="an-folga" id="vz-folga"></p>
+          <p class="ajuda pequeno" id="vz-medidas-vazio">Clique em Paquímetro e passe o mouse na peça.</p>
+          <div class="vz-linha vz-rodape-medidas">
+            <button type="button" class="botao-secundario pequeno" id="vz-ficha" hidden>Salvar ficha (imagem)</button>
+            <button type="button" class="botao-texto pequeno" id="vz-limpar-medidas" hidden>Apagar todas</button>
+          </div>
+          <details class="vz-detalhes">
+            <summary>Real × modelo</summary>
+            <label class="campo"><span>Filamento da peça impressa</span>
+              <div class="entrada"><input id="vz-filamento" list="vz-filamentos-lista" maxlength="80" placeholder="Ex.: PLA Preto Voolt" autocomplete="off" /></div>
+              <datalist id="vz-filamentos-lista"></datalist>
+            </label>
+            <p class="ajuda pequeno" id="vz-calibracao"></p>
+            <button type="button" class="botao-texto pequeno" id="vz-apagar-calibracao" hidden>Apagar a calibração deste filamento</button>
+            <p class="ajuda pequeno">Imprimiu? Em cada medida, use "Medi na impressa" e digite o que o paquímetro mostrou. O programa aprende quanto este filamento muda as medidas.</p>
+          </details>
+        </div>
+
       </aside>
     </main>
 
@@ -765,48 +874,32 @@
       </div>
     </main>
 
-    <main class="tela oculta pagina" id="tela-metadados">
-      <div class="pagina-conteudo estreito">
-        <h1 class="titulo-pagina">Removedor de metadados</h1>
-        <p class="ajuda md-intro">Fotos guardam informações escondidas, como o local onde foram tiradas, a câmera e o programa usado. Veja o que cada imagem carrega e salve cópias limpas. Os arquivos originais nunca são alterados.</p>
-
-        <div class="zona-arquivo" id="md-zona" tabindex="0" role="button" aria-label="Escolher fotos">
-          <p><strong>Arraste fotos aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
-          <input type="file" id="md-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
-        </div>
-
-        <div class="md-acoes" id="md-acoes" hidden>
-          <p class="ajuda" id="md-resumo"></p>
-          <label class="md-opcao"><input type="checkbox" id="md-manter-cor" checked /> Manter o perfil de cor (recomendado: não identifica ninguém e mantém as cores certas)</label>
-          <div class="acoes-form">
-            <button class="botao-texto" id="md-limpar" type="button">Limpar lista</button>
-            <button class="botao-primario" id="md-salvar" type="button">Salvar cópias sem metadados</button>
-          </div>
-          <div class="bk-previa" id="md-resultado" hidden>
-            <p id="md-resultado-texto"></p>
-            <div class="acoes-form">
-              <button class="botao-secundario" id="md-abrir-pasta" type="button">Abrir pasta</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="md-lista" id="md-lista"></div>
-      </div>
-    </main>
-
     <main class="tela oculta pagina" id="tela-detector">
       <div class="pagina-conteudo estreito">
-        <h1 class="titulo-pagina">Detector de IA</h1>
-        <p class="ajuda md-intro">Procura no arquivo marcas deixadas por geradores de imagem: credenciais de conteúdo (C2PA), a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração. Os pixels não são analisados, e a imagem não sai do seu computador.</p>
+        <h1 class="titulo-pagina">Detector de IA e metadados</h1>
+        <p class="ajuda md-intro">Mostra o que cada imagem carrega: indícios de IA (credenciais de conteúdo C2PA, a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração), local (GPS), câmera, data e programa. Diz onde cada indício foi achado e salva cópias sem metadados. Os pixels não são analisados, a imagem não sai do seu computador e os arquivos originais nunca são alterados.</p>
         <div class="zona-arquivo" id="ia-zona" tabindex="0" role="button" aria-label="Escolher imagens">
           <p><strong>Arraste imagens aqui</strong></p>
           <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
           <input type="file" id="ia-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
         </div>
-        <div class="acoes-form">
-          <button class="botao-texto" id="ia-limpar" type="button" hidden>Limpar resultados</button>
+
+        <div class="md-acoes" id="ia-acoes" hidden>
+          <p class="ajuda" id="ia-resumo"></p>
+          <label class="md-opcao"><input type="checkbox" id="ia-manter-cor" checked /> Manter o perfil de cor (recomendado: não identifica ninguém e mantém as cores certas)</label>
+          <p class="ajuda">A cópia sai sem metadados. Marcas d'água invisíveis gravadas nos pixels, se a imagem tiver, continuam nela.</p>
+          <div class="acoes-form">
+            <button class="botao-texto" id="ia-limpar" type="button">Limpar lista</button>
+            <button class="botao-primario" id="ia-salvar-todas" type="button">Salvar cópias sem metadados</button>
+          </div>
+          <div class="bk-previa" id="ia-resultado" hidden>
+            <p id="ia-resultado-texto"></p>
+            <div class="acoes-form">
+              <button class="botao-secundario" id="ia-abrir-pasta" type="button">Abrir pasta</button>
+            </div>
+          </div>
         </div>
+
         <div class="ia-resultados" id="ia-resultados"></div>
       </div>
     </main>
@@ -860,16 +953,28 @@
     <main class="tela oculta pagina" id="tela-stl">
       <div class="pagina-conteudo estreito">
         <h1 class="titulo-pagina">Caçador de STL</h1>
-        <p class="ajuda md-intro">Pesquise o mesmo modelo em vários sites de uma vez (as buscas abrem no seu navegador) e guarde os links que você gostar. Confira sempre a licença e o preço no site original.</p>
+        <p class="ajuda md-intro">Pesquise modelos e guarde os links que você gostar. Os resultados do Printables aparecem aqui mesmo; os outros sites abrem no seu navegador. Confira sempre a licença e o preço no site original.</p>
 
         <form class="painel cartao-config" id="stl-form-busca">
           <h2>Buscar modelos</h2>
           <div class="stl-busca">
             <div class="entrada"><input id="stl-termo" maxlength="120" placeholder="Ex.: vaso espiral, suporte de fone…" autocomplete="off" aria-label="O que você procura" /></div>
-            <button class="botao-primario" type="submit">Buscar</button>
+            <button class="botao-primario" id="stl-buscar" type="submit">Buscar</button>
           </div>
           <div class="stl-sites" id="stl-sites" role="group" aria-label="Sites da busca"></div>
         </form>
+
+        <section class="painel cartao-config" id="stl-resultados-painel" hidden>
+          <div class="historico-topo">
+            <h2>Resultados no Printables <span class="contagem-texto" id="stl-total"></span></h2>
+          </div>
+          <div class="stl-externos" id="stl-externos" hidden></div>
+          <p class="ajuda" id="stl-estado"></p>
+          <div class="stl-grade" id="stl-resultados"></div>
+          <div class="acoes-form">
+            <button class="botao-secundario" id="stl-mais" type="button" hidden>Carregar mais</button>
+          </div>
+        </section>
 
         <section class="painel cartao-config">
           <div class="historico-topo">

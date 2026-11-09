@@ -74,6 +74,42 @@ describe("Detector de IA", () => {
     expect(r.nivel).toBe("nenhum");
   });
 
+  it("diz onde achou e mostra o trecho", () => {
+    const xmp = segmento(0xe1, [...txt("http://ns.adobe.com/xap/1.0/\0"), ...txt('<x DigitalSourceType="trainedAlgorithmicMedia"/>')]);
+    const r = detectarIA(jpeg(xmp, exifSoftware("Midjourney v6")));
+    const iptc = r.evidencias.find((e) => e.rotulo === "Imagem gerada por IA");
+    expect(iptc.onde).toBe("XMP");
+    expect(iptc.trecho).toContain("trainedAlgorithmicMedia");
+    const gerador = r.evidencias.find((e) => e.rotulo === "Gerador citado: Midjourney");
+    expect(gerador.onde).toBe("EXIF · Programa");
+    expect(gerador.trecho).toContain("Midjourney v6");
+    expect(r.itens.map((i) => i.tipo)).toContain("xmp");
+  });
+
+  it("parâmetros do Stable Diffusion mostram o prompt e o bloco", () => {
+    const r = detectarIA(png("parameters", "a red dragon keychain\nSteps: 20, Sampler: Euler a, Seed: 1"));
+    const e = r.evidencias.find((x) => x.rotulo === "Parâmetros de geração");
+    expect(e.onde).toBe('Texto PNG "parameters"');
+    expect(e.trecho).toContain("a red dragon keychain");
+  });
+
+  it("C2PA: lê o programa, as ações e a organização do certificado", () => {
+    const cbor = (s) => [0x60 + s.length, ...txt(s)];
+    const certificado = [0x06, 0x03, 0x55, 0x04, 0x0a, 0x0c, 6, ...txt("OpenAI")];
+    const manifesto = [
+      ...txt("JP"), 0, 1, ...txt("jumbc2pa"),
+      ...cbor("claim_generator"), ...cbor("ChatGPT"),
+      ...cbor("action"), ...cbor("c2pa.created"),
+      ...certificado,
+    ];
+    const r = detectarIA(jpeg(segmento(0xeb, manifesto)));
+    expect(r.c2pa).toEqual({ geradores: ["ChatGPT"], acoes: ["criada"], organizacoes: ["OpenAI"] });
+    const e = r.evidencias.find((x) => x.rotulo.startsWith("Credenciais"));
+    expect(e.detalhe).toContain("ChatGPT");
+    expect(e.detalhe).toContain("OpenAI");
+    expect(r.nivel).toBe("forte"); // "chatgpt" e "openai" citados
+  });
+
   it("formato desconhecido avisa", () => {
     expect(() => detectarIA(new Uint8Array([1, 2, 3]))).toThrow(/Formato/);
   });

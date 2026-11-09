@@ -6,6 +6,7 @@ const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
 const { criarServicoFavoritos } = require("./favoritos.cjs");
+const { criarServicoPrintables } = require("./printables.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
 const { abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
@@ -180,6 +181,11 @@ function registrarDados() {
   let backupEscolhido = null; // backup lido e aguardando confirmação para restaurar
   const janelaDe = (e) => BrowserWindow.fromWebContents(e.sender);
   const comTela = (funcao) => (e, ...args) => (daTela(e) ? responder(funcao(e, ...args)) : negado);
+
+  // ---------- Caçador de STL: busca do Printables dentro do programa ----------
+  const printables = criarServicoPrintables();
+  ipcMain.handle("stl:printables", comTela((_e, termo, pagina) => printables.pesquisar(termo, pagina)));
+  ipcMain.handle("stl:miniatura", comTela((_e, url) => printables.miniatura(url)));
 
   ipcMain.handle("backup:resumo", comTela(() => backup.resumo()));
   ipcMain.handle(
