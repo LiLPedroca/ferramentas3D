@@ -224,7 +224,7 @@ preservadas nas seções históricas acima. Os extras do Visualizador dependem d
 - Modo de captura (só para testes): `FERRAMENTAS_CAPTURA=<png>`, com `FERRAMENTAS_ABA`, `FERRAMENTAS_TEMA`, `FERRAMENTAS_STL`, `FERRAMENTAS_ALTURA`, `FERRAMENTAS_JS` (roteiro executado na tela) e `FERRAMENTAS_DADOS` (pasta de dados temporária, para não tocar nos dados reais). O tema da captura não é salvo.
 
 ## Pendências
-- Publicações preparadas pelo Codex dependem do login no gh; ver o registro de trabalho abaixo.
+- A versão final do trabalho do Codex foi publicada como v0.36.1; os blocos intermediários foram incorporados nela. Ver o registro abaixo.
 - Conferências físicas: imprimir os modelos, pausa/retomada M600 na Kobra X e leitura do QR pelo celular.
 - Conferir as pausas e os filamentos abrindo pela janela do Anycubic Slicer Next.
 - Registro de pendências antigas já resolvidas: Clientes (v0.7.0), Orçamentos (v0.8.0) e ícone próprio (v0.20.0).
@@ -275,14 +275,20 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
 - Conferidas 19 telas básicas em captura, sem IDs HTML repetidos; nas cinco telas de modelos, conferidas prévias 3D, zoom/enquadramento. STL e 3MF exportados pela interface no Chaveiro, Palavras e Encaixes foram lidos e validados; Chaveiro/Palavras preservam o XML de pausas sem AMS. Os ensaios usaram apenas dados e arquivos temporários.
 - `acharFurosEPinos`, `medirParedes` e `arestaReta` foram preservados (item 7). Os extras do Visualizador não foram implementados (item 8 depende de pedido específico). Nenhuma alteração no Python antigo, nas informações do paquímetro ou nas marcas de IA nos pixels.
 
-### Publicações e pendências desta sessão
+### Publicações e pendências desta sessão (registro anterior ao login)
 - Publicadas pelo Codex: **nenhuma**, pois `gh auth status` informa que este computador não está logado. O push Git funciona; os commits estão sendo enviados normalmente para `origin/electron`.
 - Versões preparadas nos blocos: **0.35.1**, **0.35.2**, **0.36.0** e **0.36.1**. A última acumula todos os ajustes. O instalador 0.35.1 foi gerado com blockmap e manifest preservado em `release/v0.35.1/latest.yml`; o pacote final 0.36.1 foi gerado novamente e inclui a correção encontrada na revisão.
 - Antes de publicar, autenticar o gh e conferir novamente a última release no GitHub. A última consultada durante este trabalho era **v0.35.0**. Priorizar a versão final que inclui todos os blocos; se outra sessão publicar em paralelo, escolher versão maior.
 - Continuam pendentes as conferências físicas e na janela do Anycubic descritas acima. Tamanhos de linha inválidos nas Palavras exigem digitar um valor válido, comportamento anterior preservado. O npm install informou cinco avisos de vulnerabilidade moderada em dependências; não foi aplicada atualização forçada fora do escopo.
 
-### Encerramento
+### Encerramento da implementação (antes da publicação)
 - Instalador final: `electron/release/ProgramaFerramentas3D-Setup-0.36.1.exe`, com `.exe.blockmap` e `latest.yml`. Manifest da versão preservado também em `electron/release/v0.36.1/latest.yml`; SHA-512 do manifest conferido com os bytes do EXE. SHA-256 do EXE final: `678809d8f449e98a0fbf9ca1384789ef8bb8023b27835eb37f3a48bdcdb8cba8`.
 - O aplicativo empacotado confirmou `Versão 0.36.1` e passou no roteiro de recuperação de campo inválido nas quatro telas, usando exclusivamente pasta temporária para os dados. A compilação `npm run dist` terminou com sucesso.
 - Commits de implementação enviados: d9d782c (bugs/Manifold), 20b21b7 (ações compartilhadas), 01f69e6 (documentação), 5f32ed3 (materiais) e 0ed39a6 (organização/recuperação final). Registro final da documentação em commit posterior. Repositório mantido na branch electron, sem reset, stash ou reescrita de histórico.
 - `gh auth status` foi repetido ao final e continua sem login. Releases pendentes; última release pública reconferida: v0.35.0. Para retomar, autenticar e seguir a seção 5 do AGENTS.md, usando a versão final ou uma maior se houver publicação em paralelo.
+
+### Publicação concluída (09/11/2026)
+- Após o Pedro concluir o login, `gh auth status` confirmou a conta LiLPedroca. `git fetch` e a lista de releases confirmaram v0.35.0 como última versão anterior.
+- **Publicada v0.36.1**, reunindo todos os blocos preparados nesta sessão: https://github.com/LiLPedroca/ferramentas3D/releases/tag/v0.36.1 . Tag vinculada ao commit validado `849ddef94df826746755518392652d6412c47eb5`.
+- Publicação conferida com `gh release view` e endpoint `releases/latest`: versão mais recente, sem rascunho e sem pré-release, com exatamente os três arquivos esperados (instalador, blockmap e latest.yml), todos enviados. SHA-256 do EXE no GitHub confere com o pacote local validado: `678809d8f449e98a0fbf9ca1384789ef8bb8023b27835eb37f3a48bdcdb8cba8`.
+- A pendência de autenticação/publicação dos registros anteriores está resolvida. Não é necessário publicar separadamente 0.35.1, 0.35.2 e 0.36.0: os ajustes estão acumulados na 0.36.1. Permanecem as conferências físicas e na janela do Anycubic já registradas.
