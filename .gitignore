@@ -1,21 +1,21 @@
-# Ambiente virtual e caches
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
-# Saídas do PyInstaller
-build/
-dist/
-*.spec.bak
-
-# Arquivos locais
-.env
-
-# Arquivos fora do reposit�rio
-dev/
-*.spec
-
-# Electron
-electron/node_modules/
-electron/release/
+# Ambiente virtual e caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# SaÃ­das do PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Arquivos locais
+.env
+
+# Arquivos fora do repositório
+dev/
+*.spec
+
+# Electron
+electron/node_modules/
+electron/release/

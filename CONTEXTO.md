@@ -22,15 +22,21 @@ Suíte de ferramentas para impressão 3D, para Windows 10 e 11. A calculadora de
 - Atualização automática: electron-updater, lendo as releases do GitHub (`latest.yml`). Verifica ao abrir e pelo botão de setas ao lado do tema (v0.5.2). Se já estiver na mais recente, mostra uma mensagem no meio da tela. O processo principal guarda o estado (parada, baixando, pronta) para não perguntar nem baixar duas vezes.
 - Testes: vitest (`npm test` dentro de `electron/`).
 
-## Estrutura (electron/)
+## Estrutura atual (electron/)
 ```
 electron/
-├── src/core/        calculadora.js, racional.js (regras, sem interface)
-├── src/main/        main.cjs (janela, atualização, modo de captura para testes)
-├── src/renderer/    index.html, styles.css, app.js (tela), viewer3d.js (Three.js)
-├── scripts/         build-renderer.mjs
-└── tests/           calculadora.test.js (paridade com o Python)
+├── src/core/          regras e validação dos cadastros, cálculos, formatos, backup e imagens
+├── src/main/          janela, IPC, armazenamento, serviços, PDF, fatiador e atualização
+├── src/renderer/      telas, navegação, estilos, ícones, assets e integração com os cadastros
+│   ├── modelos-ui.js     paletas, fontes, impressão com/sem AMS e Meus modelos
+│   ├── modelos-acoes.js  prévias, zoom, exportação, fatiador, custo e imagens salvas
+│   └── modelos/          Manifold, geração das peças, leitura/exportação 3MF e medidas
+├── scripts/           build-renderer.mjs e geração do ícone
+├── recursos/          ícones SVG, PNG e ICO do aplicativo e instalador
+└── tests/             regras, persistência, geometria, formatos e comportamento das telas
 ```
+O mapa detalhado e as regras de contribuição estão em `AGENTS.md`. Os arquivos Python da raiz
+pertencem à versão antiga e permanecem como referência.
 
 ## Regras de negócio da calculadora
 - Filamento = peso (g) / 1000 × preço por kg.
@@ -184,7 +190,7 @@ Cada etapa vira uma release. Marcar [x] ao publicar.
 
 **Pendente (pedido do Pedro):** teste pela TELA do Anycubic Slicer Next, com fotos para ele: gerar o Chaveiro de nome, "Abrir no fatiador" escolhendo "Sem AMS", fatiar no programa aberto normalmente e conferir na pré-visualização a pausa na camada 13 (2,6 mm); também o arquivo "Com AMS" (troca para o filamento 2). Falta confirmar se a abertura pela janela (não pela linha de comando) também lê o `custom_gcode_per_layer.xml`. Precisa do Computer use ligado no app do Claude (Configurações → Este computador → Computer use); em 04/11/2026 estava desligado.
 
-Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Outras ideias sugeridas ao Pedro: ícone do programa, Estoque de filamentos, Etiquetas, Encaixes e tolerâncias.
+Próximo possível: conferir com o Pedro no Anycubic se os filamentos já vêm certos. Registro histórico de sugestões já entregues: ícone (v0.20.0), Estoque de filamentos (v0.23.0), Etiquetas (v0.24.0) e Encaixes e tolerâncias (v0.25.0).
 
 Para testar telas: o modo de captura (`FERRAMENTAS_*`, ver "Testes e modo de captura") com roteiros JS. Node em `C:\Program Files\nodejs` (adicionar ao PATH), git em `C:\Program Files\Git\cmd\git.exe`, gh em `C:\Program Files\GitHub CLI\gh.exe` (já logado).
 
@@ -196,8 +202,13 @@ Pedido do Pedro: replicar a "caneca de chopp" do Criador 3D do multiferramenta3d
 - `perguntarImpressao` aceita uma lista de trocas. Meus modelos ganhou o tipo `caneca` (guarda a imagem do emblema).
 - Conferido fatiando pela linha de comando (Kobra X, 0,20): sem AMS → 5 M600 em 14,2 / 28,2 / 42,2 / 106,2 / 120,2 mm, 615 camadas, ≈ 111 g e 3h44; com AMS → trocas T0/T1 nas mesmas alturas. Não impresso de verdade.
 
-## Ideias para próximas ferramentas (não aparecem no app)
-Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de filamentos, Comparador de custos, Encaixes e tolerâncias, Medidas e escala, Ficha de impressão, Falhas de impressão, Biblioteca de projetos, Conversor SVG, Preparador de fotos, Organizador de arquivos, Backup e restauração.
+## Ideias ainda não implementadas (não aparecem no app)
+Descontos e taxas como ferramenta própria, Comparador de custos, Ficha de impressão, Falhas de impressão, Preparador de fotos e Organizador de arquivos.
+
+Do registro original de ideias, já foram entregues: Orçamentos, Clientes e histórico, Etiquetas,
+Estoque de filamentos, Encaixes e tolerâncias, Medidas e escala (Visualizador), Biblioteca de
+projetos (Meus modelos), Conversor SVG e Backup e restauração. As decisões e versões estão
+preservadas nas seções históricas acima. Os extras do Visualizador dependem de pedido do Pedro.
 - Lógica testada em `electron/src/core/inicio.js`. Ícones em `electron/src/renderer/icones.js`.
 
 ## Produtos (pronto na v0.5.0)
@@ -213,8 +224,10 @@ Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de fil
 - Modo de captura (só para testes): `FERRAMENTAS_CAPTURA=<png>`, com `FERRAMENTAS_ABA`, `FERRAMENTAS_TEMA`, `FERRAMENTAS_STL`, `FERRAMENTAS_ALTURA`, `FERRAMENTAS_JS` (roteiro executado na tela) e `FERRAMENTAS_DADOS` (pasta de dados temporária, para não tocar nos dados reais). O tema da captura não é salvo.
 
 ## Pendências
-- Próxima ferramenta sugerida: Orçamentos (usa os Produtos) ou Clientes.
-- Ícone do aplicativo (hoje é o padrão do Electron).
+- Publicações preparadas pelo Codex dependem do login no gh; ver o registro de trabalho abaixo.
+- Conferências físicas: imprimir os modelos, pausa/retomada M600 na Kobra X e leitura do QR pelo celular.
+- Conferir as pausas e os filamentos abrindo pela janela do Anycubic Slicer Next.
+- Registro de pendências antigas já resolvidas: Clientes (v0.7.0), Orçamentos (v0.8.0) e ícone próprio (v0.20.0).
 - Não há assinatura digital no instalador, então o Windows pode mostrar aviso de editor desconhecido.
 - Auto-update validado ponta a ponta: 0.3.0 → 0.3.1.
 - Programa Python antigo continua instalado em algumas máquinas e precisa ser removido manualmente depois da migração.
@@ -241,3 +254,9 @@ Orçamentos, Clientes e histórico, Descontos e taxas, Etiquetas, Estoque de fil
 - Extraídas para `renderer/modelos-acoes.js` as ações repetidas de prévia 2D/3D, zoom, enquadramento, salvar STL/3MF, enviar ao fatiador, calcular custo e converter imagens em data URL. As regras específicas de AMS/pausas permanecem nas telas. Código movido, sem eliminar funcionalidades.
 - 237 testes passaram (`npm test -- --maxWorkers=2`), incluindo testes das ações comuns. As nove combinações geométricas do logo agora são testes separados, com as mesmas verificações, evitando que a soma de nove gerações estoure 5 s em computadores ocupados.
 - v0.35.2 preparada; release pendente por falta de login no gh. Capturas novamente com dados temporários.
+
+### Item 3 — documentação atualizada
+Estrutura atual, estado publicado, pendências e ideias reorganizados. O histórico de versões e decisões foi preservado; sugestões já entregues estão identificadas como concluídas. Alteração apenas documental, sem nova release.
+
+### Item 4 — comentário do .gitignore
+Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "repositório" agora é lido corretamente. Nenhuma regra de exclusão mudou. Testes antes: 237 passaram.
