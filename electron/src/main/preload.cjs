@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("stl", {
 });
 
 contextBridge.exposeInMainWorld("modelos", {
+  lerCopo: (id, original = false) => ipcRenderer.invoke("copos:ler", id, original),
   lerFonte: (nome) => ipcRenderer.invoke("fontes:ler", nome),
   lerMotor: () => ipcRenderer.invoke("modelos:wasm"),
   salvar: (bytes, nome, extensao) => ipcRenderer.invoke("modelos:salvar", bytes, nome, extensao),

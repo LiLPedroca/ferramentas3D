@@ -364,7 +364,7 @@ export function iniciarCaneca() {
     mostrarEmblema();
     agendar();
   });
-  for (const b of document.querySelectorAll("#tela-caneca .ch-abas button")) {
+  for (const b of document.querySelectorAll("#tela-caneca-legado .ch-abas button")) {
     b.addEventListener("click", () => $(b.dataset.alvo).scrollIntoView({ behavior: "smooth", block: "start" }));
   }
   $("cn-zoom-menos").addEventListener("click", () => zoomPrevia("3d", null, previa3d, 1.25));
@@ -427,6 +427,11 @@ export function iniciarCaneca() {
 
   preencherCampos();
   let primeira = true;
+  registrarAoAbrir("caneca-legado", () => {
+    mostrarMedidas();
+    const nome = estado.config.fatiador?.nome;
+    $("cn-fatiador").textContent = nome ? `Abrir no ${nome}` : "Abrir no fatiador";
+  });
   registrarAoAbrir("caneca", () => {
     mostrarMedidas();
     const nome = estado.config.fatiador?.nome;

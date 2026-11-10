@@ -108,8 +108,8 @@ export const FERRAMENTAS = [
   {
     id: "caneca",
     grupo: "modelos",
-    titulo: "Caneca de chopp",
-    descricao: "Faixas com texto, alça e emblema do time, em duas cores.",
+    titulo: "Copos personalizados",
+    descricao: "Escolha o copo e personalize cada cor ao vivo.",
     categoria: "Modelos personalizados",
     disponivel: true,
     tela: "caneca",

@@ -24,6 +24,7 @@ const TELAS = {
   logo: { elemento: "tela-logo" },
   palavras: { elemento: "tela-palavras" },
   caneca: { elemento: "tela-caneca" },
+  "caneca-legado": { elemento: "tela-caneca-legado", titulo: "Modelo anterior", pai: "projetos" },
   projetos: { elemento: "tela-projetos" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },

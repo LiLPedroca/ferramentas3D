@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programa Ferramentas 3D</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="copos.css" />
   </head>
   <body>
     <aside class="menu-lateral" id="menu-lateral" aria-label="Navegação principal" aria-hidden="true">
@@ -1670,7 +1671,24 @@
 
     <!-- Tela: caneca -->
 
-    <main class="tela oculta pagina" id="tela-caneca">
+    <main class="tela oculta copos-pagina" id="tela-caneca">
+      <div class="copos-editor">
+        <aside class="copos-painel">
+          <section><h2>Modelo</h2><div class="copos-catalogo" id="cp-catalogo"></div></section>
+          <section><h2>Cores</h2><div class="copos-cores" id="cp-cores"></div></section>
+          <details><summary>Personalização</summary><label class="copos-campo">Nome do projeto<input id="cp-nome" maxlength="80" value="Copo 1" /></label><button type="button" id="cp-restaurar">Restaurar cores originais</button></details>
+          <details><summary>Ajustes</summary><p>Encaixe para copo de alumínio</p><p>Ø interno 81,4 mm · altura 145 mm</p><label><input type="checkbox" id="cp-grade" checked /> Mostrar grade</label></details>
+        </aside>
+        <section class="copos-cena" aria-label="Prévia do copo">
+          <span class="copos-capacidade">Capacidade 500ml</span>
+          <div id="cp-3d" class="copos-3d"></div>
+          <span class="copos-status" id="cp-status" role="status">Carregando copo…</span>
+          <div class="copos-vista"><span id="cp-medidas"></span><div><button type="button" id="cp-menos" aria-label="Afastar">−</button><button type="button" id="cp-ajustar" aria-label="Ajustar à tela" title="Ajustar à tela">⛶</button><button type="button" id="cp-mais" aria-label="Aproximar">+</button></div></div>
+        </section>
+      </div>
+      <footer class="copos-rodape"><button type="button" id="cp-salvar" disabled>Salvar modelo</button><button type="button" id="cp-custo" disabled>Calcular custo</button><details class="copos-exportar" id="cp-exportar"><summary>Exportar <span>⌄</span></summary><div><button type="button" id="cp-stl" disabled>Salvar STL</button><button type="button" id="cp-3mf" disabled>Salvar 3MF</button><button type="button" id="cp-fatiador" disabled>Abrir no fatiador</button></div></details></footer>
+    </main>
+    <main class="tela oculta pagina" id="tela-caneca-legado">
       <div class="pagina-conteudo largo">
         <div class="modelo-trabalho">
           <aside class="painel modelo-opcoes ch-painel">

@@ -286,6 +286,11 @@ function registrarDados() {
   );
   // ---------- Modelos 3D: fontes, salvar e abrir no fatiador ----------
   const pastaFontes = path.join(__dirname, "..", "..", "build", "renderer", "assets", "fontes");
+  ipcMain.handle("copos:ler", comTela(async (_e, id, original) => {
+    if (![1, 2, 3].includes(id)) throw new Error("Copo inválido.");
+    const bytes = await require("node:fs/promises").readFile(path.join(pastaFontes, "..", "copos", `${id}.${original ? "3mf" : "bin.gz"}`));
+    return new Uint8Array(original ? bytes : require("node:zlib").gunzipSync(bytes));
+  }));
   ipcMain.handle(
     "fontes:ler",
     comTela(async (_e, nome) => {

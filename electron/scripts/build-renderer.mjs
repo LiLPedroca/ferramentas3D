@@ -33,7 +33,7 @@ await build({
   logLevel: "warning",
 });
 
-for (const arquivo of ["index.html", "styles.css"]) {
+for (const arquivo of ["index.html", "styles.css", "copos.css"]) {
   await copyFile(join(raiz, "src", "renderer", arquivo), join(saida, arquivo));
 }
 await cp(join(raiz, "src", "renderer", "assets"), join(saida, "assets"), { recursive: true });

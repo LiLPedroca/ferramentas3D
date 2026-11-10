@@ -2,7 +2,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-export function criarPrevia(container) {
+export function criarPrevia(container, opcoes = {}) {
   const renderizador = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderizador.setClearColor(0x000000, 0);
   renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -19,7 +19,7 @@ export function criarPrevia(container) {
   const grade = new THREE.GridHelper(300, 30, 0x4a5570, 0x2a3142);
   grade.rotation.x = Math.PI / 2;
   grade.material.transparent = true;
-  grade.material.opacity = 0.45;
+  grade.material.opacity = opcoes.gradeSuave ? 0.18 : 0.45;
   cena.add(grade);
 
   const controles = new OrbitControls(camera, renderizador.domElement);
@@ -49,6 +49,10 @@ export function criarPrevia(container) {
   animar();
 
   return {
+    colorir(cores) {
+      malhas.forEach((malha, i) => { if (cores[i]) malha.material.color.set(cores[i]); });
+    },
+    mostrarGrade(visivel) { grade.visible = visivel; },
     // partes: [{ cor, geometria }]
     mostrar(partes) {
       for (const m of malhas) {
@@ -88,7 +92,7 @@ export function criarPrevia(container) {
       const pelaLargura = Math.max(tamanho.x, 10) / 2 / tangente / Math.max(camera.aspect, 0.6);
       const pelaAltura = Math.max(tamanho.y, tamanho.z, 10) / 2 / tangente;
       const distancia = Math.max(pelaLargura, pelaAltura * 1.15) * 1.25;
-      camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * 0.75, centro.z + distancia * 0.65);
+      camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * (opcoes.frente ? 0.94 : 0.75), centro.z + distancia * (opcoes.frente ? 0.30 : 0.65));
       controles.target.copy(centro);
       controles.update();
     },
