@@ -48,8 +48,8 @@
 
 - [x] Revisão independente final; corrigir erros confirmados com teste.
 - [x] Conferir última release, escolher versão, testar, compilar e conferir aplicativo empacotado/manifest.
-- [ ] Commit/push na electron; publicar instalador/blockmap/latest.yml e verificar hashes/última release.
-- [ ] Atualizar CONTEXTO.md e este ledger com tempos, pesos, decisões e pendências físicas.
+- [x] Commit/push na electron; publicar instalador/blockmap/latest.yml e verificar hashes/última release.
+- [x] Atualizar CONTEXTO.md e este ledger com tempos, pesos, decisões e pendências físicas.
 
 ## Ledger
 
@@ -76,3 +76,5 @@
 - Verificação final após os ajustes: 24 testes Python passaram; 290 testes npm / 33 arquivos passaram em 148,13 s. Rodada concorrente anterior falhou somente no benchmark antigo do vetorizador (10,1 s versus 8 s), sem alteração no código/teste do vetor; repetição completa isolada passou. Novo dist inclui o asset v2 do Copo 3.
 
 - Dist final: saída 0; 247.967.884 bytes, SHA-256 3f6d3ff34cdf476875488e40296ab8b5149a884459878537b1078a82617009b0; manifest SHA-512/tamanho e blockmap conferidos. Última release reconferida v0.38.0, origin/electron sincronizada.
+
+- Publicação concluída: v0.39.0 no commit 5c1e2329580f63b09b237129cf998976661742f5, push electron confirmado. releases/latest: sem draft/prerelease, três assets uploaded, tamanho e SHA-256 dos três iguais aos locais. CONTEXTO registra conclusão e pendências físicas/tempo do Copo 3; nenhuma release pendente.
