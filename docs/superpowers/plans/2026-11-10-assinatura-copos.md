@@ -39,7 +39,7 @@
 
 ## Task 2 — integração dos três modelos
 
-**Files:** criar `electron/scripts/assinar-copos.py`; ampliar `electron/scripts/preparar-copos.mjs` com modo de entrada já normalizada e saída temporária.
+**Files:** criar `electron/scripts/assinar_copos.py`; ampliar `electron/scripts/preparar-copos.mjs` com modo de entrada já normalizada e saída temporária.
 
 - [x] Gerar os modelos em pasta temporária, a partir dos assets da v0.37.1, sem tocar nos originais externos.
 - [x] Fundir somente as duas partes inferiores necessárias do Copo 1, mantendo a base fechada e a pintura superior.
@@ -52,8 +52,8 @@
 - [x] Rodar npm test após alterações; capturar fundo dos três copos e cores ao vivo com dados temporários.
 - [x] Exportar pelo aplicativo e conferir no Anycubic Slicer Next que a marca não é peça selecionável; inspecionar a pintura/camadas.
 - [x] Revisão independente final de todo o bloco; corrigir achados confirmados.
-- [ ] Consultar última release, escolher versão superior, testar, compilar, conferir pacote/manifest e publicar os três arquivos.
-- [ ] Atualizar CONTEXTO.md com resultados, versão publicada e pendências; desativar a retomada agendada se o trabalho terminar antes das 9h.
+- [x] Consultar última release, escolher versão superior, testar, compilar, conferir pacote/manifest e publicar os três arquivos.
+- [x] Atualizar CONTEXTO.md com resultados, versão publicada e pendências; remover a retomada agendada ao concluir.
 
 ## Ledger
 
@@ -69,3 +69,4 @@
 - Aplicativo: capturas reais dos três fundos, cores alteradas/restauradas no evento input, seis exportações completas e zero IDs repetidos. Assets copiados somente após comparação; alturas 145 mm e bounds preservados. Botão Ver base e iluminação inferior acrescentados; Ajustar restaura vista normal.
 - Fatiador: controles isolaram travamento C0000005 ao conservar placa e indicadores de projeto Bambu sem perfis. Produtor próprio + retirada da placa do arquivo exportado resolve; recursos ordenados/podados ao conjunto construído. Autoria, pintura, transformações e extruders preservados. Teste vermelho/verde. Os três 3MF importados/regravados com saída 0, mantendo partes 6/1/7, triângulos e marca preta na base; não há objeto de logo. Inspeção dos caminhos pretos na camada 0,4 mm do Copo 1 confirmou site, logo e Instagram, incluindo underscores. Não equivale a teste físico.
 - Revisão independente final sem novos erros confirmados; 259 testes npm e 11 Python passaram. Proteção contra assinar novamente assets prontos. Build 0.38.0 terminou com saída 0; pacote/captura da aplicação empacotada e SHA-512 do manifest conferidos. SHA-256 EXE: 9ddf90537dfcf1978acf83bbfc31ca7e754143a2de82b5e5bc58aab918d6ba80. Publicação ainda pendente neste ponto do ledger.
+- Encerramento: fatiamento completo dos três copos com saída 0, 725 camadas, altura máxima 145 mm e duas ferramentas efetivamente usadas, preto/branco. Publicada v0.38.0 sobre 7c6562e733c1578e967ae7f17b0607a29e34571a; endpoint latest confirmou três assets uploaded, sem draft/prerelease e digest SHA-256 conferido. Automação retomar-copos-s-9h removida. Nenhum teste físico foi realizado; encaixe do Copo 3 e impressão permanecem pendentes.
