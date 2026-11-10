@@ -1,6 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
 
 export const CATALOGO_COPOS = [{ id: 1, nome: "Copo 1" }, { id: 2, nome: "Copo 2" }, { id: 3, nome: "Copo 3" }];
+const CORES_PADRAO = ["#000000", "#ffffff"];
+export const coresIniciais = (partes, salvas = []) => partes.map((_p, i) => /^#[0-9a-f]{6}$/i.test(salvas[i]) ? salvas[i] : CORES_PADRAO[i % CORES_PADRAO.length]);
 export function lerPacoteCopo(bytes) {
   if (bytes.byteLength < 4) throw new Error("Arquivo do copo incompleto.");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

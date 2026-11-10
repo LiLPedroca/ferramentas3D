@@ -1,4 +1,4 @@
-import { CATALOGO_COPOS, lerPacoteCopo, aplicarCores } from './modelos/copos.js';
+import { CATALOGO_COPOS, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
 import { colorir3mf, gerarStlCopo } from './modelos/copos-exportar.js';
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
@@ -33,7 +33,7 @@ async function carregar(novo, salvas) {
     if (!r.ok) throw Error(r.erro);
     const anterior = pacote;
     pacote = lerPacoteCopo(r.dados);
-    cores = aplicarCores(pacote.partes, salvas ?? []).map(p => p.cor);
+    cores = coresIniciais(pacote.partes, salvas ?? []);
     previa ??= criarPrevia($('cp-3d'), { frente: true, gradeSuave: true });
     previa.mostrar(aplicarCores(pacote.partes, cores)); previa.enquadrar();
     anterior?.partes.forEach(p => p.geometria.dispose());
@@ -69,7 +69,7 @@ export function iniciarCopos() {
     const label = document.createElement('span'); label.textContent = modelo.nome; b.append(img, label);
     b.addEventListener('click', () => { if (!ocupado) { atual = null; carregar(modelo.id); } }); $('cp-catalogo').append(b);
   }
-  $('cp-restaurar').addEventListener('click', () => { if (!pacote || ocupado) return; cores = pacote.partes.map(p => p.cor); controles(); pintar(); });
+  $('cp-restaurar').addEventListener('click', () => { if (!pacote || ocupado) return; cores = coresIniciais(pacote.partes); controles(); pintar(); });
   $('cp-grade').addEventListener('change', () => previa?.mostrarGrade($('cp-grade').checked));
   $('cp-mais').addEventListener('click', () => previa?.zoom(0.85));
   $('cp-menos').addEventListener('click', () => previa?.zoom(1.18));
