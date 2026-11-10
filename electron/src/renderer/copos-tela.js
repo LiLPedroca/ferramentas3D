@@ -8,7 +8,7 @@ import { preencherDoModelo } from './calculadora-tela.js';
 
 const $ = id => document.getElementById(id);
 let pacote, cores = [], previa, id = 1, pedido = 0, atual = null, ocupado = false, pronto = false;
-const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador'];
+const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base'];
 function bloquear(sim) {
   ocupado = sim;
   [...acoes, 'cp-restaurar'].forEach(id => { $(id).disabled = sim || !pronto; });
@@ -74,6 +74,7 @@ export function iniciarCopos() {
   $('cp-mais').addEventListener('click', () => previa?.zoom(0.85));
   $('cp-menos').addEventListener('click', () => previa?.zoom(1.18));
   $('cp-ajustar').addEventListener('click', () => previa?.enquadrar());
+  $('cp-base').addEventListener('click', () => previa?.verBase());
   $('cp-custo').addEventListener('click', () => executar(() => preencherDoModelo({ nome: $('cp-nome').value || `Copo ${id}`, pesoG: volume() / 1000 * densidadeDoModelo('PETG'), detalhe: 'Estimativa maciça; confira o peso no fatiador.' })));
   $('cp-salvar').addEventListener('click', () => executar(async () => {
     const canvas = $('cp-3d').querySelector('canvas'); const thumb = document.createElement('canvas'); thumb.width = 320; thumb.height = 240; thumb.getContext('2d').drawImage(canvas, 0, 0, 320, 240);

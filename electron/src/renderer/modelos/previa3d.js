@@ -15,6 +15,9 @@ export function criarPrevia(container, opcoes = {}) {
   const luz = new THREE.DirectionalLight(0xffffff, 1.5);
   luz.position.set(-60, -80, 160);
   cena.add(luz);
+  const luzFundo = new THREE.DirectionalLight(0xffffff, 1.3);
+  luzFundo.visible = false;
+  cena.add(luzFundo);
 
   const grade = new THREE.GridHelper(300, 30, 0x4a5570, 0x2a3142);
   grade.rotation.x = Math.PI / 2;
@@ -29,6 +32,8 @@ export function criarPrevia(container, opcoes = {}) {
   let primeiraVez = true;
   let centro = new THREE.Vector3();
   let tamanho = new THREE.Vector3(10, 10, 10);
+  let gradeAtiva = true;
+  let vendoBase = false;
 
   const ajustar = () => {
     const l = container.clientWidth;
@@ -52,7 +57,7 @@ export function criarPrevia(container, opcoes = {}) {
     colorir(cores) {
       malhas.forEach((malha, i) => { if (cores[i]) malha.material.color.set(cores[i]); });
     },
-    mostrarGrade(visivel) { grade.visible = visivel; },
+    mostrarGrade(visivel) { gradeAtiva = visivel; grade.visible = visivel && !vendoBase; },
     // partes: [{ cor, geometria }]
     mostrar(partes) {
       for (const m of malhas) {
@@ -87,6 +92,9 @@ export function criarPrevia(container, opcoes = {}) {
     },
     // câmera de frente, um pouco de cima, com a peça inteira na tela
     enquadrar() {
+      vendoBase = false;
+      grade.visible = gradeAtiva;
+      luzFundo.visible = false;
       // distância para a peça caber na tela, na largura e na altura (campo de visão vertical de 35°)
       const tangente = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
       const pelaLargura = Math.max(tamanho.x, 10) / 2 / tangente / Math.max(camera.aspect, 0.6);
@@ -94,6 +102,17 @@ export function criarPrevia(container, opcoes = {}) {
       const distancia = Math.max(pelaLargura, pelaAltura * 1.15) * 1.25;
       camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * (opcoes.frente ? 0.94 : 0.75), centro.z + distancia * (opcoes.frente ? 0.30 : 0.65));
       controles.target.copy(centro);
+      controles.update();
+    },
+    verBase() {
+      const fundo = centro.z - tamanho.z / 2;
+      const distancia = Math.max(tamanho.x, tamanho.y, 10) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.2 / Math.min(camera.aspect, 1);
+      vendoBase = true;
+      grade.visible = false;
+      luzFundo.visible = true;
+      luzFundo.position.set(centro.x - 40, centro.y - 40, fundo - 160);
+      controles.target.set(centro.x, centro.y, fundo);
+      camera.position.set(centro.x, centro.y + distancia * 0.01, fundo - distancia);
       controles.update();
     },
     // fator < 1 aproxima, > 1 afasta

@@ -38,6 +38,7 @@ body:has(#tela-caneca:not(.oculta)) .interruptor-tema .bolinha-tema { transform:
 .copos-status { position:absolute; top:48%; left:15%; right:15%; text-align:center; color:var(--texto-suave); pointer-events:none; }
 .copos-vista { position:absolute; bottom:19px; left:26px; right:24px; display:flex; justify-content:space-between; align-items:center; color:var(--texto-suave); pointer-events:none; }
 .copos-vista button { pointer-events:auto; width:36px; height:34px; padding:0; margin-left:4px; font-size:20px; }
+.copos-vista .copos-ver-base { width:auto; padding:0 12px; font-size:13px; }
 .copos-rodape { padding:17px 22px; border-top:1px solid var(--borda); background:var(--superficie); display:flex; gap:12px; justify-content:flex-end; align-items:center; }
 .copos-rodape>button,.copos-exportar>summary { padding:13px 22px; font-size:15px; min-height:47px; border-radius:10px; }
 .copos-exportar { position:relative; }
