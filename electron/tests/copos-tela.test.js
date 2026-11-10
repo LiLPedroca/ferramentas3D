@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 const estado = vi.hoisted(() => ({ abrir: null, verBase: vi.fn() }));
 beforeEach(() => { vi.resetModules(); estado.verBase.mockClear(); });
 vi.mock('../src/renderer/shell.js', () => ({ registrarAoAbrir: (_id, fn) => { estado.abrir = fn; }, irPara: vi.fn(), mostrarAviso: vi.fn() }));
@@ -25,6 +26,13 @@ it('permite escolher outro copo depois de uma falha de leitura, sem habilitar ex
 it('abre a vista da assinatura somente depois que o copo terminou de carregar', async () => {
   const ids = ['catalogo', 'cores', '3d', 'status', 'nome', 'medidas', 'restaurar', 'grade', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar'];
   document.body.innerHTML = ids.map(id => `<button id="cp-${id}" disabled></button>`).join('');
+  const rodape = readFileSync('src/renderer/index.html', 'utf8').match(/<footer class="copos-rodape">[\s\S]*?<\/footer>/)[0];
+  const html = new DOMParser().parseFromString(rodape, 'text/html');
+  const multipartes = html.querySelector('#cp-exportar #cp-multipartes');
+  expect(multipartes).not.toBeNull();
+  expect(multipartes.textContent).toContain('Exportar em multipartes');
+  expect(multipartes.textContent).toContain('Em breve');
+  document.body.append(multipartes.cloneNode(true));
   const texto = JSON.stringify({ partes: [{ cor: '#000000', offset: 0, count: 9 }] });
   const n = Math.ceil(texto.length / 4) * 4, bytes = new Uint8Array(4 + n + 36);bytes.fill(32, 4, 4 + n);
   new DataView(bytes.buffer).setUint32(0, n, true);bytes.set(new TextEncoder().encode(texto), 4);
@@ -34,5 +42,6 @@ it('abre a vista da assinatura somente depois que o copo terminou de carregar', 
   document.getElementById('cp-base').click();expect(estado.verBase).not.toHaveBeenCalled();
   resolver({ ok: true, dados: bytes });await new Promise(r => setTimeout(r, 0));
   expect(document.getElementById('cp-base').disabled).toBe(false);
+  expect(document.getElementById('cp-multipartes').disabled).toBe(true);
   document.getElementById('cp-base').click();expect(estado.verBase).toHaveBeenCalledTimes(1);
 });

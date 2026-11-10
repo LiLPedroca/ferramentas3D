@@ -136,10 +136,13 @@ describe("chaveiro de nome", { timeout: 30000 }, () => {
     expect(() => gerarChaveiro(M, carregar("Lobster"), { texto: "Ana ☃" })).toThrow(/não tem o caractere/);
   });
 
-  it("todas as fontes geram malhas fechadas nos três estilos", () => {
+  it("mantém as 29 fontes do catálogo", () => {
     expect(FONTES).toHaveLength(29);
+  });
+
+  // Mesmas 87 gerações, com um limite por fonte em vez de somar tudo em 60 s.
+  it.each(FONTES.map(({ id }) => id))("%s gera malhas fechadas nos três estilos", (id) => {
     const problemas = [];
-    for (const { id } of FONTES) {
       for (const estilo of ["contorno", "capsula", "retangular"]) {
         try {
           const r = gerarChaveiro(M, carregar(id), { texto: "Ação Bg 2026", estilo });
@@ -151,9 +154,8 @@ describe("chaveiro de nome", { timeout: 30000 }, () => {
           problemas.push(`${id}/${estilo}: ${erro.message}`);
         }
       }
-    }
     expect(problemas).toEqual([]);
-  }, 60000);
+  }, 15000);
 });
 
 describe("impressão sem AMS (pausa para troca manual)", () => {

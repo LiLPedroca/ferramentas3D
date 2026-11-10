@@ -45,4 +45,6 @@ body:has(#tela-caneca:not(.oculta)) .interruptor-tema .bolinha-tema { transform:
 .copos-exportar>summary { list-style:none; cursor:pointer; background:var(--acento); color:var(--acento-texto); display:flex; gap:24px; align-items:center; }
 .copos-exportar>div { position:absolute; right:0; bottom:calc(100% + 10px); width:210px; padding:7px; border-radius:10px; border:1px solid var(--borda); background:var(--superficie); box-shadow:var(--sombra); z-index:3; }
 .copos-exportar button { display:block; width:100%; text-align:left; border:0; background:transparent; }
+.copos-exportar #cp-multipartes { cursor:not-allowed; }
+.copos-exportar small { display:block; margin-top:3px; color:var(--texto-suave); }
 @media(max-width:850px) { .copos-editor { grid-template-columns:250px minmax(0,1fr); } .copos-painel { padding:18px; } .copos-catalogo { gap:4px; } .copos-catalogo img { height:80px; } }

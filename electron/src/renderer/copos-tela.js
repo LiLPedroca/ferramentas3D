@@ -1,5 +1,5 @@
 import { CATALOGO_COPOS, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
-import { colorir3mf, gerarStlCopo } from './modelos/copos-exportar.js';
+import { colorir3mf, gerarStlNativoCopo } from './modelos/copos-exportar.js';
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
 import { registrarAoAbrir, irPara, mostrarAviso } from './shell.js';
@@ -52,9 +52,10 @@ function volume() {
 }
 async function nativo() {
   const escolhidas = [...cores];
+  const nome = $('cp-nome').value || `Copo ${id}`;
   const r = await window.modelos.lerCopo(id, true);
   if (!r.ok) throw Error(r.erro);
-  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas) };
+  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas, { nome }) };
 }
 async function executar(fn) {
   if (ocupado || !pronto) return;
@@ -80,7 +81,11 @@ export function iniciarCopos() {
     const canvas = $('cp-3d').querySelector('canvas'); const thumb = document.createElement('canvas'); thumb.width = 320; thumb.height = 240; thumb.getContext('2d').drawImage(canvas, 0, 0, 320, 240);
     atual = await salvarEmMeusModelos({ tipo: 'caneca', atual, nomePadrao: $('cp-nome').value || `Copo ${id}`, montar: () => ({ opcoes: { catalogo: id, cores: [...cores] }, miniatura: thumb.toDataURL('image/png') }) }) ?? atual;
   }));
-  $('cp-stl').addEventListener('click', () => executar(() => salvarArquivoModelo(gerarStlCopo(pacote.partes), $('cp-nome').value || `Copo ${id}`, 'stl')));
+  $('cp-stl').addEventListener('click', () => executar(async () => {
+    const r = await window.modelos.lerCopo(id, true);
+    if (!r.ok) throw Error(r.erro);
+    await salvarArquivoModelo(gerarStlNativoCopo(r.dados), $('cp-nome').value || `Copo ${id}`, 'stl');
+  }));
   $('cp-3mf').addEventListener('click', () => executar(() => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   $('cp-fatiador').addEventListener('click', () => executar(() => enviarModeloAoFatiador(aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });

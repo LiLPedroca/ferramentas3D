@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'three/examples/jsm/libs/fflate.module.js';
-import { colorir3mf } from '../src/renderer/modelos/copos-exportar.js';
+import { colorir3mf, gerarStlNativoCopo } from '../src/renderer/modelos/copos-exportar.js';
 it('recolore pintura e filamentos simultaneamente, sem alterar faces ou trocar cores em cascata', () => {
   const xml = '<triangle v1="0" v2="1" v3="2" paint_color="8"/><base displaycolor="#000000FF"/><base displaycolor="#ffffff"/>';
   const cfg = JSON.stringify({ filament_colour: ['#000000', '#FFFFFF'], printer_model: 'Impressora da referência' });
@@ -10,7 +10,7 @@ it('recolore pintura e filamentos simultaneamente, sem alterar faces ou trocar c
   expect(strFromU8(z['3D/3dmodel.model'])).toContain('paint_color="8"');
   expect(JSON.parse(strFromU8(z['Metadata/project_settings.config'])).filament_colour).toEqual(['#ffffff', '#ff0000']);
   expect(z['foto.png']).toBeUndefined();
-  expect(JSON.parse(strFromU8(z['Metadata/project_settings.config'])).printer_model).toBeUndefined();
+  expect(JSON.parse(strFromU8(z['Metadata/project_settings.config'])).printer_model).toBe('Anycubic Kobra X');
   expect(strFromU8(z['_rels/.rels'])).toContain('Id="modelo"');
   expect(strFromU8(z['_rels/.rels'])).not.toContain('Id="foto"');
 });
@@ -40,4 +40,32 @@ it('exporta como modelo próprio com pintura e partes, sem placa ou perfil do pr
   expect(modelo).toContain('Autor original');
   expect(config).toContain('key="extruder" value="3"');
   expect(config).not.toContain('<plate>');
+});
+
+it('leva o nome escolhido ao objeto e perfil PETG completo para calcular gramas e imprimir', () => {
+  const xml = '<model><metadata name="Title">Vaso-Chop-600ml.stl</metadata><resources><object id="1" name="Vaso-Chop-600ml.stl"><mesh/></object></resources><build><item objectid="1"/></build></model>';
+  const cfg = '<config><object id="1"><metadata key="name" value="Vaso-Chop-600ml.stl"/><part id="1"><metadata key="name" value="Antigo"/><metadata key="extruder" value="1"/></part></object></config>';
+  const z = unzipSync(colorir3mf(zipSync({ '3D/3dmodel.model': strToU8(xml), 'Metadata/model_settings.config': strToU8(cfg), 'Metadata/project_settings.config': strToU8(JSON.stringify({filament_colour:['#000000','#ffffff']})) }), ['#000000','#ffffff'], ['#123456','#abcdef'], {nome:'Copo 2 & teste'}));
+  expect(strFromU8(z['3D/3dmodel.model'])).toContain('name="Copo 2 &amp; teste"');
+  expect(strFromU8(z['3D/3dmodel.model'])).not.toContain('Vaso-Chop');
+  expect(strFromU8(z['Metadata/model_settings.config'])).toContain('value="Copo 2 &amp; teste"');
+  const p = JSON.parse(strFromU8(z['Metadata/project_settings.config']));
+  expect(p.filament_colour).toEqual(['#123456','#abcdef']);
+  expect(p.filament_density).toHaveLength(2);
+  expect(p.filament_density.every(v => Number(v)>0)).toBe(true);
+  expect(p.filament_diameter).toEqual(['1.75','1.75']);
+  expect(p.filament_type).toEqual(['PETG','PETG']);
+  expect(p.filament_max_volumetric_speed).toEqual(['8','8']);
+  expect(p.wall_loops).toBe('2');
+  expect(p.layer_height).toBe('0.28');
+  expect(p.printer_model).toBe('Anycubic Kobra X');
+  expect(p.nozzle_temperature.every(v => Number(v)>=220)).toBe(true);
+});
+
+it('STL usa a malha única nativa, sem subdividir faces pela pintura', () => {
+  const xml = '<model><resources><object id="1"><mesh><vertices><vertex x="0" y="0" z="0"/><vertex x="2" y="0" z="0"/><vertex x="0" y="2" z="0"/><vertex x="0" y="0" z="2"/></vertices><triangles><triangle v1="0" v2="2" v3="1" paint_color="48483"/><triangle v1="0" v2="1" v3="3"/><triangle v1="0" v2="3" v3="2"/><triangle v1="1" v2="2" v3="3"/></triangles></mesh></object></resources><build><item objectid="1"/></build></model>';
+  const b = gerarStlNativoCopo(zipSync({'3D/3dmodel.model':strToU8(xml)}));
+  expect(new DataView(b.buffer,b.byteOffset,b.byteLength).getUint32(80,true)).toBe(4);
+  expect(b.byteLength).toBe(84+4*50);
+  expect(() => gerarStlNativoCopo(zipSync({'3D/3dmodel.model':strToU8('<model><components/></model>')}))).toThrow(/única/);
 });
