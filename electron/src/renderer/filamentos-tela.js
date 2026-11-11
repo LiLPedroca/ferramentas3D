@@ -23,13 +23,15 @@ export function listaDeRolos() {
 
 export async function carregarFilamentos() {
   const resposta = await window.dados.filamentos.listar();
+  // A tela do estoque saiu da interface na v0.45.0: só atualiza a tela se ela existir.
+  const erro = $("fl-erro");
   if (!resposta.ok) {
-    $("fl-erro").textContent = resposta.erro;
+    if (erro) erro.textContent = resposta.erro;
     return rolos;
   }
-  $("fl-erro").textContent = "";
+  if (erro) erro.textContent = "";
   rolos = resposta.dados;
-  renderizar();
+  if ($("tela-filamentos")) renderizar();
   return rolos;
 }
 

@@ -7,6 +7,8 @@ import { abrirSeletorFatiador } from "./fatiador-ui.js";
 import { icone } from "./icones.js";
 import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
+import { criarDivisao } from "./divisao-pagamento.js";
+import { centavosDeTexto } from "../core/produto.cjs";
 
 const { ROTULOS_FORMA, ROTULOS_PRODUCAO, ROTULOS_SITUACAO, diaLocal, lucroVenda, orcamentosSemVenda, periodoDe, recebido, restante, resumoFinanceiro, situacaoVenda } = fin;
 const { calcularTotais, valorSinal, centavosParaTexto } = modeloOrcamento;
@@ -18,6 +20,17 @@ let despesas = [];
 let orcamentos = [];
 let abertas = []; // ids das vendas abertas em abas
 let abaAtual = "geral";
+let divisaoPagamento = null; // janela "O cliente já pagou?"
+let divisaoRegistro = null; // "Novo registro" > Recebimento
+
+function centavosOuNull(texto) {
+  try {
+    const c = centavosDeTexto(texto, "Valor");
+    return c === "" ? null : BigInt(c);
+  } catch {
+    return null;
+  }
+}
 
 // ---------- Formatação ----------
 function reais(c) {
@@ -28,6 +41,8 @@ function reais(c) {
 }
 const dataBr = (dia) => (dia ? dia.split("-").reverse().join("/") : "");
 const formasTexto = (lista) => lista.map((f) => ROTULOS_FORMA[f]).join(", ");
+// "Pix R$ 70,00 · Dinheiro R$ 30,00" quando o pagamento foi dividido entre as formas.
+const formasDoPagamento = (p) => (p.divisao ? p.divisao.map((d) => `${ROTULOS_FORMA[d.forma]} ${reais(d.valorCentavos)}`).join(" · ") : formasTexto(p.formas));
 // Vendas e orçamentos de teste: numeração própria e fora dos números do painel.
 const numeroOrc = (n, teste = false) => `${teste ? "teste " : ""}#${String(n).padStart(4, "0")}`;
 const naoTeste = (v) => v.teste !== true;
@@ -197,7 +212,7 @@ function renderizarVendas(periodo) {
 function renderizarRegistros(periodo) {
   const noPeriodo = (d) => (!periodo.inicio || d >= periodo.inicio) && d <= periodo.fim;
   const itens = [];
-  for (const v of vendas.filter(naoTeste)) for (const p of v.pagamentos) if (noPeriodo(p.data)) itens.push({ dia: p.data, tipo: "recebimento", texto: `Recebimento · ${nomeVenda(v)}`, detalhe: formasTexto(p.formas), valor: BigInt(p.valorCentavos), venda: v });
+  for (const v of vendas.filter(naoTeste)) for (const p of v.pagamentos) if (noPeriodo(p.data)) itens.push({ dia: p.data, tipo: "recebimento", texto: `Recebimento · ${nomeVenda(v)}`, detalhe: formasDoPagamento(p), valor: BigInt(p.valorCentavos), venda: v });
   for (const d of despesas) if (noPeriodo(d.data)) itens.push({ dia: d.data, tipo: "despesa", texto: `Despesa · ${d.descricao}`, detalhe: "", valor: -BigInt(d.valorCentavos), despesa: d });
   itens.sort((a, b) => b.dia.localeCompare(a.dia));
   $("fin-registros").replaceChildren(
@@ -239,7 +254,6 @@ function montarAtalhos() {
     ["orcamentos", "Orçamentos", "orcamentos"],
     ["clientes", "Clientes", "clientes"],
     ["produtos", "Meus produtos", "produtos"],
-    ["filamentos", "Estoque de filamentos", "filamentos"],
   ];
   $("fin-atalhos").replaceChildren(
     ...atalhos.map(([tela, texto, ic]) => {
@@ -419,7 +433,7 @@ function renderizarVenda(v) {
     for (const p of v.pagamentos) {
       const l = el("div", "fin-registro recebimento");
       const t = el("span");
-      t.append(el("strong", "", dataBr(p.data)), el("span", "cliente-sub", formasTexto(p.formas) || "Forma não informada"));
+      t.append(el("strong", "", dataBr(p.data)), el("span", "cliente-sub", formasDoPagamento(p) || "Forma não informada"));
       l.append(t, el("strong", "valor", reais(p.valorCentavos)));
       pags.append(l);
     }
@@ -466,6 +480,7 @@ function abrirRegistro({ tipo = "venda", vendaId = "" } = {}) {
   for (const id of ["reg-descricao", "reg-cliente", "reg-valor"]) $(id).value = "";
   $("reg-data").value = diaLocal();
   marcarChaves($("reg-formas"), []);
+  divisaoRegistro.limpar();
   $("erro-registro").textContent = "";
   ajustarRegistro();
   $("dialogo-registro").showModal();
@@ -479,6 +494,12 @@ function ajustarRegistro() {
   $("reg-cliente-campo").hidden = tipo !== "venda";
   if (tipo === "recebimento" && !$("reg-venda").options.length) $("erro-registro").textContent = "Não há vendas com saldo a receber.";
   else $("erro-registro").textContent = "";
+  ajustarDivisaoRegistro();
+}
+
+function ajustarDivisaoRegistro() {
+  divisaoRegistro.atualizar();
+  $("reg-salvar").disabled = $("reg-tipo").value === "recebimento" && !divisaoRegistro.valida();
 }
 
 async function salvarRegistro(ev) {
@@ -491,7 +512,7 @@ async function salvarRegistro(ev) {
   else if (tipo === "despesa") r = await window.dados.financeiro.salvarDespesa({ descricao: $("reg-descricao").value, valor, data });
   else {
     if (!$("reg-venda").value) return;
-    r = await window.dados.financeiro.pagamento($("reg-venda").value, { valor, data, formas: chavesMarcadas($("reg-formas")) });
+    r = await window.dados.financeiro.pagamento($("reg-venda").value, { valor, data, formas: chavesMarcadas($("reg-formas")), divisao: divisaoRegistro.ler() });
   }
   if (!r.ok) {
     $("erro-registro").textContent = r.erro;
@@ -525,12 +546,13 @@ export async function abrirPagamentoOrcamento(o, { revisao = false } = {}) {
   $("pagamento-valor").value = sinal > 0n && sinal < total ? centavosParaTexto(sinal.toString()) : ja > 0n && ja < total ? centavosParaTexto(ja.toString()) : "";
   $("pagamento-data").value = diaLocal();
   marcarChaves($("pagamento-formas"), o.formasPagamento?.length === 1 ? o.formasPagamento : []);
+  divisaoPagamento.limpar();
   $("erro-pagamento").textContent = "";
   $("pagamento-depois").textContent = revisao ? "Fechar" : "Responder depois";
   ajustarPagamento();
   $("dialogo-pagamento").showModal();
   return new Promise((resolver) => {
-    pedidoPagamento = { orcamento: o, revisao, resolver };
+    pedidoPagamento = { orcamento: o, revisao, resolver, total, ja };
   });
 }
 
@@ -543,6 +565,25 @@ function ajustarPagamento() {
   $("pagamento-detalhes").hidden = !["parcial", "integral"].includes(modo);
   $("pagamento-valor-campo").hidden = modo !== "parcial";
   $("pagamento-venda-campo").hidden = modo !== "vincular";
+  ajustarDivisaoPagamento();
+}
+
+// Valor que entra agora: "Quanto já pagou no total" (ou o total) menos o que já estava registrado.
+function recebimentoAgora() {
+  const p = pedidoPagamento;
+  if (!p) return null;
+  const modo = modoPagamento();
+  const alvo = modo === "integral" ? p.total : modo === "parcial" ? centavosOuNull($("pagamento-valor").value) : null;
+  if (alvo === null) return null;
+  const agora = alvo - p.ja;
+  return agora > 0n ? agora : null;
+}
+
+function ajustarDivisaoPagamento() {
+  if (!divisaoPagamento) return;
+  divisaoPagamento.atualizar();
+  const modo = modoPagamento();
+  $("pagamento-confirmar").disabled = ["parcial", "integral"].includes(modo) && !divisaoPagamento.valida();
 }
 
 function fecharPagamento(resultado) {
@@ -564,7 +605,7 @@ async function confirmarPagamento(ev) {
   let r;
   if (modo === "cancelar") r = await window.dados.orcamentos.situacao(p.orcamento.id, "recusado");
   else if (modo === "vincular") r = await window.dados.financeiro.vincular(p.orcamento.id, $("pagamento-venda").value);
-  else r = await window.dados.financeiro.sincronizar(p.orcamento.id, { modo, valor: $("pagamento-valor").value, formas: chavesMarcadas($("pagamento-formas")), data: $("pagamento-data").value });
+  else r = await window.dados.financeiro.sincronizar(p.orcamento.id, { modo, valor: $("pagamento-valor").value, formas: chavesMarcadas($("pagamento-formas")), divisao: divisaoPagamento.ler(), data: $("pagamento-data").value });
   if (!r.ok) {
     $("erro-pagamento").textContent = r.erro;
     return;
@@ -625,6 +666,20 @@ async function atualizarTudo() {
 export function iniciarFinanceiro() {
   montarChaves($("reg-formas"), FORMAS, "reg-forma");
   montarChaves($("pagamento-formas"), FORMAS, "pag-forma");
+  divisaoRegistro = criarDivisao($("reg-divisao"), {
+    formas: () => chavesMarcadas($("reg-formas")),
+    valor: () => centavosOuNull($("reg-valor").value),
+    aoMudar: () => ($("reg-salvar").disabled = $("reg-tipo").value === "recebimento" && !divisaoRegistro.valida()),
+  });
+  divisaoPagamento = criarDivisao($("pagamento-divisao"), {
+    formas: () => chavesMarcadas($("pagamento-formas")),
+    valor: recebimentoAgora,
+    aoMudar: () => ($("pagamento-confirmar").disabled = ["parcial", "integral"].includes(modoPagamento()) && !divisaoPagamento.valida()),
+  });
+  $("reg-formas").addEventListener("change", ajustarDivisaoRegistro);
+  $("reg-valor").addEventListener("input", ajustarDivisaoRegistro);
+  $("pagamento-formas").addEventListener("change", ajustarDivisaoPagamento);
+  $("pagamento-valor").addEventListener("input", ajustarDivisaoPagamento);
   montarAtalhos();
   $("fin-periodo").addEventListener("change", renderizarPainel);
   $("fin-novo-registro").addEventListener("click", () => abrirRegistro());

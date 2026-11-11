@@ -60,8 +60,39 @@ function formasDe(lista, nome = "Formas de pagamento") {
 function validarPagamento(p) {
   if (!p || typeof p !== "object" || typeof p.id !== "string" || !ID.test(p.id)) throw new ErroValidacao("Pagamento inválido.");
   if (!diaValido(p.data) || !DIGITOS.test(String(p.valorCentavos)) || BigInt(p.valorCentavos) <= 0n) throw new ErroValidacao("Pagamento inválido.");
-  formasDe(p.formas);
+  const formas = formasDe(p.formas);
+  // Divisão entre as formas (pagamentos com duas ou mais formas, a partir da 0.45).
+  if (p.divisao !== undefined) {
+    const d = p.divisao;
+    if (
+      !Array.isArray(d) ||
+      d.length !== formas.length ||
+      d.some((x, i) => !x || x.forma !== formas[i] || !DIGITOS.test(String(x.valorCentavos)) || BigInt(x.valorCentavos) <= 0n) ||
+      d.reduce((s, x) => s + BigInt(x.valorCentavos), 0n) !== BigInt(p.valorCentavos)
+    ) {
+      throw new ErroValidacao("Pagamento inválido.");
+    }
+  }
   return p;
+}
+
+// Divide o valor de um recebimento entre as formas usadas (só com duas ou mais formas).
+// lista: [{ forma, valor (texto) ou valorCentavos }]. A soma precisa ser igual ao valor recebido agora.
+function divisaoDe(lista, formas, valorCentavos) {
+  if (formas.length < 2) return undefined;
+  if (!Array.isArray(lista)) throw new ErroValidacao("Distribua o valor entre as formas de pagamento.");
+  let soma = 0n;
+  const divisao = formas.map((forma) => {
+    const d = lista.find((x) => x && x.forma === forma);
+    const c = d?.valorCentavos !== undefined ? String(d.valorCentavos) : centavosDeTexto(d?.valor, ROTULOS_FORMA[forma], { obrigatorio: true });
+    if (!DIGITOS.test(c) || BigInt(c) <= 0n) throw new ErroValidacao(`${ROTULOS_FORMA[forma]}: informe um valor maior que zero.`);
+    soma += BigInt(c);
+    return { forma, valorCentavos: c };
+  });
+  if (soma !== BigInt(valorCentavos)) {
+    throw new ErroValidacao(`A divisão soma ${reaisTexto(soma)}, mas o recebimento é de ${reaisTexto(BigInt(valorCentavos))}.`);
+  }
+  return divisao;
 }
 
 function validarItemVenda(i) {
@@ -191,7 +222,11 @@ function novoPagamento(pagamento, { id, hoje = diaLocal() }) {
   const p = pagamento ?? {};
   const valorCentavos = p.valorCentavos !== undefined ? String(p.valorCentavos) : valorPositivo(p.valor, "Valor recebido");
   if (!DIGITOS.test(valorCentavos) || BigInt(valorCentavos) <= 0n) throw new ErroValidacao("Valor recebido: informe um valor maior que zero.");
-  return validarPagamento({ id, data: p.data ? diaDeTexto(p.data) : hoje, valorCentavos, formas: formasDe(p.formas) });
+  const formas = formasDe(p.formas);
+  const novo = { id, data: p.data ? diaDeTexto(p.data) : hoje, valorCentavos, formas };
+  const divisao = divisaoDe(p.divisao, formas, valorCentavos);
+  if (divisao) novo.divisao = divisao;
+  return validarPagamento(novo);
 }
 
 function registrarPagamento(venda, pagamento, { id, agora = new Date().toISOString(), hoje } = {}) {
@@ -206,7 +241,7 @@ function registrarPagamento(venda, pagamento, { id, agora = new Date().toISOStri
 // Cria ou atualiza a venda ligada a um orçamento (finalizar, salvar de novo, revisar antigo).
 // recebidoTotal: quanto o cliente já pagou no total, segundo a resposta da janela
 //   (0 = não pagou; total = integral). Só a diferença para o já registrado vira pagamento novo.
-function sincronizarVendaDoOrcamento(o, existente, { recebidoTotalCentavos, formas, data, idPagamento, idVenda, agora = new Date().toISOString(), hoje = diaLocal() }) {
+function sincronizarVendaDoOrcamento(o, existente, { recebidoTotalCentavos, formas, divisao, data, idPagamento, idVenda, agora = new Date().toISOString(), hoje = diaLocal() }) {
   const dados = dadosDoOrcamento(o);
   const base = existente ?? {
     id: idVenda,
@@ -224,7 +259,7 @@ function sincronizarVendaDoOrcamento(o, existente, { recebidoTotalCentavos, form
     if (alvo < 0n || alvo > BigInt(venda.valorCentavos)) throw new ErroValidacao("O valor recebido não pode passar do total do orçamento.");
     const diferenca = alvo - recebido(venda);
     if (diferenca > 0n) {
-      venda.pagamentos = [...venda.pagamentos, novoPagamento({ valorCentavos: diferenca.toString(), formas, data }, { id: idPagamento, hoje })];
+      venda.pagamentos = [...venda.pagamentos, novoPagamento({ valorCentavos: diferenca.toString(), formas, divisao, data }, { id: idPagamento, hoje })];
     }
   }
   return validarVenda(venda);
@@ -304,6 +339,7 @@ module.exports = {
   diaDeTexto,
   diaLocal,
   diaValido,
+  divisaoDe,
   formasDe,
   lucroVenda,
   montarDespesa,

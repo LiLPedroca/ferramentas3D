@@ -234,7 +234,7 @@ function preencherTudo() {
   $("o-numero").value = f.numero;
   $("o-desconto").value = f.desconto;
   $("o-frete").value = f.frete;
-  $("o-desconto-campos").hidden = !(f.desconto || f.frete);
+  $("o-desconto-campo").hidden = !f.desconto;
   marcarChaves($("o-formas"), f.formasPagamento);
   $("o-cobrar-sinal").checked = f.cobrarSinal;
   $("o-sinal-campos").hidden = !f.cobrarSinal;
@@ -748,8 +748,8 @@ export function iniciarOrcamentos() {
   });
 
   $("o-desconto-abrir").addEventListener("click", () => {
-    $("o-desconto-campos").hidden = !$("o-desconto-campos").hidden;
-    if (!$("o-desconto-campos").hidden) $("o-desconto").focus();
+    $("o-desconto-campo").hidden = !$("o-desconto-campo").hidden;
+    if (!$("o-desconto-campo").hidden) $("o-desconto").focus();
   });
   ligar("o-desconto", (v) => (f.desconto = v));
   ligar("o-frete", (v) => (f.frete = v));

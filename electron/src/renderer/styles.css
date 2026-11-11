@@ -4455,9 +4455,13 @@ textarea:focus {
   white-space: nowrap;
 }
 
+/* A célula continua sendo célula de tabela (com display: flex a borda de baixo saía desalinhada). */
 .item-acoes {
-  display: flex;
-  gap: 6px;
+  white-space: nowrap;
+}
+
+.item-acoes > * + * {
+  margin-left: 6px;
 }
 
 .orc-resumo-itens {
@@ -5014,4 +5018,35 @@ textarea:focus {
   background: color-mix(in srgb, #d9822b 15%, transparent);
   color: #d9822b;
   margin-left: 6px;
+}
+
+/* ---------- Divisão do pagamento entre as formas ---------- */
+.divisao-pagamento {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.divisao-linhas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.divisao-resumo {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.divisao-resumo.ok {
+  color: var(--verde);
+}
+
+.divisao-resumo.falta {
+  color: #e8a93a;
 }

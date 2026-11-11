@@ -62,15 +62,6 @@ export const FERRAMENTAS = [
     tela: "clientes",
   },
   {
-    id: "filamentos",
-    grupo: "financeiro",
-    titulo: "Estoque de filamentos",
-    descricao: "Rolos, cores, preço por kg e quanto resta em cada um.",
-    categoria: "Gestão financeira",
-    disponivel: true,
-    tela: "filamentos",
-  },
-  {
     id: "chaveiro",
     grupo: "modelos",
     titulo: "Chaveiro de nome",

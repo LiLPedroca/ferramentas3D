@@ -52,6 +52,26 @@ export const NOVIDADES = [
     itens: ["Cliente Teste e Peça teste já cadastrados", "Orçamentos de teste com numeração própria e marca TESTE no PDF", "Limpe tudo em Configurações > Geral"],
     botao: "Entendi",
   },
+  {
+    id: "orcamentos-pagamento-dividido",
+    versao: "0.45.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Frete à vista e pagamento dividido",
+    texto: "Ajustes nos orçamentos para lançar o frete e o pagamento mais rápido.",
+    itens: ["O campo Frete aparece direto em Condições", "Pagou com mais de uma forma? Divida o valor entre elas", "A soma precisa bater com o valor recebido"],
+    botao: "Entendi",
+  },
+  {
+    id: "financeiro-pagamento-dividido",
+    versao: "0.45.0",
+    tela: "financeiro",
+    icone: "taxas",
+    titulo: "Pagamento dividido entre formas",
+    texto: "Um recebimento pode ter parte em Pix e parte em dinheiro, por exemplo.",
+    itens: ["Marque as formas e informe quanto foi em cada uma", "O total distribuído e o que falta aparecem na hora", "Cada pagamento mostra a divisão na venda"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

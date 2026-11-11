@@ -434,3 +434,19 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
 - **"Limpar testes"**: apaga só orçamentos e vendas com `teste: true` (com os pagamentos), pede confirmação.
 - Testes: `tests/dados-teste.test.js`. Conferido no modo de captura (orçamento de teste, PDF real, pagamento,
   painel zerado, limpar).
+
+## Trabalho do Claude Code (11/11/2026) — frete, divisão do pagamento, filamentos retirado (v0.45.0)
+
+- **Orçamentos, etapa Condições**: o Frete fica sempre visível; só o Desconto continua atrás de
+  "Aplicar / editar desconto" (`o-desconto-campo`).
+- **Linha do item com "Remover"**: a célula `.item-acoes` usava `display: flex`, que tirava a célula da tabela
+  e desalinhava a borda. Agora é célula normal com `white-space: nowrap`.
+- **Divisão do pagamento** (`renderer/divisao-pagamento.js`, `divisaoDe` em `core/financeiro.cjs`): com duas ou mais
+  formas marcadas, aparece um valor por forma, o total distribuído e quanto falta. Confirmar só fica ativo quando a
+  soma bate com o valor que entra AGORA (na janela do orçamento: "quanto já pagou no total" menos o já registrado).
+  O pagamento guarda `divisao: [{ forma, valorCentavos }]` (mesma ordem de `formas`). Pagamentos antigos com várias
+  formas sem divisão continuam válidos; novos exigem a divisão. Vale para "O cliente já pagou?" e "Novo registro".
+- **Estoque de filamentos saiu da interface** (catálogo, `TELAS`, `app.js`, HTML da tela e dos diálogos, atalho do
+  financeiro). A escolha de rolo na Calculadora fica escondida. Dados (`filamentos.json`), backup e arquivos
+  (`filamentos-tela.js`, `core/filamento.cjs`, `main/filamentos.cjs`) continuam. Apagar só se o Pedro pedir.
+- Regra nova do Pedro: toda ferramenta nova ou alterada ganha aviso de novidade (`core/novidades.js`).

@@ -75,7 +75,7 @@ describe("pagamentos", () => {
   const base = () => montarVendaManual({ descricao: "Chaveiros", valor: "100", data: hoje }, { id: ID(7), agora });
 
   it("impede receber acima do saldo e depois de quitado", () => {
-    const v = registrarPagamento(base(), { valor: "60", formas: ["pix", "dinheiro"] }, { id: ID(8), agora, hoje });
+    const v = registrarPagamento(base(), { valor: "60", formas: ["pix", "dinheiro"], divisao: [{ forma: "pix", valor: "40" }, { forma: "dinheiro", valor: "20" }] }, { id: ID(8), agora, hoje });
     expect(() => registrarPagamento(v, { valor: "50" }, { id: ID(9), agora, hoje })).toThrow(/falta receber \(R\$ 40,00\)/);
     const q = registrarPagamento(v, { valor: "40" }, { id: ID(9), agora, hoje });
     expect(situacaoVenda(q)).toBe("quitado");
@@ -156,5 +156,63 @@ describe("sinal do orçamento", () => {
     const n = montarOrcamento({ itens: [{ descricao: "V", quantidade: "1", preco: "1" }], proximoNumero: 50000 }, { id: ID(1), existentes, agora });
     expect(n.numero).toBe(50000);
     expect(() => montarOrcamento({ itens: [{ descricao: "V", quantidade: "1", preco: "1" }], numero: "40592" }, { id: ID(1), existentes, agora })).toThrow(/Já existe/);
+  });
+});
+
+describe("divisão do pagamento entre formas", () => {
+  const vendaBase = () => ({
+    id: "venda-0001",
+    descricao: "Teste",
+    cliente: "",
+    data: "2026-11-11",
+    valorCentavos: "10000",
+    freteCentavos: "0",
+    custoCentavos: null,
+    itens: [],
+    pagamentos: [],
+    producao: "em-producao",
+    criadoEm: "2026-11-11T10:00:00.000Z",
+    atualizadoEm: "2026-11-11T10:00:00.000Z",
+  });
+
+  it("guarda o valor de cada forma quando a soma bate", () => {
+    const v = fin.registrarPagamento(vendaBase(), { valor: "100", formas: ["dinheiro", "pix"], divisao: [{ forma: "pix", valor: "70" }, { forma: "dinheiro", valor: "30" }] }, { id: "pag-00001" });
+    expect(v.pagamentos).toHaveLength(1);
+    expect(v.pagamentos[0].divisao).toEqual([{ forma: "pix", valorCentavos: "7000" }, { forma: "dinheiro", valorCentavos: "3000" }]);
+    expect(fin.situacaoVenda(v)).toBe("quitado");
+  });
+
+  it("sinal de R$ 30 dividido: soma R$ 30 e os R$ 70 continuam pendentes", () => {
+    const v = fin.registrarPagamento(vendaBase(), { valor: "30", formas: ["pix", "dinheiro"], divisao: [{ forma: "pix", valor: "20" }, { forma: "dinheiro", valor: "10" }] }, { id: "pag-00001" });
+    expect(fin.restante(v)).toBe(7000n);
+    expect(fin.situacaoVenda(v)).toBe("parcial");
+  });
+
+  it("recusa divisão que não bate ou que falta", () => {
+    const pag = (divisao) => () => fin.registrarPagamento(vendaBase(), { valor: "100", formas: ["pix", "dinheiro"], divisao }, { id: "pag-00001" });
+    expect(pag([{ forma: "pix", valor: "70" }, { forma: "dinheiro", valor: "20" }])).toThrow(/soma R\$ 90,00/);
+    expect(pag(undefined)).toThrow(/Distribua/);
+    expect(pag([{ forma: "pix", valor: "100" }])).toThrow(/Dinheiro/);
+  });
+
+  it("uma forma só não precisa de divisão", () => {
+    const v = fin.registrarPagamento(vendaBase(), { valor: "100", formas: ["pix"] }, { id: "pag-00001" });
+    expect(v.pagamentos[0].divisao).toBeUndefined();
+  });
+
+  it("orçamento finalizado com sinal dividido grava um pagamento só", () => {
+    const o = {
+      id: "orc-00000001", numero: 1, cliente: null, itens: [{ descricao: "A", quantidade: 1, precoUnitarioCentavos: "10000" }],
+      descontoCentavos: "0", freteCentavos: "0",
+    };
+    const v = fin.sincronizarVendaDoOrcamento(o, null, {
+      recebidoTotalCentavos: "3000", formas: ["pix", "dinheiro"], divisao: [{ forma: "pix", valor: "15" }, { forma: "dinheiro", valor: "15" }],
+      idPagamento: "pag-00001", idVenda: "venda-0001",
+    });
+    expect(v.pagamentos).toHaveLength(1);
+    expect(v.pagamentos[0].divisao.map((d) => d.valorCentavos)).toEqual(["1500", "1500"]);
+    // Confirmar de novo com o mesmo total não duplica.
+    const de_novo = fin.sincronizarVendaDoOrcamento(o, v, { recebidoTotalCentavos: "3000", formas: ["pix"], idPagamento: "pag-00002" });
+    expect(de_novo.pagamentos).toHaveLength(1);
   });
 });

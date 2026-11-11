@@ -100,6 +100,7 @@ function criarServicoFinanceiro(pasta, { orcamentos }) {
         const venda = fin.sincronizarVendaDoOrcamento(o, existente, {
           recebidoTotalCentavos: recebidoDesejado(resposta, total, existente),
           formas: resposta?.formas,
+          divisao: resposta?.divisao,
           data: resposta?.data,
           idPagamento: randomUUID(),
           idVenda: randomUUID(),

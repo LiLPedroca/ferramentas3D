@@ -322,7 +322,7 @@ export function iniciarCalculadora() {
   $("rolo-calc").addEventListener("change", escolherRolo);
   $("peso").addEventListener("input", mostrarBotaoDescontar);
   $("descontar-rolo").addEventListener("click", descontarDoLote);
-  registrarAoAbrir("calculadora", atualizarRolos);
+  // Estoque de filamentos saiu da interface na v0.45.0: a escolha de rolo fica escondida.
 
   novoCalculo();
 }
