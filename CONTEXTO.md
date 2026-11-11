@@ -387,3 +387,10 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
   - **Copo 1 multipartes: 5h12m55s / 118,18 g** somando as placas (base 2h43m29s / 57,65 g; argola 24m00s / 8,95 g; tubo 2h05m26s / 51,58 g).
   - Copos 2/3 não foram fatiados de novo nesta etapa.
 - **Pendentes:** impressão física do drapeado, da assinatura e dos encaixes do multipartes; conferir se o tempo de 8 h do completo é aceitável (o multipartes é a opção mais rápida); abrir pela janela do fatiador; demais pendências físicas anteriores.
+
+## Trabalho do Claude Code (11/11/2026) — Etiquetas retirado (v0.41.0)
+
+- A pedido do Pedro, a ferramenta **Etiquetas** saiu da interface: catálogo (`core/ferramentas.js`), `TELAS` (`shell.js`), bloco `tela-etiquetas` do `index.html`, inicialização no `app.js` e lista do `tests/inicio.test.js`. Um id antigo (`etiquetas`) cai na tela inicial.
+- **Mantidos sem uso, aguardando o Pedro decidir se apaga:** `src/core/etiquetas.cjs`, `src/renderer/etiquetas-tela.js`, `tests/etiquetas.test.js`, canal IPC `etiquetas:pdf` (`main.cjs`), `window.dados.etiquetas` (`preload.cjs`), ícone em `icones.js` e CSS `/* Etiquetas */` em `styles.css`. Nenhum dado do usuário é afetado (etiquetas não tinha cadastro próprio).
+- 293 testes npm passaram; captura confirmou versão 0.41.0, nenhuma menção a etiquetas na tela e nenhum ID duplicado.
+- Drapeado novo do Copo 1: aguardando o Pedro mandar o que quer e dizer “comece”.
