@@ -3036,6 +3036,7 @@ textarea:focus {
 
 .ch-abas {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--borda);
@@ -5190,4 +5191,65 @@ textarea:focus {
   .im-detalhe {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Chaveiro de nome: símbolo e vários nomes ---------- */
+.ch-estilos.ch-lados {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ch-estilos.ch-lados button {
+  padding: 9px 4px;
+  font-size: 12.5px;
+}
+
+.ch-simbolo-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ch-simbolo-cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ch-simbolo-cor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ch-simbolo-cor[aria-pressed="true"] {
+  border-color: var(--acento);
+  color: var(--texto);
+}
+
+.ch-lote-lista {
+  margin: 6px 0 10px;
+  padding-left: 18px;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.ch-lote-lista li.erro {
+  color: var(--erro);
+}
+
+.ch-lote-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

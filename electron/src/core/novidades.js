@@ -81,6 +81,16 @@ export const NOVIDADES = [
     itens: ["Arraste arquivos STL, 3MF, OBJ ou PLY para guardar", "Peso, tempo, material e configurações em cada cartão", "Abra no fatiador ou calcule o custo com um clique"],
     botao: "Começar",
   },
+  {
+    id: "chaveiro-simbolo-varios",
+    versao: "0.47.0",
+    tela: "chaveiro",
+    icone: "chaveiro",
+    titulo: "Símbolo e vários nomes no chaveiro",
+    texto: "Coloque um logo junto do nome e gere os chaveiros de uma equipe inteira num arquivo só.",
+    itens: ["Símbolo à esquerda, à direita, acima ou abaixo, arrastável na prévia", "Um nome por linha: todos no mesmo 3MF, arrumados na mesa", "Peso de cada um e o total, para o orçamento"],
+    botao: "Experimentar",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

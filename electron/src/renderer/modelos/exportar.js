@@ -174,18 +174,130 @@ export function gerar3mf(partes, { titulo = "Modelo", pausas = [] } = {}) {
   return zipSync(arquivos);
 }
 
+// ---------- Vários objetos em placas (ex.: um chaveiro por nome) ----------
+// Arruma caixas [{ largura, altura }] (mm) em prateleiras numa mesa, com folga entre elas e na borda.
+// Devolve [{ placa, x, y }] (canto inferior esquerdo de cada caixa na sua placa, começando em 0).
+export function arrumarNaMesa(caixas, { mesa = [260, 260], folga = 6, margem = 8 } = {}) {
+  const livreX = mesa[0] - 2 * margem;
+  const livreY = mesa[1] - 2 * margem;
+  for (const c of caixas) {
+    if (c.largura > livreX || c.altura > livreY) throw new Error(`Uma peça (${Math.round(c.largura)} × ${Math.round(c.altura)} mm) não cabe na mesa. Diminua a largura.`);
+  }
+  const posicoes = [];
+  let placa = 0;
+  let x = margem;
+  let y = margem;
+  let alturaLinha = 0;
+  for (const c of caixas) {
+    if (x + c.largura > mesa[0] - margem + 1e-9) {
+      x = margem;
+      y += alturaLinha + folga;
+      alturaLinha = 0;
+    }
+    if (y + c.altura > mesa[1] - margem + 1e-9) {
+      placa += 1;
+      x = margem;
+      y = margem;
+      alturaLinha = 0;
+    }
+    posicoes.push({ placa, x, y });
+    x += c.largura + folga;
+    alturaLinha = Math.max(alturaLinha, c.altura);
+  }
+  return posicoes;
+}
+
+// Origem de cada placa no espaço do Orca / Bambu / Anycubic Slicer Next: as placas ficam em grade,
+// com 1/5 da mesa de espaço entre elas, e a coluna conta para a direita e a linha para baixo (Y negativo).
+export function origemDaPlaca(indice, total, mesa = [260, 260]) {
+  const raiz = Math.sqrt(total);
+  const colunas = raiz > Math.round(raiz) ? Math.round(raiz) + 1 : Math.round(raiz);
+  const col = indice % colunas;
+  const lin = Math.floor(indice / colunas);
+  return [col * mesa[0] * 1.2, lin ? -lin * mesa[1] * 1.2 : 0];
+}
+
+// objetos: [{ nome, partes: [{ nome, cor, geometria, slot }], placa, posicao: [x, y] }]
+// Placas sem nome: o Anycubic Slicer Next fecha sozinho ao abrir um 3MF com plater_name preenchido.
+// As geometrias já começam em (0, 0, 0) (posicionarNaOrigem). pausas: alturas (mm) iguais em todas as placas.
+export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa = [260, 260] } = {}) {
+  const totalPlacas = Math.max(...objetos.map((o) => o.placa)) + 1;
+  // materiais: um por cor/slot de parte, na ordem em que aparecem
+  const materiais = [];
+  const indiceMaterial = (p) => {
+    const chave = `${p.nome}|${p.cor}`;
+    let i = materiais.findIndex((m) => m.chave === chave);
+    if (i < 0) i = materiais.push({ chave, nome: p.nome, cor: p.cor }) - 1;
+    return i;
+  };
+  let proximoId = 2;
+  const recursos = [];
+  const itens = [];
+  const config = [];
+  const placas = Array.from({ length: totalPlacas }, () => []);
+  const slots = [];
+  for (const o of objetos) {
+    const slotsDoObjeto = slotsDasPartes(o.partes);
+    const ids = o.partes.map((p) => {
+      const id = proximoId++;
+      recursos.push(`<object id="${id}" type="model" name="${escaparXml(p.nome)}" pid="1" pindex="${indiceMaterial(p)}">${malhaXml(p.geometria)}</object>`);
+      return id;
+    });
+    const idConjunto = proximoId++;
+    recursos.push(`<object id="${idConjunto}" type="model" name="${escaparXml(o.nome)}"><components>${ids.map((id) => `<component objectid="${id}"/>`).join("")}</components></object>`);
+    const [ox, oy] = origemDaPlaca(o.placa, totalPlacas, mesa);
+    itens.push(`<item objectid="${idConjunto}" transform="1 0 0 0 1 0 0 0 1 ${num(ox + o.posicao[0])} ${num(oy + o.posicao[1])} 0" printable="1"/>`);
+    const linhas = o.partes
+      .map((p, i) => `<part id="${ids[i]}" subtype="normal_part"><metadata key="name" value="${escaparXml(p.nome)}"/><metadata key="extruder" value="${slotsDoObjeto[i]}"/></part>`)
+      .join("");
+    config.push(`<object id="${idConjunto}"><metadata key="name" value="${escaparXml(o.nome)}"/><metadata key="extruder" value="${slotsDoObjeto[0]}"/>${linhas}</object>`);
+    placas[o.placa].push(idConjunto);
+    slots.push(...slotsDoObjeto);
+  }
+  const modelo =
+    `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<model unit="millimeter" xml:lang="pt-BR" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">` +
+    `<metadata name="Title">${escaparXml(titulo)}</metadata>` +
+    `<metadata name="Application">Programa Ferramentas 3D</metadata>` +
+    `<resources><basematerials id="1">${materiais.map((m) => `<base name="${escaparXml(m.nome)}" displaycolor="${escaparXml(m.cor.toUpperCase())}FF"/>`).join("")}</basematerials>${recursos.join("")}</resources>` +
+    `<build>${itens.join("")}</build></model>`;
+  const placasXml = placas
+    .map(
+      (ids, i) =>
+        `<plate><metadata key="plater_id" value="${i + 1}"/><metadata key="plater_name" value=""/><metadata key="locked" value="false"/>` +
+        ids.map((id) => `<model_instance><metadata key="object_id" value="${id}"/><metadata key="instance_id" value="0"/></model_instance>`).join("") +
+        `</plate>`,
+    )
+    .join("");
+  const arquivos = {
+    "[Content_Types].xml": strToU8(
+      `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>` +
+        `<Default Extension="config" ContentType="application/xml"/></Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`,
+    ),
+    "3D/3dmodel.model": strToU8(modelo),
+    "Metadata/model_settings.config": strToU8(`<?xml version="1.0" encoding="UTF-8"?><config>${config.join("")}${placasXml}</config>`),
+  };
+  if (pausas.length) arquivos["Metadata/custom_gcode_per_layer.xml"] = strToU8(pausasXml(pausas, totalPlacas));
+  return zipSync(arquivos);
+}
+
 // Metadata/custom_gcode_per_layer.xml (formato do Orca/Bambu, lido pelo Anycubic Slicer Next):
 // type 1 = pausa; o fatiador coloca ali o "machine_pause_gcode" do perfil da impressora (na
 // Kobra X é o M600, troca de filamento). A pausa vale para a primeira camada com altura acima
 // de top_z, qualquer que seja a altura de camada escolhida no fatiador.
-export function pausasXml(pausas) {
+// placas: quantas placas recebem as mesmas pausas (vários chaveiros em várias placas).
+export function pausasXml(pausas, placas = 1) {
   const camadas = pausas
     .map((z) => `<layer top_z="${num(z)}" type="1" extruder="1" color="" extra="" gcode="M600"/>`)
     .join("");
-  return (
-    `<?xml version="1.0" encoding="utf-8"?>\n<custom_gcodes_per_layer><plate><plate_info id="1"/>${camadas}` +
-    `<mode value="SingleExtruder"/></plate></custom_gcodes_per_layer>\n`
-  );
+  const blocos = Array.from({ length: placas }, (_, i) => `<plate><plate_info id="${i + 1}"/>${camadas}<mode value="SingleExtruder"/></plate>`).join("");
+  return `<?xml version="1.0" encoding="utf-8"?>\n<custom_gcodes_per_layer>${blocos}</custom_gcodes_per_layer>\n`;
 }
 
 // Filamento (slot) de cada parte: 1, 2, 3… na ordem, ou o "slot" escolhido na tela.

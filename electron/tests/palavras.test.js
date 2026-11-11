@@ -65,7 +65,8 @@ const opcoes = {
   ],
 };
 
-describe("palavras decorativas", () => {
+// Gera as peças de verdade com o Manifold: com todos os testes rodando juntos, passa dos 5 s padrão.
+describe("palavras decorativas", { timeout: 30000 }, () => {
   it("ignora linhas vazias e valida", () => {
     expect(validarOpcoesPalavras(opcoes).linhas).toHaveLength(2);
     expect(() => validarOpcoesPalavras({ linhas: [{ texto: " " }] })).toThrow(/pelo menos uma/);

@@ -476,3 +476,25 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
   "Como você vai imprimir?" (`modelos-ui.js`). Como a nova vinha antes no HTML, "Salvar 3MF" e "Abrir no fatiador"
   dos modelos abriam a janela errada. Renomeada para `dialogo-minha-impressao`.
 - Teste novo `tests/html-ids.test.js`: falha se o `index.html` tiver id repetido.
+
+## Trabalho do Claude Code (11/11/2026) — Chaveiro de nome: símbolo e vários nomes (v0.47.0)
+
+Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da empresa (estilo Contorno).
+
+- **Símbolo** (`opcoes.simbolo = { lado, dx, dy, tamanho, relevo }` em `modelos/chaveiro.js`): imagem vetorizada por
+  cores com o mesmo vetorizador do Chaveiro de logo (`vetorizar` + `coresDoSvg`). A base contorna nome + símbolo; as
+  cores listadas em `relevo` sobem com o texto (na cor do texto), as outras ficam só na base. Posição: um lado
+  (esquerda/direita/acima/abaixo) + deslocamento em alturas do nome, arrastável na prévia 2D (moldura laranja,
+  `aoSoltarSimbolo` em `previa2d.js`). Tamanho em % da altura do nome. Ao importar, sobem em relevo as cores mais
+  próximas da cor do texto do que da base. Meus modelos guarda a imagem do símbolo (`projeto.imagem` agora vale
+  também para "chaveiro").
+- **Vários nomes** (seção "Vários nomes"): um nome por linha; "mesma largura total" ou "mesma altura de letra"
+  (`gerarChaveiroComLarguraDoTexto` + `larguraNaFonte`). Mostra tamanho e peso de cada um e o total.
+  `arrumarNaMesa` (prateleiras na mesa 260 × 260 da Kobra X) e `gerar3mfVarios` (um objeto por nome, placas no
+  `model_settings.config`, pausas em todas as placas). Origem das placas como no Orca/Anycubic:
+  grade com passo de 1,2 × a mesa (`origemDaPlaca`), conferido num 3MF salvo pelo próprio fatiador.
+- **Armadilha**: o Anycubic Slicer Next FECHA (segfault) ao abrir um 3MF com `plater_name` preenchido. Deixe vazio.
+- **Fatiar pela linha de comando**: para 3MF que não vem do Bambu/Orca, o CLI rearruma as peças sozinho. Use
+  `--arrange 0` para conferir as posições. Conferido: 45 nomes → placa 1 com 27 e placa 2 com 18, M600 a 2,6 mm nas
+  duas; 5 nomes salvos pela tela → 5 objetos, M600 a 2,6 mm, 9,7 g, 32 min.
+- Não conferido: abrir o 3MF de várias placas pela JANELA do fatiador (se ela rearruma ou mantém as posições).

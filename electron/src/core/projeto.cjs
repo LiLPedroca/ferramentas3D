@@ -33,7 +33,8 @@ function montarProjeto(valores, { id, anterior, agora = new Date().toISOString()
     nome: texto(v.nome, "Nome", LIMITES.nome, { obrigatorio: true }),
     opcoes: opcoesDe(v.opcoes),
     miniatura: imagemDe(v.miniatura, "Miniatura", LIMITES.miniatura),
-    imagem: tipo === "logo" || tipo === "caneca" ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
+    // chaveiro de nome: a imagem do símbolo (opcional)
+    imagem: ["logo", "caneca", "chaveiro"].includes(tipo) ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };

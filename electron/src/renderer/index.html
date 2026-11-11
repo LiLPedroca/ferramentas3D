@@ -1375,9 +1375,11 @@
           <aside class="painel modelo-opcoes ch-painel">
             <nav class="ch-abas" aria-label="Partes do chaveiro">
               <button type="button" data-alvo="ch-sec-texto">Texto</button>
+              <button type="button" data-alvo="ch-sec-simbolo">Símbolo</button>
               <button type="button" data-alvo="ch-sec-base">Base</button>
               <button type="button" data-alvo="ch-sec-argola">Argola</button>
               <button type="button" data-alvo="ch-sec-cores">Cores</button>
+              <button type="button" data-alvo="ch-sec-varios">Vários nomes</button>
             </nav>
             <div class="ch-rolagem" id="ch-rolagem">
               <section id="ch-sec-texto">
@@ -1406,6 +1408,38 @@
                   </label>
                 </div>
                 <p class="ajuda">Inclui base e argola. O arquivo exportado sai com esta largura.</p>
+              </section>
+
+              <section id="ch-sec-simbolo">
+                <h2 class="ch-titulo">Símbolo</h2>
+                <p class="ajuda">Coloque um logo ou símbolo junto do nome, na mesma base.</p>
+                <div class="ch-simbolo-topo">
+                  <button type="button" class="botao-secundario" id="ch-simbolo-escolher">Escolher imagem</button>
+                  <button type="button" class="botao-texto perigo" id="ch-simbolo-remover" hidden>Remover</button>
+                </div>
+                <p class="cliente-sub" id="ch-simbolo-nome"></p>
+                <input type="file" id="ch-simbolo-arquivo" accept="image/png,image/jpeg,image/webp" hidden />
+                <div id="ch-simbolo-opcoes" hidden>
+                  <span class="ch-rotulo">Posição</span>
+                  <div class="ch-estilos ch-lados" role="group" aria-label="Posição do símbolo">
+                    <button type="button" data-lado="esquerda">Esquerda</button>
+                    <button type="button" data-lado="direita">Direita</button>
+                    <button type="button" data-lado="acima">Acima</button>
+                    <button type="button" data-lado="abaixo">Abaixo</button>
+                  </div>
+                  <p class="ajuda">Na prévia 2D, arraste o símbolo (moldura laranja) para ajustar o lugar.</p>
+                  <label class="campo">
+                    <span>Tamanho <b id="ch-simbolo-tamanho-valor">100%</b> da altura do nome</span>
+                    <input type="range" id="ch-simbolo-tamanho" min="30" max="250" step="5" />
+                  </label>
+                  <label class="campo">
+                    <span>Cores da imagem: <b id="ch-simbolo-cores-valor">2</b></span>
+                    <input type="range" id="ch-simbolo-cores" min="1" max="4" step="1" />
+                  </label>
+                  <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="ch-simbolo-fundo" checked /> Tirar o fundo da imagem</label>
+                  <span class="ch-rotulo">Toque numa cor para escolher se ela sobe em relevo (na cor do texto) ou fica só na base</span>
+                  <div class="ch-simbolo-cores" id="ch-simbolo-lista"></div>
+                </div>
               </section>
 
               <section id="ch-sec-cores">
@@ -1462,6 +1496,29 @@
                   </label>
                 </div>
                 <button type="button" class="botao-texto" id="ch-argola-auto">Voltar a argola para a esquerda</button>
+              </section>
+
+              <section id="ch-sec-varios">
+                <h2 class="ch-titulo">Vários nomes</h2>
+                <p class="ajuda">Um nome por linha. Sai um arquivo 3MF só, com todos arrumados na mesa da Kobra X (em mais de uma placa, se precisar).</p>
+                <label class="campo">
+                  <span>Nomes</span>
+                  <div class="entrada"><textarea id="ch-lote-nomes" rows="6" placeholder="Ana&#10;Bruno&#10;Carla"></textarea></div>
+                </label>
+                <label class="campo">
+                  <span>Tamanho</span>
+                  <select id="ch-lote-tamanho" class="seletor largo-total">
+                    <option value="largura">Mesma largura total para todos</option>
+                    <option value="letra">Mesma altura de letra (a largura muda com o nome)</option>
+                  </select>
+                </label>
+                <button type="button" class="botao-secundario largo" id="ch-lote-gerar" disabled>Preparar chaveiros</button>
+                <p class="ajuda" id="ch-lote-resumo" aria-live="polite"></p>
+                <ul class="ch-lote-lista" id="ch-lote-lista"></ul>
+                <div class="ch-lote-acoes">
+                  <button type="button" class="botao-secundario" id="ch-lote-3mf" disabled>Salvar 3MF com todos</button>
+                  <button type="button" class="botao-primario" id="ch-lote-fatiador" disabled>Abrir todos no fatiador</button>
+                </div>
               </section>
             </div>
           </aside>
