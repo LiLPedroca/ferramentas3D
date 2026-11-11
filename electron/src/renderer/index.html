@@ -574,6 +574,126 @@
       </div>
     </main>
 
+    <!-- Tela: impressoes (Minhas Impressões) -->
+
+    <main class="tela oculta produtos" id="tela-impressoes">
+      <div class="produtos-conteudo" id="im-zona-tela">
+        <div class="produtos-topo">
+          <div>
+            <h1 class="titulo-pagina">Minhas Impressões</h1>
+            <p class="ajuda" id="im-resumo"></p>
+          </div>
+          <div class="produtos-acoes">
+            <label class="busca">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="im-busca" type="search" placeholder="Buscar impressão…" aria-label="Buscar impressão" autocomplete="off" />
+            </label>
+            <select id="im-filtro" class="seletor" aria-label="Filtrar por categoria">
+              <option value="">Todas as categorias</option>
+            </select>
+            <button class="botao-primario" id="im-adicionar" type="button">+ Adicionar arquivos</button>
+            <input type="file" id="im-entrada" accept=".stl,.3mf,.obj,.ply" multiple hidden />
+          </div>
+        </div>
+
+        <p class="ajuda" id="im-progresso" aria-live="polite"></p>
+        <p class="erro" id="im-erro" role="alert"></p>
+        <div class="grade grade-produtos" id="im-grade"></div>
+
+        <div class="vazio-produtos" id="im-vazio" hidden>
+          <span class="vazio-icone" id="im-vazio-icone"></span>
+          <h2>Nenhuma impressão guardada</h2>
+          <p>Guarde aqui os arquivos que você imprime, com o peso, o tempo e as configurações que deram certo.</p>
+          <div class="im-zona" id="im-zona" tabindex="0" role="button" aria-label="Adicionar arquivos">Arraste arquivos STL, 3MF, OBJ ou PLY para cá ou clique para escolher</div>
+          <div class="vazio-botoes">
+            <button class="botao-primario" id="im-vazio-adicionar" type="button">Adicionar arquivos</button>
+          </div>
+        </div>
+        <p class="vazio" id="im-sem-resultado" hidden>Nenhuma impressão encontrada com esse filtro.</p>
+      </div>
+    </main>
+
+    <!-- Diálogo: impressão (Minhas Impressões) -->
+
+    <dialog class="dialogo dialogo-impressao" id="dialogo-impressao" aria-labelledby="im-titulo">
+      <form id="form-impressao" novalidate>
+        <header class="dialogo-topo">
+          <div>
+            <h2 id="im-titulo">Impressão</h2>
+            <p class="ajuda" id="im-arquivo"></p>
+          </div>
+          <button type="button" class="fechar" id="fechar-impressao" aria-label="Fechar">×</button>
+        </header>
+        <div class="im-detalhe">
+          <div class="im-lado-previa">
+            <div class="im-previa" id="im-previa"><p class="im-previa-aviso" id="im-previa-aviso" hidden></p></div>
+            <div class="im-previa-acoes">
+              <button type="button" class="botao-pequeno" id="im-enquadrar">Centralizar</button>
+              <button type="button" class="botao-pequeno" id="im-visualizador">Ver no Visualizador 3D</button>
+            </div>
+            <p class="ajuda" id="im-vezes"></p>
+            <div class="im-acoes">
+              <button type="button" class="botao-secundario" id="im-imprimi">Marquei que imprimi</button>
+              <button type="button" class="botao-secundario" id="im-fatiador">Abrir no fatiador</button>
+              <button type="button" class="botao-secundario" id="im-custo">Calcular custo</button>
+              <button type="button" class="botao-secundario" id="im-produto">Criar produto</button>
+            </div>
+          </div>
+          <div class="im-lado-dados">
+            <label class="campo"><span>Nome</span><div class="entrada"><input id="im-nome" maxlength="120" autocomplete="off" /></div></label>
+            <label class="campo"><span>Categoria</span><select id="im-categoria" class="seletor largo-total"></select></label>
+            <div class="linha" id="im-nova-categoria-campo" hidden>
+              <label class="campo"><span>Nova categoria</span><div class="entrada"><input id="im-nova-categoria" maxlength="60" autocomplete="off" /></div></label>
+              <div class="campo im-botao-campo"><button type="button" class="botao-secundario" id="im-criar-categoria">Criar</button></div>
+            </div>
+            <div class="linha im-linha-3">
+              <label class="campo"><span>Peso</span><div class="entrada"><input id="im-peso" inputmode="decimal" autocomplete="off" /><em>g</em></div></label>
+              <label class="campo"><span>Tempo</span><div class="entrada"><input id="im-horas" inputmode="numeric" autocomplete="off" placeholder="0" /><em>h</em></div></label>
+              <label class="campo"><span>&nbsp;</span><div class="entrada"><input id="im-minutos" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Minutos" /><em>min</em></div></label>
+            </div>
+            <div class="linha">
+              <label class="campo"><span>Material</span><div class="entrada"><input id="im-material" maxlength="80" list="im-materiais" autocomplete="off" placeholder="PLA" /></div></label>
+              <label class="campo"><span>Cor</span><div class="entrada"><input id="im-cor" maxlength="80" autocomplete="off" /></div></label>
+            </div>
+            <datalist id="im-materiais"><option value="PLA"></option><option value="PETG"></option><option value="ABS"></option><option value="ASA"></option><option value="TPU"></option></datalist>
+            <h3 class="subtitulo-config">O que deu certo</h3>
+            <div class="linha">
+              <label class="campo"><span>Altura de camada</span><div class="entrada"><input id="im-camada" inputmode="decimal" autocomplete="off" placeholder="0,2" /><em>mm</em></div></label>
+              <label class="campo"><span>Preenchimento</span><div class="entrada"><input id="im-preenchimento" inputmode="numeric" autocomplete="off" placeholder="15" /><em>%</em></div></label>
+            </div>
+            <div class="linha">
+              <label class="campo"><span>Suporte</span>
+                <select id="im-suporte" class="seletor largo-total">
+                  <option value="">Não informado</option>
+                  <option value="sim">Com suporte</option>
+                  <option value="nao">Sem suporte</option>
+                </select>
+              </label>
+              <label class="campo"><span>Perfil do fatiador</span><div class="entrada"><input id="im-perfil" maxlength="80" autocomplete="off" /></div></label>
+            </div>
+            <label class="campo"><span>Observações</span><div class="entrada"><textarea id="im-obs" rows="3" maxlength="1000" placeholder="Ex.: imprimir deitado, brim ligado"></textarea></div></label>
+            <div class="im-foto">
+              <div class="im-foto-previa" id="im-foto-previa"></div>
+              <div>
+                <span class="rotulo-campo">Foto da peça impressa (opcional)</span>
+                <div class="im-previa-acoes">
+                  <button type="button" class="botao-pequeno" id="im-foto-escolher">Escolher foto</button>
+                  <button type="button" class="botao-pequeno" id="im-foto-remover" hidden>Remover foto</button>
+                </div>
+                <input type="file" id="im-foto-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="erro dialogo-erro" id="im-erro-detalhe" role="alert"></p>
+        <footer class="dialogo-rodape">
+          <button type="button" class="botao-texto perigo" id="im-excluir">Excluir</button>
+          <span class="espaco"></span>
+          <button type="submit" class="botao-primario">Salvar alterações</button>
+        </footer>
+      </form>
+    </dialog>
+
     <!-- Tela: clientes -->
 
     <main class="tela oculta pagina" id="tela-clientes">

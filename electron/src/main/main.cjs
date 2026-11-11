@@ -31,6 +31,7 @@ async function htmlParaPdf(html, opcoes = {}) {
 const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
 const { criarServicoFinanceiro } = require("./financeiro.cjs");
 const { criarServicoDadosTeste } = require("./dados-teste.cjs");
+const { criarServicoImpressoes, pastaArquivosDoBackup } = require("./impressoes.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
 let autoUpdater = null;
@@ -174,6 +175,7 @@ function registrarDados() {
   const favoritos = criarServicoFavoritos(pasta);
   const projetos = criarServicoProjetos(pasta);
   const filamentos = criarServicoFilamentos(pasta);
+  const impressoes = criarServicoImpressoes(pasta);
   const cadastros = { clientes, orcamentos, favoritos, projetos, filamentos };
 
   // ---------- Dados de teste (cliente e produto fictícios) ----------
@@ -182,11 +184,12 @@ function registrarDados() {
 
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
-    colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos, vendas: financeiro.vendas, despesas: financeiro.despesas },
+    colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos, vendas: financeiro.vendas, despesas: financeiro.despesas, impressoes },
     configuracoes,
     versaoApp: app.getVersion(),
   });
   let backupEscolhido = null; // backup lido e aguardando confirmação para restaurar
+  let pastaArquivosEscolhida = null; // pasta "(arquivos)" ao lado do backup escolhido, se houver
   const janelaDe = (e) => BrowserWindow.fromWebContents(e.sender);
   const comTela = (funcao) => (e, ...args) => (daTela(e) ? responder(funcao(e, ...args)) : negado);
 
@@ -194,6 +197,29 @@ function registrarDados() {
   const printables = criarServicoPrintables();
   ipcMain.handle("stl:printables", comTela((_e, termo, pagina) => printables.pesquisar(termo, pagina)));
   ipcMain.handle("stl:miniatura", comTela((_e, url) => printables.miniatura(url)));
+
+  // ---------- Minhas Impressões ----------
+  ipcMain.handle("impressoes:listar", comTela(() => impressoes.listar()));
+  ipcMain.handle("impressoes:salvar", comTela((_e, valores, id) => impressoes.salvar(valores, typeof id === "string" ? id : undefined)));
+  ipcMain.handle("impressoes:adicionar", comTela((_e, novo) => impressoes.adicionar(novo)));
+  ipcMain.handle("impressoes:excluir", comTela((_e, id) => impressoes.excluir(id)));
+  ipcMain.handle("impressoes:ler", comTela((_e, id) => impressoes.lerArquivo(id)));
+  ipcMain.handle("impressoes:imprimi", comTela((_e, id, hoje) => impressoes.marcarImpressa(id, hoje)));
+  // Abre uma cópia (na pasta temporária) no fatiador: o arquivo guardado nunca é alterado pelo fatiador.
+  ipcMain.handle(
+    "impressoes:fatiador",
+    comTela(async (_e, id) => {
+      const { fatiador } = await configuracoes.ler();
+      if (!fatiador.caminho) throw new ErroValidacao("SEM_FATIADOR");
+      const { bytes, nome, extensao } = await impressoes.lerArquivo(id);
+      const pastaTemp = path.join(app.getPath("temp"), "ProgramaFerramentas3D");
+      await require("node:fs/promises").mkdir(pastaTemp, { recursive: true });
+      const arquivo = path.join(pastaTemp, nomeModelo(nome.replace(/\.[^.]+$/, ""), extensao));
+      await require("node:fs/promises").writeFile(arquivo, bytes);
+      await abrirFatiador(fatiador.caminho, arquivo);
+      return fatiador.nome;
+    }),
+  );
 
   ipcMain.handle("teste:recriar", comTela(() => dadosTeste.recriar()));
   ipcMain.handle("teste:limpar", comTela(() => dadosTeste.limpar()));
@@ -214,6 +240,8 @@ function registrarDados() {
         destino = escolha.filePath;
       }
       await require("node:fs/promises").writeFile(destino, await backup.gerarTexto(), "utf8");
+      // Arquivos de Minhas Impressões: numa pasta ao lado do .json.
+      await impressoes.copiarArquivosPara(pastaArquivosDoBackup(destino));
       return destino;
     }),
   );
@@ -231,6 +259,7 @@ function registrarDados() {
         caminho = escolha.filePaths[0];
       }
       backupEscolhido = await backup.lerArquivoBackup(caminho);
+      pastaArquivosEscolhida = pastaArquivosDoBackup(caminho);
       return { resumo: backupEscolhido.resumo, descartados: backupEscolhido.descartados, nome: path.basename(caminho) };
     }),
   );
@@ -238,6 +267,7 @@ function registrarDados() {
     "backup:escolher-automatico",
     comTela(async (_e, nome) => {
       backupEscolhido = await backup.lerAutomatico(String(nome));
+      pastaArquivosEscolhida = null;
       return { resumo: backupEscolhido.resumo, descartados: backupEscolhido.descartados, nome: String(nome) };
     }),
   );
@@ -247,6 +277,8 @@ function registrarDados() {
       if (!backupEscolhido) throw new ErroValidacao("Escolha um backup antes de restaurar.");
       const resultado = await backup.restaurar(backupEscolhido);
       backupEscolhido = null;
+      await impressoes.recuperarArquivos(pastaArquivosEscolhida);
+      pastaArquivosEscolhida = null;
       return resultado;
     }),
   );

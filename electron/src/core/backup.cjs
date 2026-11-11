@@ -10,6 +10,7 @@ const { validarFavorito } = require("./stl.cjs");
 const { validarProjeto } = require("./projeto.cjs");
 const { validarFilamento } = require("./filamento.cjs");
 const { validarDespesa, validarVenda } = require("./financeiro.cjs");
+const { validarImpressao } = require("./impressao.cjs");
 
 const TIPO = "programa-ferramentas-3d-backup";
 
@@ -22,9 +23,10 @@ const COLECOES = {
   filamentos: validarFilamento,
   vendas: validarVenda,
   despesas: validarDespesa,
+  impressoes: validarImpressao,
 };
 
-const ROTULOS = { produtos: "produtos", clientes: "clientes", orcamentos: "orçamentos", favoritos: "favoritos de STL", projetos: "modelos salvos", filamentos: "rolos de filamento", vendas: "vendas", despesas: "despesas" };
+const ROTULOS = { produtos: "produtos", clientes: "clientes", orcamentos: "orçamentos", favoritos: "favoritos de STL", projetos: "modelos salvos", filamentos: "rolos de filamento", vendas: "vendas", despesas: "despesas", impressoes: "impressões" };
 
 // dados: { produtos: [], clientes: [], orcamentos: [], configuracoes: {} }
 function montarBackup(dados, { versaoApp, agora = new Date().toISOString() }) {
@@ -42,6 +44,7 @@ function montarBackup(dados, { versaoApp, agora = new Date().toISOString() }) {
       filamentos: dados.filamentos ?? [],
       vendas: dados.vendas ?? [],
       despesas: dados.despesas ?? [],
+      impressoes: dados.impressoes ?? [],
       configuracoes: dados.configuracoes ?? {},
     },
   };

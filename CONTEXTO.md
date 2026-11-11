@@ -450,3 +450,22 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
   financeiro). A escolha de rolo na Calculadora fica escondida. Dados (`filamentos.json`), backup e arquivos
   (`filamentos-tela.js`, `core/filamento.cjs`, `main/filamentos.cjs`) continuam. Apagar só se o Pedro pedir.
 - Regra nova do Pedro: toda ferramenta nova ou alterada ganha aviso de novidade (`core/novidades.js`).
+
+## Trabalho do Claude Code (11/11/2026) — Minhas Impressões (v0.46.0)
+
+- Ferramenta nova no grupo Ferramentas: **Minhas Impressões** (tela `impressoes`). Biblioteca dos arquivos que o Pedro
+  imprime (STL, 3MF, OBJ, PLY), com miniatura, peso, tempo, material, cor, camada, preenchimento, suporte, perfil,
+  observações, foto, "vezes impressa" e "última impressão".
+- Modelo `core/impressao.cjs`; serviço `main/impressoes.cjs` (coleção `impressoes.json` + arquivos em
+  `<dados>/impressoes/<id>.<ext>`, nunca alterados). Arquivo repetido é recusado pelo SHA-256. Excluir tira da lista e
+  MOVE o arquivo para `impressoes/excluidos` (não apaga).
+- Tela `renderer/impressoes-tela.js` + `renderer/impressoes-arquivo.js` (geometria para a prévia 3D; no 3MF lê a
+  miniatura `Metadata/plate_1.png` e, se fatiado, peso/tempo de `slice_info.config`). Sem miniatura, gera uma com a
+  prévia 3D escondida (`.im-render-oculto`, WebP).
+- Botões: Ver no Visualizador 3D (`abrirArquivoNoVisualizador` em `viewer3d.js`), Abrir no fatiador (IPC
+  `impressoes:fatiador`, abre uma CÓPIA na pasta temporária), Calcular custo (`preencherDoModelo` agora aceita
+  `tempoMin`), Criar produto, Marquei que imprimi.
+- **Backup**: coleção `impressoes` no JSON. Exportar também copia os arquivos para a pasta
+  "<nome do backup> (arquivos)" ao lado do .json. Restaurar devolve os arquivos que faltam (da pasta do backup ou de
+  `excluidos`), sem sobrescrever. Backup antigo sem `impressoes` não apaga as impressões.
+- Aviso de novidade `impressoes-nova` (0.46.0). Testes: `tests/impressoes.test.js`.

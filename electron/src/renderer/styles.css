@@ -5050,3 +5050,144 @@ textarea:focus {
 .divisao-resumo.falta {
   color: #e8a93a;
 }
+
+/* ---------- Minhas Impressões ---------- */
+.impressao-foto img.miniatura {
+  object-fit: contain;
+  padding: 10px;
+}
+
+.im-zona {
+  margin: 18px auto 4px;
+  max-width: 460px;
+  padding: 26px 18px;
+  border: 2px dashed var(--borda);
+  border-radius: 16px;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+
+.im-zona:hover,
+.im-zona.sobre {
+  border-color: var(--acento);
+  color: var(--texto);
+}
+
+/* Prévia 3D usada para gerar as miniaturas: fora da tela, mas desenhando. */
+.im-render-oculto {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 360px;
+  height: 270px;
+  pointer-events: none;
+}
+
+.dialogo-impressao {
+  width: min(1080px, calc(100vw - 40px));
+}
+
+.im-detalhe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  padding: 18px 22px 6px;
+  overflow: auto;
+  max-height: calc(100vh - 230px);
+}
+
+.im-lado-previa {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.im-lado-previa > .ajuda {
+  margin: 12px 0 8px;
+}
+
+.im-previa {
+  position: relative;
+  height: 280px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+
+.im-previa canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.im-previa.carregando canvas {
+  visibility: hidden;
+}
+
+.im-previa-aviso {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 20px;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.im-previa-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.im-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.im-lado-dados .linha {
+  align-items: end;
+}
+
+.im-lado-dados .im-linha-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.im-botao-campo {
+  justify-content: flex-end;
+}
+
+.im-foto {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.im-foto-previa {
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+
+.im-foto-previa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 860px) {
+  .im-detalhe {
+    grid-template-columns: 1fr;
+  }
+}

@@ -43,13 +43,20 @@ let ultimoCalculo = null; // { entrada, resultado } do último cálculo válido
 let nomeDoModelo = ""; // quando o peso veio de um modelo personalizado (chaveiro, palavras)
 
 // Chamado pelos modelos personalizados: abre a calculadora com o peso estimado de uma peça.
-export function preencherDoModelo({ nome, pesoG, detalhe }) {
+// tempoMin (opcional): tempo de impressão já conhecido (ex.: guardado em Minhas Impressões).
+export function preencherDoModelo({ nome, pesoG, detalhe, tempoMin }) {
   nomeDoModelo = nome;
   usuarioMexeu = true;
   $("calc-nome").value = nome;
   $("peso").value = (Math.round(pesoG * 10) / 10).toLocaleString("pt-BR");
   $("quantidade").value = "1";
-  $("origem-calculo").textContent = `Peso estimado de "${nome}"${detalhe ? `: ${detalhe}` : ""}. Preencha o tempo de impressão que o fatiador mostrar.`;
+  if (tempoMin) {
+    $("horas").value = String(Math.floor(tempoMin / 60));
+    $("minutos").value = String(tempoMin % 60);
+  }
+  $("origem-calculo").textContent = tempoMin
+    ? `Peso e tempo de "${nome}"${detalhe ? ` (${detalhe})` : ""}.`
+    : `Peso estimado de "${nome}"${detalhe ? `: ${detalhe}` : ""}. Preencha o tempo de impressão que o fatiador mostrar.`;
   $("origem-calculo").hidden = false;
   irPara("calculadora");
   atualizarResultado();

@@ -13,6 +13,7 @@ const TELAS = {
   configuracoes: { elemento: "tela-configuracoes", titulo: "Configurações", pai: "inicio" },
   calculadora: { elemento: "tela-calculadora" },
   visualizador: { elemento: "tela-visualizador" },
+  impressoes: { elemento: "tela-impressoes" },
   produtos: { elemento: "tela-produtos" },
   clientes: { elemento: "tela-clientes" },
   encaixes: { elemento: "tela-encaixes" },

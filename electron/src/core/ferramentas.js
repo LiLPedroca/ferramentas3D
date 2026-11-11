@@ -107,6 +107,15 @@ export const FERRAMENTAS = [
     tela: "visualizador",
   },
   {
+    id: "impressoes",
+    grupo: "ferramentas",
+    titulo: "Minhas Impressões",
+    descricao: "Guarde seus arquivos de impressão com peso, tempo e o que deu certo.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "impressoes",
+  },
+  {
     id: "svg",
     grupo: "ferramentas",
     titulo: "Conversor SVG",

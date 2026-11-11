@@ -297,6 +297,12 @@ async function lerPartes(arquivo, extensao, opcoes) {
   return { partes, temCores: partes.some((p) => p.geometria.attributes.color), placas: [], placa: null };
 }
 
+// Abre um arquivo vindo de outra ferramenta (ex.: Minhas Impressões). A tela já deve estar aberta.
+export async function abrirArquivoNoVisualizador(arquivo) {
+  iniciarVisualizador();
+  await carregarArquivo(arquivo);
+}
+
 async function carregarArquivo(arquivo, opcoes = {}) {
   const extensao = arquivo.name.toLowerCase().split(".").pop();
   if (!EXTENSOES.includes(extensao)) {

@@ -71,6 +71,15 @@ export const NOVIDADES = [
     texto: "Um recebimento pode ter parte em Pix e parte em dinheiro, por exemplo.",
     itens: ["Marque as formas e informe quanto foi em cada uma", "O total distribuído e o que falta aparecem na hora", "Cada pagamento mostra a divisão na venda"],
     botao: "Entendi",
+  },  {
+    id: "impressoes-nova",
+    versao: "0.46.0",
+    tela: "impressoes",
+    icone: "impressoes",
+    titulo: "Conheça Minhas Impressões",
+    texto: "Um lugar para guardar os arquivos que você imprime, com o que deu certo em cada um.",
+    itens: ["Arraste arquivos STL, 3MF, OBJ ou PLY para guardar", "Peso, tempo, material e configurações em cada cartão", "Abra no fatiador ou calcule o custo com um clique"],
+    botao: "Começar",
   },
 ];
 
