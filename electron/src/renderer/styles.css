@@ -2329,6 +2329,41 @@ kbd {
   background: color-mix(in srgb, var(--acento) 10%, transparent);
 }
 
+.fatiador-opcao img,
+.fatiador-opcao .fatiador-icone {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.fatiador-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.fatiador-botoes [hidden] + .botao-primario {
+  grid-column: 1 / -1;
+}
+
+.fatiador-manual {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fatiador-manual .rotulo-campo {
+  font-weight: 650;
+}
+
+@media (max-width: 560px) {
+  .fatiador-botoes {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fatiador-opcao input {
   accent-color: var(--acento);
 }
@@ -2486,6 +2521,45 @@ textarea:focus {
 }
 
 /* ---------- Produtos ---------- */
+#p-categoria {
+  width: 100%;
+}
+
+.cat-nova {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cat-nova .entrada {
+  flex: 1;
+}
+
+.cat-lista {
+  display: grid;
+  gap: 6px;
+  max-height: 300px;
+  margin: 4px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.cat-lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  background: var(--superficie-2);
+}
+
+.cat-lista li small {
+  color: var(--texto-suave);
+}
+
 .tela.produtos {
   display: block;
 }
@@ -2784,6 +2858,98 @@ textarea:focus {
 }
 
 /* Mensagem centralizada (ex.: "você está na versão mais recente") */
+/* Aviso de novidade */
+.dialogo-novidade {
+  width: min(560px, calc(100vw - 40px));
+  padding: 32px 34px 28px;
+}
+
+.dialogo-novidade h2 {
+  margin: 18px 0 10px;
+  font-size: 24px;
+}
+
+.dialogo-novidade p {
+  margin: 0;
+  color: var(--texto-suave);
+  line-height: 1.55;
+}
+
+.dialogo-novidade ul {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 20px;
+  padding-left: 22px;
+}
+
+.novidade-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--acento) 14%, transparent);
+  color: var(--acento);
+}
+
+.novidade-rodape {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* Interruptor (checkbox com aparência de chave) */
+.chave-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.chave {
+  flex-shrink: 0;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--borda);
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chave::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.chave:checked {
+  background: var(--acento);
+}
+
+.chave:checked::after {
+  transform: translateX(20px);
+}
+
+.chave:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+.chave:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .dialogo-mensagem {
   width: min(380px, calc(100vw - 40px));
   padding: 30px 28px 24px;

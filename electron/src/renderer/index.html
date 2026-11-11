@@ -341,6 +341,7 @@
             <select id="filtro-categoria" class="seletor" aria-label="Filtrar por categoria">
               <option value="">Todas as categorias</option>
             </select>
+            <button class="botao-secundario" id="gerenciar-categorias" type="button">Categorias</button>
             <button class="botao-primario" id="novo-produto" type="button">+ Novo produto</button>
           </div>
         </div>
@@ -388,8 +389,7 @@
             <div class="linha">
               <label class="campo">
                 <span>Categoria</span>
-                <div class="entrada"><input id="p-categoria" list="lista-categorias" maxlength="60" autocomplete="off" placeholder="Ex.: Chaveiros" /></div>
-                <datalist id="lista-categorias"></datalist>
+                <select id="p-categoria" class="seletor"></select>
               </label>
               <label class="campo">
                 <span>Preço de venda *</span>
@@ -433,6 +433,25 @@
     </dialog>
 
     <!-- Diálogo: confirmar -->
+
+    <!-- Diálogo: categorias de produtos -->
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-categorias" aria-labelledby="titulo-categorias">
+      <form id="form-categoria" novalidate>
+        <h2 id="titulo-categorias">Categorias</h2>
+        <div class="cat-nova">
+          <div class="entrada"><input id="nova-categoria" maxlength="60" autocomplete="off" placeholder="Nome da categoria" aria-label="Nome da nova categoria" /></div>
+          <button type="submit" class="botao-primario" id="criar-categoria">Criar</button>
+        </div>
+        <p class="erro" id="erro-categoria" role="alert"></p>
+        <ul class="cat-lista" id="lista-categorias"></ul>
+        <p class="ajuda" id="categorias-vazio">Nenhuma categoria criada.</p>
+        <div class="dialogo-rodape">
+          <span class="espaco"></span>
+          <button type="button" class="botao-secundario" id="fechar-categorias">Fechar</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog class="dialogo dialogo-pequeno" id="dialogo-confirmar" aria-labelledby="confirmar-titulo">
       <h2 id="confirmar-titulo">Excluir produto?</h2>
@@ -1475,156 +1494,28 @@
       </div>
     </main>
 
-    <!-- Tela: palavras -->
-
-    <main class="tela oculta pagina" id="tela-palavras">
-      <div class="pagina-conteudo largo">
-        <div class="modelo-trabalho">
-          <aside class="painel modelo-opcoes ch-painel">
-            <nav class="ch-abas" aria-label="Partes da peça">
-              <button type="button" data-alvo="pl-sec-texto">Texto</button>
-              <button type="button" data-alvo="pl-sec-estilo">Estilo</button>
-              <button type="button" data-alvo="pl-sec-cores">Cores</button>
-            </nav>
-            <div class="ch-rolagem">
-              <section id="pl-sec-texto">
-                <div class="pl-bloco" data-linha="1">
-                  <span class="ch-rotulo">Linha 1</span>
-                  <div class="entrada"><input id="pl-texto-1" maxlength="30" aria-label="Linha 1" autocomplete="off" /></div>
-                  <div class="pl-fonte-tamanho">
-                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-1" aria-label="Fonte da linha 1"></button>
-                    <div class="entrada"><input id="pl-tamanho-1" inputmode="decimal" aria-label="Tamanho da linha 1" /><em>%</em></div>
-                  </div>
-                </div>
-                <div class="pl-bloco" data-linha="2">
-                  <span class="ch-rotulo">Linha 2 (opcional)</span>
-                  <div class="entrada"><input id="pl-texto-2" maxlength="30" aria-label="Linha 2" autocomplete="off" /></div>
-                  <div class="pl-fonte-tamanho">
-                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-2" aria-label="Fonte da linha 2"></button>
-                    <div class="entrada"><input id="pl-tamanho-2" inputmode="decimal" aria-label="Tamanho da linha 2" /><em>%</em></div>
-                  </div>
-                </div>
-                <div class="pl-bloco" data-linha="3">
-                  <span class="ch-rotulo">Linha 3 (opcional)</span>
-                  <div class="entrada"><input id="pl-texto-3" maxlength="30" aria-label="Linha 3" autocomplete="off" /></div>
-                  <div class="pl-fonte-tamanho">
-                    <button type="button" class="ch-fonte pl-fonte" id="pl-fonte-3" aria-label="Fonte da linha 3"></button>
-                    <div class="entrada"><input id="pl-tamanho-3" inputmode="decimal" aria-label="Tamanho da linha 3" /><em>%</em></div>
-                  </div>
-                </div>
-                <p class="ajuda">Tamanho em relação à linha 1 (100%).</p>
-                <div class="linha">
-                  <label class="campo">
-                    <span>Largura total</span>
-                    <div class="entrada"><input id="pl-largura" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                  <label class="campo">
-                    <span>Espaço entre linhas</span>
-                    <div class="entrada"><input id="pl-espacamento" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                </div>
-              </section>
-
-              <section id="pl-sec-estilo">
-                <h2 class="ch-titulo">Estilo</h2>
-                <div class="ch-estilos pl-modos" role="group" aria-label="Estilo da peça">
-                  <button type="button" data-pl-modo="placa"><span class="ch-forma retangular"></span>Placa</button>
-                  <button type="button" data-pl-modo="letreiro"><span class="ch-forma contorno">Aa</span>Letreiro</button>
-                </div>
-                <p class="ajuda" id="pl-modo-ajuda"></p>
-                <div id="pl-so-placa">
-                  <span class="ch-rotulo">Base da placa</span>
-                  <div class="ch-estilos" role="group" aria-label="Base da placa">
-                    <button type="button" data-pl-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
-                    <button type="button" data-pl-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
-                    <button type="button" data-pl-estilo="capsula"><span class="ch-forma capsula"></span>Cápsula</button>
-                  </div>
-                </div>
-                <details class="ch-detalhes">
-                  <summary>Estrutura</summary>
-                  <div class="linha">
-                    <label class="campo">
-                      <span id="pl-rotulo-espessura">Espessura da placa</span>
-                      <div class="entrada"><input id="pl-espessura" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                    <label class="campo" id="campo-pl-relevo">
-                      <span>Relevo do texto</span>
-                      <div class="entrada"><input id="pl-relevo" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                  </div>
-                  <label class="campo" id="campo-pl-borda">
-                    <span>Borda da placa</span>
-                    <div class="entrada"><input id="pl-borda" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                  <label class="campo" id="campo-pl-ligacao">
-                    <span>Ligação das letras</span>
-                    <div class="entrada"><input id="pl-ligacao" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                </details>
-              </section>
-
-              <section id="pl-sec-cores">
-                <h2 class="ch-titulo">Cores da peça</h2>
-                <span class="ch-rotulo" id="pl-rotulo-cor-base">Placa</span>
-                <div class="ch-paleta" id="pl-paleta-base"></div>
-                <span class="ch-rotulo" id="pl-rotulo-cor-texto">Texto</span>
-                <div class="ch-paleta" id="pl-paleta-texto"></div>
-              </section>
-            </div>
-          </aside>
-          <section class="painel modelo-previa">
-            <div class="ch-barra">
-              <span class="cliente-sub">Duas partes, duas cores (filamentos 1 e 2 no 3MF)</span>
-              <div class="ch-grupo" role="group" aria-label="Tipo de prévia">
-                <button type="button" class="ch-mini" id="pl-ver-2d" aria-pressed="true">2D</button>
-                <button type="button" class="ch-mini" id="pl-ver-3d" aria-pressed="false">3D</button>
-              </div>
-            </div>
-            <div class="palco-modelo ch-palco" id="pl-palco">
-              <canvas id="pl-2d" class="ch-canvas"></canvas>
-              <div class="ch-3d" id="pl-3d" hidden></div>
-            </div>
-            <div class="ch-barra">
-              <span class="cliente-sub" id="pl-medidas"></span>
-              <div class="ch-grupo">
-                <button type="button" class="ch-mini" id="pl-zoom-menos" aria-label="Diminuir zoom">−</button>
-                <button type="button" class="ch-mini" id="pl-ajustar">Ajustar à tela</button>
-                <button type="button" class="ch-mini" id="pl-zoom-mais" aria-label="Aumentar zoom">+</button>
-              </div>
-            </div>
-            <p class="ch-status" id="pl-status" role="status"></p>
-            <div class="modelo-rodape">
-              <span class="cliente-sub" id="pl-partes"></span>
-              <div class="acoes-form">
-                <button class="botao-secundario" id="pl-salvar-modelo" type="button" disabled>Salvar modelo</button>
-                <button class="botao-secundario" id="pl-custo" type="button" disabled>Calcular custo</button>
-                <button class="botao-secundario" id="pl-stl" type="button" disabled>Salvar STL</button>
-                <button class="botao-secundario" id="pl-3mf" type="button" disabled>Salvar 3MF</button>
-                <button class="botao-primario" id="pl-fatiador" type="button" disabled>Abrir no fatiador</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </main>
-
     <!-- Diálogo: fatiador -->
 
     <dialog class="dialogo dialogo-medio" id="dialogo-fatiador" aria-labelledby="titulo-dialogo-fatiador">
       <header class="dialogo-topo">
         <h2 id="titulo-dialogo-fatiador">Meu fatiador</h2>
+        <button type="button" class="fechar" id="fatiador-fechar" aria-label="Fechar">×</button>
       </header>
       <div class="dialogo-corpo-simples">
-        <p class="ajuda">Escolha o fatiador que você usa. O botão "Meu fatiador" e o "Abrir no fatiador" das ferramentas vão usar ele.</p>
-        <div class="fatiador-lista" id="fatiador-lista"></div>
-        <button class="botao-texto" id="fatiador-procurar" type="button">Procurar no computador…</button>
+        <p class="ajuda">Escolha onde abrir seus projetos.</p>
+        <div class="fatiador-lista" id="fatiador-lista" role="radiogroup" aria-label="Fatiador ativo"></div>
+        <p class="ajuda" id="fatiador-dica">Você pode alternar o ativo a qualquer momento.</p>
+        <div class="fatiador-botoes">
+          <button type="button" class="botao-secundario" id="fatiador-abrir"></button>
+          <button type="button" class="botao-primario" id="fatiador-localizar">Localizar automaticamente</button>
+        </div>
+        <div class="fatiador-manual">
+          <span class="rotulo-campo">Localizar manualmente</span>
+          <select id="fatiador-nome" class="seletor" aria-label="Fatiador a localizar"></select>
+          <button type="button" class="botao-secundario" id="fatiador-procurar">Selecionar executável…</button>
+        </div>
       </div>
       <p class="erro dialogo-erro" id="erro-fatiador" role="alert"></p>
-      <footer class="dialogo-rodape">
-        <span class="espaco"></span>
-        <button type="button" class="botao-secundario" id="fatiador-cancelar">Cancelar</button>
-        <button type="button" class="botao-primario" id="fatiador-salvar">Salvar</button>
-      </footer>
     </dialog>
 
     <!-- Tela: caneca -->
@@ -1928,6 +1819,15 @@
     </dialog>
 
     <!-- Diálogo: atualizacao -->
+
+    <dialog class="dialogo dialogo-novidade" id="dialogo-novidade" aria-labelledby="novidade-titulo">
+      <span class="novidade-icone" id="novidade-icone" aria-hidden="true"></span>
+      <h2 id="novidade-titulo"></h2>
+      <p id="novidade-texto"></p>
+      <ul id="novidade-itens"></ul>
+      <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="novidade-ocultar" /> Não mostrar novamente esta mensagem</label>
+      <div class="novidade-rodape"><button type="button" class="botao-primario" id="novidade-ok"></button></div>
+    </dialog>
 
     <dialog class="dialogo dialogo-pequeno dialogo-mensagem" id="dialogo-atualizacao" aria-labelledby="atualizacao-titulo" aria-describedby="atualizacao-texto">
       <span class="mensagem-icone" id="atualizacao-icone" aria-hidden="true"></span>

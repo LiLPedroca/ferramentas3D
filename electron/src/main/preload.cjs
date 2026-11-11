@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld("modelos", {
 contextBridge.exposeInMainWorld("fatiador", {
   detectar: () => ipcRenderer.invoke("fatiador:detectar"),
   procurar: () => ipcRenderer.invoke("fatiador:procurar"),
+  nomes: () => ipcRenderer.invoke("fatiador:nomes"),
+  icone: (caminho) => ipcRenderer.invoke("fatiador:icone", caminho),
   abrir: (bytes, nome, extensao) => ipcRenderer.invoke("fatiador:abrir", bytes ?? null, nome ?? null, extensao ?? null),
 });
 

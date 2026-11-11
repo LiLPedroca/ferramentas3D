@@ -67,6 +67,63 @@ function fatiadorDe(f, estrito) {
   return estrito ? validar() : ou(validar, { nome: "", caminho: "" });
 }
 
+// Categorias de produtos criadas pelo usuário: textos únicos (sem diferenciar maiúsculas e acentos).
+const LIMITE_CATEGORIAS = 100;
+const chaveCategoria = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+function categoriasDe(lista, estrito) {
+  if (!Array.isArray(lista)) {
+    if (estrito) throw new ConfiguracaoInvalida("Categorias inválidas.");
+    return [];
+  }
+  if (estrito && lista.length > LIMITE_CATEGORIAS) throw new ConfiguracaoInvalida(`Use no máximo ${LIMITE_CATEGORIAS} categorias.`);
+  const vistas = new Set();
+  const resultado = [];
+  for (const item of lista.slice(0, LIMITE_CATEGORIAS)) {
+    const nome = estrito ? texto(item, "Categoria", 60, { Erro: ConfiguracaoInvalida }) : ou(() => texto(item, "Categoria", 60), "");
+    if (!nome || vistas.has(chaveCategoria(nome))) continue;
+    vistas.add(chaveCategoria(nome));
+    resultado.push(nome);
+  }
+  return resultado.sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+// Avisos de novidade já vistos (ids), opção de não mostrar e a versão da primeira abertura.
+function novidadesVistasDe(lista, estrito) {
+  if (!Array.isArray(lista)) {
+    if (estrito) throw new ConfiguracaoInvalida("Novidades inválidas.");
+    return [];
+  }
+  const ids = lista.filter((x) => typeof x === "string" && /^[a-z0-9-]{1,60}$/.test(x));
+  if (estrito && ids.length !== lista.length) throw new ConfiguracaoInvalida("Novidades inválidas.");
+  return [...new Set(ids)].slice(-300);
+}
+
+function versaoDe(v, estrito) {
+  const t = String(v ?? "");
+  if (/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(t)) return t;
+  if (estrito) throw new ConfiguracaoInvalida("Versão inválida.");
+  return "";
+}
+
+// Fatiadores cadastrados neste computador (o ativo fica em "fatiador").
+const LIMITE_FATIADORES = 20;
+
+function fatiadoresDe(lista, ativo, estrito) {
+  if (lista !== undefined && !Array.isArray(lista) && estrito) throw new ConfiguracaoInvalida("Fatiadores inválidos.");
+  const entrada = Array.isArray(lista) ? lista : [];
+  if (estrito && entrada.length > LIMITE_FATIADORES) throw new ConfiguracaoInvalida(`Use no máximo ${LIMITE_FATIADORES} fatiadores.`);
+  const vistos = new Set();
+  const resultado = [];
+  for (const item of [...entrada, ativo]) {
+    const f = fatiadorDe(item, estrito);
+    if (!f.caminho || vistos.has(f.caminho.toLowerCase()) || resultado.length >= LIMITE_FATIADORES) continue;
+    vistos.add(f.caminho.toLowerCase());
+    resultado.push(f);
+  }
+  return resultado;
+}
+
 // ---------- Paquímetro: calibração "real × modelo" e medidas guardadas por arquivo ----------
 const LIMITE_CALIBRACOES = 300;
 const LIMITE_ARQUIVOS_MEDIDOS = 100;
@@ -183,6 +240,11 @@ function normalizarGravado(dados) {
     empresa: empresaDe(d.empresa, false),
     orcamento: orcamentoDe(d.orcamento, false),
     fatiador: fatiadorDe(d.fatiador, false),
+    fatiadores: fatiadoresDe(d.fatiadores, d.fatiador, false),
+    categorias: categoriasDe(d.categorias, false),
+    novidadesVistas: novidadesVistasDe(d.novidadesVistas, false),
+    ocultarNovidades: d.ocultarNovidades === true,
+    primeiraVersao: versaoDe(d.primeiraVersao, false),
     calibracoes: calibracoesDe(d.calibracoes, false),
     medidasSalvas: medidasSalvasDe(d.medidasSalvas, false),
   };
@@ -198,6 +260,11 @@ function aplicarAlteracao(atual, alteracao) {
   if ("empresa" in a) novo.empresa = empresaDe(a.empresa, true);
   if ("orcamento" in a) novo.orcamento = orcamentoDe(a.orcamento, true);
   if ("fatiador" in a) novo.fatiador = fatiadorDe(a.fatiador, true);
+  if ("fatiadores" in a || "fatiador" in a) novo.fatiadores = fatiadoresDe("fatiadores" in a ? a.fatiadores : base.fatiadores, novo.fatiador, true);
+  if ("categorias" in a) novo.categorias = categoriasDe(a.categorias, true);
+  if ("novidadesVistas" in a) novo.novidadesVistas = novidadesVistasDe(a.novidadesVistas, true);
+  if ("ocultarNovidades" in a) novo.ocultarNovidades = a.ocultarNovidades === true;
+  if ("primeiraVersao" in a && !base.primeiraVersao) novo.primeiraVersao = versaoDe(a.primeiraVersao, true);
   if ("calibracoes" in a) novo.calibracoes = calibracoesDe(a.calibracoes, true);
   if ("medidasSalvas" in a) novo.medidasSalvas = medidasSalvasDe(a.medidasSalvas, true);
   return novo;

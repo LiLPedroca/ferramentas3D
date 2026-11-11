@@ -28,7 +28,9 @@ function cartao(p) {
   const excluir = el("button", "botao-texto", "Excluir");
   excluir.type = "button";
   excluir.addEventListener("click", () => excluirProjeto(p));
-  acoes.append(abrir, excluir);
+  // Tipo cuja ferramenta saiu do programa: o modelo continua guardado, só não abre.
+  if (abridorDe(p.tipo)) acoes.append(abrir);
+  acoes.append(excluir);
   card.append(figura, corpo, acoes);
   return card;
 }

@@ -28,6 +28,28 @@ describe("modelo de configurações", () => {
     expect(aplicarAlteracao(atual, { outro: 1 })).toMatchObject(atual);
   });
 
+  it("cadastra vários fatiadores e mantém o ativo na lista", () => {
+    const orca = { nome: "OrcaSlicer", caminho: "C:\\Programas\\Orca\\orca-slicer.exe" };
+    const any = { nome: "Anycubic Slicer Next", caminho: "C:\\Programas\\Any\\AnycubicSlicerNext.exe" };
+    // configuração antiga: só o ativo, sem lista
+    expect(normalizarGravado({ fatiador: orca }).fatiadores).toEqual([orca]);
+    const novo = aplicarAlteracao({ fatiador: orca }, { fatiadores: [orca, any, { ...any, caminho: any.caminho.toUpperCase() }], fatiador: any });
+    expect(novo.fatiador).toEqual(any);
+    expect(novo.fatiadores).toEqual([orca, any]);
+    // trocar só o ativo não perde os outros
+    expect(aplicarAlteracao(novo, { fatiador: orca }).fatiadores).toEqual([orca, any]);
+    expect(() => aplicarAlteracao({}, { fatiadores: [{ nome: "x", caminho: "relativo.exe" }] })).toThrow(/Fatiador/);
+  });
+
+  it("guarda categorias de produtos sem repetir e em ordem", () => {
+    const novo = aplicarAlteracao({}, { categorias: ["Vasos", " chaveiros ", "Chaveiros", "Copos"] });
+    expect(novo.categorias).toEqual(["chaveiros", "Copos", "Vasos"]);
+    expect(normalizarGravado({ categorias: ["Ok", 5, "x".repeat(80)] }).categorias).toEqual(["5", "Ok"]);
+    expect(normalizarGravado({}).categorias).toEqual([]);
+    expect(() => aplicarAlteracao({}, { categorias: ["x".repeat(80)] })).toThrow(/Categoria/);
+    expect(() => aplicarAlteracao({}, { categorias: "Vasos" })).toThrow(/Categorias/);
+  });
+
   it("valida dados da empresa e padrões do orçamento", () => {
     const novo = aplicarAlteracao(
       {},

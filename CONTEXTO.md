@@ -394,3 +394,12 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
 - **Mantidos sem uso, aguardando o Pedro decidir se apaga:** `src/core/etiquetas.cjs`, `src/renderer/etiquetas-tela.js`, `tests/etiquetas.test.js`, canal IPC `etiquetas:pdf` (`main.cjs`), `window.dados.etiquetas` (`preload.cjs`), ícone em `icones.js` e CSS `/* Etiquetas */` em `styles.css`. Nenhum dado do usuário é afetado (etiquetas não tinha cadastro próprio).
 - 293 testes npm passaram; captura confirmou versão 0.41.0, nenhuma menção a etiquetas na tela e nenhum ID duplicado.
 - Drapeado novo do Copo 1: aguardando o Pedro mandar o que quer e dizer “comece”.
+
+## Trabalho do Claude Code (11/11/2026) — categorias, Meu fatiador, novidades, Palavras retirado (v0.42.0)
+
+- Pedido do Pedro com "comece", copiando o programa antigo "Criae3D Utilities" (prints). Lista completa e especificação do financeiro ficaram na memória do Claude Code; o bloco Calculadora/Orçamentos/Gestão financeira vem na próxima versão.
+- **Palavras decorativas** saiu da interface (catálogo, `TELAS`, tela do `index.html`, `app.js`, `tests/inicio.test.js`). Arquivos mantidos (`palavras-tela.js`, `modelos/palavras.js`, testes). Modelos de palavras salvos em Meus modelos continuam guardados; sem a ferramenta, o cartão mostra só "Excluir".
+- **Categorias em Produtos:** lista `categorias` nas configurações (única sem diferenciar maiúsculas/acentos, até 100, entra no backup). Botão "Categorias" cria e remove (só categoria sem produtos). No cadastro, a categoria é escolhida numa lista, com "+ Nova categoria…". Categorias digitadas em produtos antigos aparecem na lista.
+- **Meu fatiador:** `fatiadores` (até 20) + `fatiador` ativo nas configurações; configuração antiga vira lista com o ativo. Janela no modelo do programa antigo: cartões com ícone do .exe (`app.getFileIcon`, canal `fatiador:icone`), troca do ativo pelo rádio, "Abrir <ativo>", "Localizar automaticamente" e localizar manualmente (nome + "Selecionar executável…"). O botão do topo abre essa janela.
+- **Aviso de novidade** (`core/novidades.js`): aparece uma vez ao abrir a tela que mudou, para quem já usava antes da versão da mudança (`primeiraVersao` gravada na primeira abertura; usuários existentes contam como 0.0.0). "Não mostrar novamente" grava `ocultarNovidades`. Primeiro aviso: categorias em Produtos.
+- 300 testes npm passaram. Captura com dados temporários conferiu aviso, categorias (sem duplicar), criação pelo cadastro, filtro, janela do fatiador com OrcaSlicer e Anycubic encontrados, sem IDs duplicados.

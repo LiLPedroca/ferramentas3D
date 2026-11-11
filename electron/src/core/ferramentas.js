@@ -88,15 +88,6 @@ export const FERRAMENTAS = [
     tela: "logo",
   },
   {
-    id: "palavras",
-    grupo: "modelos",
-    titulo: "Palavras decorativas",
-    descricao: "Combine palavras em uma composição 3D.",
-    categoria: "Modelos personalizados",
-    disponivel: true,
-    tela: "palavras",
-  },
-  {
     id: "caneca",
     grupo: "modelos",
     titulo: "Copos personalizados",

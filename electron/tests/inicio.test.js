@@ -79,7 +79,7 @@ describe("catálogo real", () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const f of FERRAMENTAS) {
       expect(f.disponivel).toBe(true);
-      expect(["calculadora", "visualizador", "produtos", "clientes", "orcamentos", "metadados", "backup", "detector", "svg", "stl", "chaveiro", "logo", "palavras", "caneca", "projetos", "filamentos", "encaixes"]).toContain(f.tela);
+      expect(["calculadora", "visualizador", "produtos", "clientes", "orcamentos", "metadados", "backup", "detector", "svg", "stl", "chaveiro", "logo", "caneca", "projetos", "filamentos", "encaixes"]).toContain(f.tela);
     }
   });
 

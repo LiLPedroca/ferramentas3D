@@ -4,7 +4,7 @@ import { Racional } from "../core/racional.js";
 import { formatarReais } from "../core/calculadora.js";
 import { normalizar } from "../core/inicio.js";
 import { icone } from "./icones.js";
-import { confirmar } from "./shell.js";
+import { confirmar, estado, salvarConfig } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -40,12 +40,18 @@ function el(tag, classe, texto) {
   return e;
 }
 
-// ---------- Lista ----------
+// ---------- Categorias ----------
+// As criadas pelo usuário (guardadas nas configurações) mais as que já estão em produtos antigos.
+const criadas = () => estado.config.categorias ?? [];
+
 function categorias() {
   const mapa = new Map();
-  for (const p of produtos) if (p.categoria) mapa.set(normalizar(p.categoria), p.categoria);
+  for (const c of criadas()) mapa.set(normalizar(c), c);
+  for (const p of produtos) if (p.categoria && !mapa.has(normalizar(p.categoria))) mapa.set(normalizar(p.categoria), p.categoria);
   return [...mapa.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
+
+const emUso = (c) => produtos.filter((p) => normalizar(p.categoria) === normalizar(c)).length;
 
 function atualizarCategorias() {
   const seletor = $("filtro-categoria");
@@ -53,9 +59,103 @@ function atualizarCategorias() {
   const lista = categorias();
   seletor.replaceChildren(new Option("Todas as categorias", ""), ...lista.map((c) => new Option(c, c)));
   seletor.value = lista.includes(atual) ? atual : "";
-  $("lista-categorias").replaceChildren(...lista.map((c) => new Option(c)));
 }
 
+const NOVA = "__nova";
+
+function preencherSeletorCategoria(valor) {
+  const lista = categorias();
+  $("p-categoria").replaceChildren(
+    new Option("Sem categoria", ""),
+    ...lista.map((c) => new Option(c, c)),
+    new Option("+ Nova categoria…", NOVA),
+  );
+  const escolhida = lista.find((c) => normalizar(c) === normalizar(valor ?? ""));
+  $("p-categoria").value = escolhida ?? "";
+  $("p-categoria").dataset.anterior = $("p-categoria").value;
+}
+
+let aoCriarCategoria = null; // usado quando a criação veio do cadastro de produto
+
+function renderizarCategorias() {
+  const lista = categorias();
+  $("lista-categorias").replaceChildren(
+    ...lista.map((c) => {
+      const li = el("li");
+      const n = emUso(c);
+      const nome = el("span", "", c);
+      if (n) nome.append(" ", el("small", "", n === 1 ? "· 1 produto" : `· ${n} produtos`));
+      li.append(nome);
+      // Só remove categoria sem produtos: nada muda no cadastro de ninguém.
+      if (!n) {
+        const remover = el("button", "botao-texto perigo", "Remover");
+        remover.type = "button";
+        remover.addEventListener("click", () => removerCategoria(c));
+        li.append(remover);
+      }
+      return li;
+    }),
+  );
+  $("categorias-vazio").hidden = lista.length > 0;
+}
+
+function abrirCategorias(depois = null) {
+  aoCriarCategoria = depois;
+  $("nova-categoria").value = "";
+  $("erro-categoria").textContent = "";
+  renderizarCategorias();
+  $("dialogo-categorias").showModal();
+  $("nova-categoria").focus();
+}
+
+function fecharCategorias() {
+  const depois = aoCriarCategoria;
+  aoCriarCategoria = null;
+  $("dialogo-categorias").close();
+  depois?.(null);
+}
+
+async function criarCategoria(ev) {
+  ev.preventDefault();
+  const nome = $("nova-categoria").value.trim().replace(/\s+/g, " ");
+  if (!nome) {
+    $("erro-categoria").textContent = "Digite o nome da categoria.";
+    return;
+  }
+  const existente = categorias().find((c) => normalizar(c) === normalizar(nome));
+  if (!existente) {
+    const resposta = await salvarConfig({ categorias: [...criadas(), nome] });
+    if (!resposta.ok) {
+      $("erro-categoria").textContent = resposta.erro;
+      return;
+    }
+  }
+  const final = existente ?? nome;
+  atualizarCategorias();
+  avisar(existente ? `A categoria "${final}" já existe.` : `Categoria "${final}" criada.`);
+  if (aoCriarCategoria) {
+    const depois = aoCriarCategoria;
+    aoCriarCategoria = null;
+    $("dialogo-categorias").close();
+    depois(final);
+    return;
+  }
+  $("nova-categoria").value = "";
+  $("erro-categoria").textContent = "";
+  renderizarCategorias();
+}
+
+async function removerCategoria(c) {
+  const resposta = await salvarConfig({ categorias: criadas().filter((x) => normalizar(x) !== normalizar(c)) });
+  if (!resposta.ok) {
+    $("erro-categoria").textContent = resposta.erro;
+    return;
+  }
+  atualizarCategorias();
+  renderizarCategorias();
+}
+
+// ---------- Lista ----------
 function cartaoProduto(p) {
   const cartao = el("button", "cartao-produto");
   cartao.type = "button";
@@ -156,7 +256,7 @@ export function abrirEditor(p, predefinido = {}) {
 
   $("titulo-dialogo-produto").textContent = p ? "Editar produto" : "Novo produto";
   $("p-nome").value = p?.nome ?? predefinido.nome ?? "";
-  $("p-categoria").value = p?.categoria ?? "";
+  preencherSeletorCategoria(p?.categoria ?? "");
   $("p-preco").value = p ? reais(p.precoCentavos).replace("R$ ", "") : predefinido.preco ?? "";
   $("p-peso").value = medida(p?.pesoG) || predefinido.pesoG || "";
   $("p-altura").value = medida(p?.alturaMm);
@@ -275,6 +375,21 @@ export function iniciarProdutos(opcoes) {
   $("vazio-calcular").addEventListener("click", () => irPara("calculadora"));
   $("busca-produtos").addEventListener("input", renderizar);
   $("filtro-categoria").addEventListener("change", renderizar);
+  $("gerenciar-categorias").addEventListener("click", () => abrirCategorias());
+  $("form-categoria").addEventListener("submit", criarCategoria);
+  $("fechar-categorias").addEventListener("click", fecharCategorias);
+  $("dialogo-categorias").addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    fecharCategorias();
+  });
+  $("p-categoria").addEventListener("change", () => {
+    const seletor = $("p-categoria");
+    if (seletor.value !== NOVA) {
+      seletor.dataset.anterior = seletor.value;
+      return;
+    }
+    abrirCategorias((criada) => preencherSeletorCategoria(criada ?? seletor.dataset.anterior));
+  });
 
   $("form-produto").addEventListener("submit", salvar);
   $("fechar-produto").addEventListener("click", fecharEditor);

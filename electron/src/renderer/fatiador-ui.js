@@ -1,77 +1,133 @@
-// Meu fatiador: escolher o programa e abrir modelos nele.
+// Meu fatiador: fatiadores cadastrados neste computador, um ativo, e abrir modelos nele.
 import { estado, mostrarAviso, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
 
-let escolhido = null; // { nome, caminho }
-let aoEscolher = null;
+const OUTRO = "__outro";
+let aoEscolher = null; // pedido de abrir um modelo que esperava um fatiador ativo
+const icones = new Map(); // caminho -> data URL (ou null)
+
+const mesmo = (a, b) => a?.caminho?.toLowerCase() === b?.caminho?.toLowerCase();
+const cadastrados = () => estado.config.fatiadores ?? [];
+const ativo = () => (estado.config.fatiador?.caminho ? estado.config.fatiador : null);
+
+function erro(texto) {
+  $("erro-fatiador").textContent = texto ?? "";
+}
+
+async function iconeDe(f, alvo) {
+  if (!icones.has(f.caminho)) {
+    const r = await window.fatiador.icone(f.caminho);
+    icones.set(f.caminho, r.ok ? r.dados : null);
+  }
+  const url = icones.get(f.caminho);
+  if (!url || !alvo.isConnected) return;
+  const img = el("img");
+  img.src = url;
+  img.alt = "";
+  alvo.replaceWith(img);
+}
 
 function opcaoFatiador(f) {
   const rotulo = el("label", "fatiador-opcao");
   const radio = el("input");
   radio.type = "radio";
   radio.name = "fatiador";
-  radio.checked = escolhido?.caminho?.toLowerCase() === f.caminho.toLowerCase();
-  radio.addEventListener("change", () => {
-    escolhido = f;
-  });
+  radio.checked = mesmo(f, ativo());
+  radio.addEventListener("change", () => tornarAtivo(f));
+  const icone = el("span", "fatiador-icone");
   const texto = el("span", "fatiador-texto");
-  texto.append(el("strong", "", f.nome), el("span", "cliente-sub", f.caminho));
-  rotulo.append(radio, texto);
+  texto.append(el("strong", "", f.nome), el("span", "cliente-sub", "Cadastrado neste computador"));
+  rotulo.title = f.caminho;
+  rotulo.append(radio, icone, texto);
+  iconeDe(f, icone);
   return rotulo;
 }
 
-function mostrarLista(lista) {
-  const itens = lista.map(opcaoFatiador);
-  if (itens.length === 0) {
-    itens.push(el("p", "ajuda", "Nenhum fatiador encontrado nas pastas padrão. Use \"Procurar no computador\"."));
-  }
-  $("fatiador-lista").replaceChildren(...itens);
+function mostrar() {
+  const lista = cadastrados();
+  $("fatiador-lista").replaceChildren(
+    ...(lista.length ? lista.map(opcaoFatiador) : [el("p", "ajuda", "Nenhum fatiador cadastrado. Localize abaixo.")]),
+  );
+  $("fatiador-dica").hidden = lista.length < 2;
+  const a = ativo();
+  $("fatiador-abrir").hidden = !a;
+  $("fatiador-abrir").textContent = a ? `Abrir ${a.nome}` : "";
 }
 
-// Abre a janela de escolha. depois: função chamada quando o usuário salvar.
-export async function abrirSeletorFatiador(depois) {
-  aoEscolher = depois ?? null;
-  escolhido = estado.config.fatiador?.caminho ? { ...estado.config.fatiador } : null;
-  $("erro-fatiador").textContent = "";
-  $("fatiador-lista").replaceChildren(el("p", "ajuda", "Procurando fatiadores instalados…"));
-  $("dialogo-fatiador").showModal();
-  const resposta = await window.fatiador.detectar();
-  const lista = resposta.ok ? resposta.dados : [];
-  if (escolhido && !lista.some((f) => f.caminho.toLowerCase() === escolhido.caminho.toLowerCase())) lista.unshift(escolhido);
-  if (!escolhido && lista.length) escolhido = lista[0];
-  mostrarLista(lista);
+// Grava a lista e o ativo; a tela só muda depois de gravar com sucesso.
+async function gravar(fatiadores, fatiador, aviso) {
+  const r = await salvarConfig({ fatiadores, fatiador });
+  if (!r.ok) {
+    erro(r.erro);
+    mostrar();
+    return false;
+  }
+  erro("");
+  mostrar();
+  if (aviso) mostrarAviso(aviso);
+  return true;
 }
 
-async function procurar() {
-  const resposta = await window.fatiador.procurar();
-  if (!resposta.ok || !resposta.dados) return;
-  escolhido = resposta.dados;
-  const atuais = [...$("fatiador-lista").querySelectorAll(".fatiador-opcao")].length;
-  if (atuais === 0) $("fatiador-lista").replaceChildren();
-  $("fatiador-lista").prepend(opcaoFatiador(escolhido));
-  $("fatiador-lista").querySelector("input").checked = true;
-}
-
-async function salvar() {
-  if (!escolhido) {
-    $("erro-fatiador").textContent = "Escolha um fatiador da lista ou procure no computador.";
-    return;
-  }
-  const resposta = await salvarConfig({ fatiador: escolhido });
-  if (!resposta.ok) {
-    $("erro-fatiador").textContent = resposta.erro;
-    return;
-  }
-  $("dialogo-fatiador").close();
-  mostrarAviso(`Fatiador escolhido: ${resposta.dados.fatiador.nome}.`);
+// Havia um modelo esperando um fatiador: abre nele agora.
+function continuarPedido() {
   const depois = aoEscolher;
   aoEscolher = null;
-  depois?.();
+  if (!depois) return;
+  $("dialogo-fatiador").close();
+  depois();
 }
 
-// Abre o fatiador (com um modelo, se houver). Sem fatiador escolhido, pede para escolher e tenta de novo.
+async function tornarAtivo(f) {
+  if (await gravar(cadastrados(), f, `Fatiador ativo: ${f.nome}.`)) continuarPedido();
+}
+
+async function localizarAutomaticamente() {
+  $("fatiador-localizar").disabled = true;
+  try {
+    const r = await window.fatiador.detectar();
+    if (!r.ok) return erro(r.erro);
+    const novos = r.dados.filter((f) => !cadastrados().some((c) => mesmo(c, f)));
+    if (!novos.length) {
+      mostrarAviso(r.dados.length ? "Nenhum fatiador novo encontrado." : "Nenhum fatiador encontrado nas pastas padrão. Localize manualmente.");
+      return;
+    }
+    const aviso = novos.length === 1 ? `${novos[0].nome} cadastrado.` : `${novos.length} fatiadores cadastrados.`;
+    const tinhaAtivo = Boolean(ativo());
+    if ((await gravar([...cadastrados(), ...novos], ativo() ?? novos[0], aviso)) && !tinhaAtivo) continuarPedido();
+  } finally {
+    $("fatiador-localizar").disabled = false;
+  }
+}
+
+async function localizarManualmente() {
+  const r = await window.fatiador.procurar();
+  if (!r.ok) return erro(r.erro);
+  if (!r.dados) return;
+  const nome = $("fatiador-nome").value === OUTRO || !$("fatiador-nome").value ? r.dados.nome : $("fatiador-nome").value;
+  const f = { nome, caminho: r.dados.caminho };
+  const lista = cadastrados().filter((c) => !mesmo(c, f));
+  if (await gravar([...lista, f], f, `${f.nome} cadastrado e ativo.`)) continuarPedido();
+}
+
+async function preencherNomes() {
+  if ($("fatiador-nome").options.length) return;
+  const r = await window.fatiador.nomes();
+  const nomes = r.ok ? r.dados : [];
+  $("fatiador-nome").replaceChildren(...nomes.map((n) => new Option(n, n)), new Option("Outro", OUTRO));
+}
+
+// Abre a janela. depois: chamado quando houver um fatiador ativo (pedido de abrir um modelo).
+export async function abrirSeletorFatiador(depois) {
+  aoEscolher = depois ?? null;
+  erro("");
+  mostrar();
+  if (!$("dialogo-fatiador").open) $("dialogo-fatiador").showModal();
+  await preencherNomes();
+}
+
+// Abre o fatiador ativo (com um modelo, se houver). Sem fatiador, pede para escolher e tenta de novo.
 export async function abrirNoFatiador(bytes, nome, extensao) {
   const resposta = await window.fatiador.abrir(bytes, nome, extensao);
   if (resposta.ok) {
@@ -86,8 +142,17 @@ export async function abrirNoFatiador(bytes, nome, extensao) {
 }
 
 export function iniciarFatiador() {
-  $("meu-fatiador").addEventListener("click", () => abrirNoFatiador());
-  $("fatiador-procurar").addEventListener("click", procurar);
-  $("fatiador-salvar").addEventListener("click", salvar);
-  $("fatiador-cancelar").addEventListener("click", () => $("dialogo-fatiador").close());
+  $("meu-fatiador").addEventListener("click", () => abrirSeletorFatiador());
+  $("fatiador-abrir").addEventListener("click", async () => {
+    const r = await window.fatiador.abrir();
+    if (!r.ok) return erro(r.erro === "SEM_FATIADOR" ? "Escolha um fatiador." : r.erro);
+    $("dialogo-fatiador").close();
+    mostrarAviso(`Abrindo ${r.dados}…`);
+  });
+  $("fatiador-localizar").addEventListener("click", localizarAutomaticamente);
+  $("fatiador-procurar").addEventListener("click", localizarManualmente);
+  $("fatiador-fechar").addEventListener("click", () => $("dialogo-fatiador").close());
+  $("dialogo-fatiador").addEventListener("close", () => {
+    aoEscolher = null;
+  });
 }

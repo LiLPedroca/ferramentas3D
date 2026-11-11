@@ -2,6 +2,7 @@
 // verificação de atualizações e a pergunta do nome na primeira abertura.
 import { FERRAMENTAS, GRUPOS } from "../core/ferramentas.js";
 import { gruposVisiveis } from "../core/inicio.js";
+import { novidadeDaTela } from "../core/novidades.js";
 import { icone } from "./icones.js";
 
 const $ = (id) => document.getElementById(id);
@@ -21,7 +22,6 @@ const TELAS = {
   stl: { elemento: "tela-stl" },
   chaveiro: { elemento: "tela-chaveiro" },
   logo: { elemento: "tela-logo" },
-  palavras: { elemento: "tela-palavras" },
   caneca: { elemento: "tela-caneca" },
   "caneca-legado": { elemento: "tela-caneca-legado", titulo: "Modelo anterior", pai: "projetos" },
   projetos: { elemento: "tela-projetos" },
@@ -71,6 +71,40 @@ export function irPara(destino) {
   marcarMenuAtivo();
   fecharMenu();
   aoAbrir.get(destino)?.();
+  mostrarNovidade(destino);
+}
+
+// ---------- Aviso de novidade ----------
+let novidadeAberta = null;
+
+function mostrarNovidade(tela) {
+  const versao = typeof __VERSAO__ === "undefined" ? "0.0.0" : __VERSAO__; // testes rodam sem o bundle
+  const n = novidadeDaTela(tela, estado.config, versao);
+  if (!n || $("dialogo-novidade").open) return;
+  novidadeAberta = n;
+  $("novidade-icone").innerHTML = icone(n.icone, 28);
+  $("novidade-titulo").textContent = n.titulo;
+  $("novidade-texto").textContent = n.texto;
+  $("novidade-itens").replaceChildren(
+    ...n.itens.map((t) => {
+      const li = document.createElement("li");
+      li.textContent = t;
+      return li;
+    }),
+  );
+  $("novidade-ocultar").checked = false;
+  $("novidade-ok").textContent = `${n.botao} →`;
+  $("dialogo-novidade").showModal();
+}
+
+async function fecharNovidade() {
+  const n = novidadeAberta;
+  novidadeAberta = null;
+  if ($("dialogo-novidade").open) $("dialogo-novidade").close();
+  if (!n) return;
+  const alteracao = { novidadesVistas: [...(estado.config.novidadesVistas ?? []), n.id] };
+  if ($("novidade-ocultar").checked) alteracao.ocultarNovidades = true;
+  await salvarConfig(alteracao);
 }
 
 // ---------- Menu lateral ----------
@@ -287,6 +321,8 @@ export async function carregarConfig() {
   }
   estado.config = resposta.dados;
   ouvintesConfig.forEach((f) => f(estado.config));
+  // Primeira abertura registrada: quem já usava (nome já perguntado) vê as novidades desde o início.
+  if (!estado.config.primeiraVersao) await salvarConfig({ primeiraVersao: estado.config.nomePerguntado ? "0.0.0" : __VERSAO__ });
   if (!estado.config.nomePerguntado) perguntarNome();
 }
 
@@ -309,6 +345,11 @@ export function iniciarShell() {
   });
   $("verificar-atualizacao").addEventListener("click", verificarAtualizacao);
   $("atualizacao-ok").addEventListener("click", () => $("dialogo-atualizacao").close());
+  $("novidade-ok").addEventListener("click", fecharNovidade);
+  $("dialogo-novidade").addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    fecharNovidade();
+  });
 
   $("form-boas-vindas").addEventListener("submit", aoEnviarNome);
   $("bv-pular").addEventListener("click", pularNome);

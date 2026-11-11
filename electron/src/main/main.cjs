@@ -9,7 +9,7 @@ const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { criarServicoPrintables } = require("./printables.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
-const { abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
+const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
@@ -339,6 +339,16 @@ function registrarDados() {
   );
 
   ipcMain.handle("fatiador:detectar", comTela(() => detectarFatiadores()));
+  ipcMain.handle("fatiador:nomes", comTela(() => [...new Set(CANDIDATOS.map((c) => c.nome))]));
+  // Ícone do programa (para o cartão do fatiador). Só caminhos .exe absolutos.
+  ipcMain.handle(
+    "fatiador:icone",
+    comTela(async (_e, caminho) => {
+      if (typeof caminho !== "string" || !path.isAbsolute(caminho) || !/\.exe$/i.test(caminho)) throw new ErroValidacao("Caminho inválido.");
+      const imagem = await app.getFileIcon(caminho, { size: "normal" });
+      return imagem.isEmpty() ? null : imagem.toDataURL();
+    }),
+  );
   ipcMain.handle(
     "fatiador:procurar",
     comTela(async (e) => {
