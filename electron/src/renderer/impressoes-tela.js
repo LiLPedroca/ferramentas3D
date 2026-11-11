@@ -199,7 +199,7 @@ async function abrirDetalhe(i) {
   mostrarFoto();
   $("im-previa-aviso").textContent = "Carregando a peça…";
   $("im-previa-aviso").hidden = false;
-  if (!$("dialogo-impressao").open) $("dialogo-impressao").showModal();
+  if (!$("dialogo-minha-impressao").open) $("dialogo-minha-impressao").showModal();
   $("im-previa").classList.add("carregando");
   const r = await window.dados.impressoes.ler(i.id);
   if (atual?.id !== i.id) return;
@@ -269,7 +269,7 @@ async function excluirAtual() {
     $("im-erro-detalhe").textContent = r.erro;
     return;
   }
-  $("dialogo-impressao").close();
+  $("dialogo-minha-impressao").close();
   mostrarAviso("Impressão excluída.");
   await carregar();
 }
@@ -294,7 +294,7 @@ async function verNoVisualizador() {
     $("im-erro-detalhe").textContent = r.erro;
     return;
   }
-  $("dialogo-impressao").close();
+  $("dialogo-minha-impressao").close();
   irPara("visualizador");
   await abrirArquivoNoVisualizador(new File([r.dados.bytes], r.dados.nome));
 }
@@ -336,14 +336,14 @@ function calcularCusto() {
   }
   const h = Number($("im-horas").value || 0);
   const m = Number($("im-minutos").value || 0);
-  $("dialogo-impressao").close();
+  $("dialogo-minha-impressao").close();
   preencherDoModelo({ nome: $("im-nome").value || atual.nome, pesoG, detalhe, tempoMin: h * 60 + m || undefined });
 }
 
 function criarProduto() {
   const nome = $("im-nome").value || atual.nome;
   const pesoG = $("im-peso").value;
-  $("dialogo-impressao").close();
+  $("dialogo-minha-impressao").close();
   irPara("produtos");
   abrirEditorProduto(null, { nome, pesoG });
 }
@@ -407,8 +407,8 @@ export function iniciarImpressoes() {
   });
 
   $("form-impressao").addEventListener("submit", salvarDetalhe);
-  $("fechar-impressao").addEventListener("click", () => $("dialogo-impressao").close());
-  $("dialogo-impressao").addEventListener("close", () => {
+  $("fechar-impressao").addEventListener("click", () => $("dialogo-minha-impressao").close());
+  $("dialogo-minha-impressao").addEventListener("close", () => {
     atual = null;
     partesAtuais = null;
   });

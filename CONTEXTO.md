@@ -469,3 +469,10 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
   "<nome do backup> (arquivos)" ao lado do .json. Restaurar devolve os arquivos que faltam (da pasta do backup ou de
   `excluidos`), sem sobrescrever. Backup antigo sem `impressoes` não apaga as impressões.
 - Aviso de novidade `impressoes-nova` (0.46.0). Testes: `tests/impressoes.test.js`.
+
+## Correção (11/11/2026) — v0.46.1
+
+- A v0.46.0 criou a janela de Minhas Impressões com o id `dialogo-impressao`, que já era o da pergunta
+  "Como você vai imprimir?" (`modelos-ui.js`). Como a nova vinha antes no HTML, "Salvar 3MF" e "Abrir no fatiador"
+  dos modelos abriam a janela errada. Renomeada para `dialogo-minha-impressao`.
+- Teste novo `tests/html-ids.test.js`: falha se o `index.html` tiver id repetido.

@@ -5083,7 +5083,7 @@ textarea:focus {
   pointer-events: none;
 }
 
-.dialogo-impressao {
+.dialogo-minha-impressao {
   width: min(1080px, calc(100vw - 40px));
 }
 
