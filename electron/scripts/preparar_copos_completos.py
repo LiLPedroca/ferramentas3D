@@ -51,8 +51,7 @@ def ler_partes(entrada,id):
         text=arquivos[path].decode();o=objeto(text,oid)
         if '<mesh>'in o[2]:
             nome=nomes.get(oid,'')
-            if id==1 and nome.lower().startswith('drapeado'):
-                removidos.append(nome);return
+            # O drapeado branco integra o copo completo e participa da união.
             v,f=ler_mesh(o[2]);v=v@M[:3,:3].T+M[:3,3]
             padrao=defaults.get(oid,int(atributos(o[1]).get('pindex','0'))+1)
             codes=[]
@@ -112,13 +111,14 @@ def preparar(entrada,saida,id,perfil):
                 erromax=max(erromax,erro);aproximadas+=erro>2e-5
             codigos.append(code)
     depois=np.array([r['vertices'].min(0),r['vertices'].max(0)])
-    if not np.allclose(bounds,depois,atol=2e-5):raise ValueError('Envelope do copo mudou além da retirada dos acessórios.')
+    if not np.allclose(bounds,depois,atol=2e-5):raise ValueError('Envelope do copo mudou durante a união.')
     if abs(depois[1,2]-depois[0,2]-145)>1e-4:raise ValueError('Altura diferente de 145 mm.')
     perfil=dict(perfil,filament_colour=['#000000','#ffffff'])
     destino=saida/f'{id}.3mf'
     destino.write_bytes(arquivo_unico(r['vertices'],r['faces'],codigos,f'Copo {id}',perfil,metadados))
     np.savez(saida/f'{id}-malha.npz',v=r['vertices'],f=r['faces'])
     report=dict(id=id,arquivo=destino.name,malha_unica=True,altura=float(depois[1,2]-depois[0,2]),bounds=depois.tolist(),volume=float(r['volume']),triangulos=len(r['faces']),fragmentos_numericos=r['fragmentos_numericos'],acessorios_retirados=removidos,ajuste_encontro_borda_mm=ajuste_borda,faces_pintura_reparametrizadas=aproximadas,erro_max_pintura_mm=erromax,entrada_sha256=hashlib.sha256((entrada/f'{id}.3mf').read_bytes()).hexdigest())
+    report['partes_preservadas']=[p['nome']for p in partes]
     (saida/f'{id}-validacao.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(report,ensure_ascii=False),flush=True);return report
 

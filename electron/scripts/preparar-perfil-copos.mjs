@@ -10,6 +10,7 @@ for(const [i,p]of [maquina,processo,filamento].entries())for(const [k,v]of Objec
  perfil[k]=i===2&&Array.isArray(v)&&v.length===1?[v[0],v[0]]:v;
 }
 Object.assign(perfil,{
+ brim_type:'no_brim', // O brim automático invade os espaços internos das letras da assinatura.
  printer_settings_id:maquina.printer_settings_id,print_settings_id:'Copos PETG 0.28 - Criae3D',
  default_print_profile:'Copos PETG 0.28 - Criae3D',default_filament_profile:[filamento.name],
  layer_height:'0.28',initial_layer_print_height:'0.24',wall_loops:'2',sparse_infill_density:'15%',resolution:'0.04',

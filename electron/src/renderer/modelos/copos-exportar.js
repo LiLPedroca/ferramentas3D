@@ -6,6 +6,25 @@ import { perfilCopo } from './copos-perfil.js';
 
 const escaparXml = texto => String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// O projeto multiparte nativo conserva placas, encaixes e texto editável.
+export function colorir3mfMultipartes(bytes, cores, { nome } = {}) {
+  if (cores.length !== 2 || cores.some(cor => !/^#[\da-f]{6}$/i.test(cor))) throw Error('Escolha as duas cores do copo.');
+  const arquivos = unzipSync(bytes);
+  const chave = 'Metadata/project_settings.config';
+  if (!arquivos[chave]) throw Error('O projeto multiparte está sem perfil.');
+  const perfil = JSON.parse(strFromU8(arquivos[chave]));
+  const mapa = new Map([['#000000', cores[0]], ['#ffffff', cores[1]]]);
+  for (const [caminho, conteudo] of Object.entries(arquivos)) {
+    if (caminho === chave || !/\.(model|config)$/i.test(caminho)) continue;
+    let texto = strFromU8(conteudo).replace(/#[\da-f]{6}(?:[\da-f]{2})?\b/gi, cor => (mapa.get(cor.slice(0, 7).toLowerCase()) ?? cor.slice(0, 7)) + cor.slice(7));
+    if (nome && caminho === '3D/3dmodel.model') texto = texto.replace(/(<metadata\b[^>]*name="Title"[^>]*>)[\s\S]*?(<\/metadata>)/g, (_m, abre, fecha) => abre + escaparXml(nome) + fecha);
+    arquivos[caminho] = strToU8(texto);
+  }
+  perfil.filament_colour = [...cores];
+  arquivos[chave] = strToU8(JSON.stringify(perfil));
+  return zipSync(arquivos, { level: 6 });
+}
+
 // Conserva a superfície completa e a subdivisão original da pintura.
 export function gerarStlCopo(partes) {
   const grupo = new Group();

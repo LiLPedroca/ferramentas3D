@@ -1,0 +1,7 @@
+# Copo 1 completo restaurado e multipartes
+
+Pedido aprovado pelo Pedro: restaurar o drapeado branco no copo completo, unido ao corpo sem peças soltas. Assinar somente a base do novo `copo 1 v2.3mf` e disponibilizar sua exportação multiparte no programa apenas para Copo 1. Copos 2/3 continuam Em breve. Logo/site/Instagram com underscores conforme desenho já aprovado. Investigar o relato adicional de branco na logo do Copo 2 no fatiamento, corrigindo a causa confirmada.
+
+Abordagem escolhida no contexto: reconstruir o completo a partir da referência assinada v0.38, preservando toda a decoração; preparar cópia multiparte independente conservando três placas, peças e encaixes e unindo apenas a primeira lâmina da base ao acabamento para integrar a assinatura. Exportador multiparte conserva projeto/placas nativos e aplica as cores selecionadas. Não usar o exportador completo que remove metadados das placas. Nenhum original externo é sobrescrito, nenhum recurso de usuário é apagado. O novo multipartes não substitui a geometria do completo nem a dos Copos 2/3.
+
+Validar união/assinatura/medidas, cores por face e preservação das demais peças; importar/fatiar no Anycubic com dados temporários; testes antes/depois e capturas reais isoladas. Nova release após conferir GitHub; registrar tempos/pesos reais do fatiador sem prometer meta de cinco horas. Impressão/encaixe físicos permanecem pendentes.

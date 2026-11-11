@@ -58,6 +58,7 @@ it('leva o nome escolhido ao objeto e perfil PETG completo para calcular gramas 
   expect(p.filament_max_volumetric_speed).toEqual(['8','8']);
   expect(p.wall_loops).toBe('2');
   expect(p.layer_height).toBe('0.28');
+  expect(p.brim_type).toBe('no_brim');
   expect(p.printer_model).toBe('Anycubic Kobra X');
   expect(p.nozzle_temperature.every(v => Number(v)>=220)).toBe(true);
 });

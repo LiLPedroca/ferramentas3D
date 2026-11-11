@@ -4,13 +4,32 @@ import numpy as np
 import trimesh
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from copos_malha import unir_partes
-from preparar_copos_completos import arquivo_unico,ajustar_borda
+from preparar_copos_completos import arquivo_unico,ajustar_borda,ler_partes
 import manifold3d as md
-import zipfile,io,re
+import zipfile,io,re,gzip,json,struct,tempfile
 
 def parte(mesh):return dict(vertices=mesh.vertices,faces=mesh.faces)
 
 class CoposCompletosTest(unittest.TestCase):
+ def test_leitor_preserva_drapeado_branco_do_copo_1(self):
+  m=trimesh.creation.box([2,2,2])
+  b=arquivo_unico(m.vertices,m.faces,['8']*len(m.faces),'drapeado branco',{'filament_colour':['#000000','#ffffff']})
+  with tempfile.TemporaryDirectory()as pasta:
+   entrada=Path(pasta)
+   with zipfile.ZipFile(io.BytesIO(b))as origem,zipfile.ZipFile(entrada/'1.3mf','w')as destino:
+    for nome in origem.namelist():
+     dado=origem.read(nome)
+     if nome=='3D/3dmodel.model':dado=dado.replace(b'<metadata name="Criae3D:MalhaUnica">1</metadata>',b'')
+     destino.writestr(nome,dado)
+   cabecalho=json.dumps({'partes':[{'cor':'#000000'},{'cor':'#ffffff'}]}).encode()
+   (entrada/'1.bin.gz').write_bytes(gzip.compress(struct.pack('<I',len(cabecalho))+cabecalho))
+   partes,_,removidos=ler_partes(entrada,1)
+  self.assertEqual(len(partes),1,'O drapeado branco faz parte do copo completo.')
+  self.assertEqual(removidos,[])
+  self.assertEqual(partes[0]['nome'],'drapeado branco')
+  self.assertEqual(partes[0]['codigos'],['8']*12)
+  np.testing.assert_allclose(partes[0]['vertices'],m.vertices)
+
  def test_borda_conserva_labio_interno_ao_retirar_sobreposicao_externa(self):
   cilindro=lambda r:md.Manifold.cylinder(10,r,circular_segments=512)
   original=cilindro(44)-cilindro(40)

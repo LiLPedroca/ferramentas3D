@@ -1,5 +1,5 @@
 import { CATALOGO_COPOS, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
-import { colorir3mf, gerarStlNativoCopo } from './modelos/copos-exportar.js';
+import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo } from './modelos/copos-exportar.js';
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
 import { registrarAoAbrir, irPara, mostrarAviso } from './shell.js';
@@ -12,6 +12,8 @@ const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-b
 function bloquear(sim) {
   ocupado = sim;
   [...acoes, 'cp-restaurar'].forEach(id => { $(id).disabled = sim || !pronto; });
+  $('cp-multipartes').disabled = sim || !pronto || id !== 1;
+  $('cp-multipartes').innerHTML = 'Exportar em multipartes' + (id === 1 ? '' : ' <small>Em breve</small>');
   document.querySelectorAll('#cp-cores input').forEach(input => { input.disabled = sim || !pronto; });
 }
 function pintar() { previa?.colorir(cores); }
@@ -87,6 +89,13 @@ export function iniciarCopos() {
     await salvarArquivoModelo(gerarStlNativoCopo(r.dados), $('cp-nome').value || `Copo ${id}`, 'stl');
   }));
   $('cp-3mf').addEventListener('click', () => executar(() => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
+  $('cp-multipartes').addEventListener('click', () => executar(async () => {
+    if (id !== 1) return;
+    const escolhidas = [...cores], nome = ($('cp-nome').value || 'Copo 1') + ' - multipartes';
+    const r = await window.modelos.lerCopoMultipartes(id);
+    if (!r.ok) throw Error(r.erro);
+    await salvarArquivoModelo(colorir3mfMultipartes(r.dados, escolhidas, { nome }), nome, '3mf');
+  }));
   $('cp-fatiador').addEventListener('click', () => executar(() => enviarModeloAoFatiador(aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });
   registrarAbridor('caneca', async p => {
