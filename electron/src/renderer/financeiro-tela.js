@@ -28,7 +28,9 @@ function reais(c) {
 }
 const dataBr = (dia) => (dia ? dia.split("-").reverse().join("/") : "");
 const formasTexto = (lista) => lista.map((f) => ROTULOS_FORMA[f]).join(", ");
-const numeroOrc = (n) => `#${String(n).padStart(4, "0")}`;
+// Vendas e orçamentos de teste: numeração própria e fora dos números do painel.
+const numeroOrc = (n, teste = false) => `${teste ? "teste " : ""}#${String(n).padStart(4, "0")}`;
+const naoTeste = (v) => v.teste !== true;
 
 // ---------- Dados ----------
 async function carregar() {
@@ -152,11 +154,11 @@ function chipSituacao(v) {
 }
 
 function nomeVenda(v) {
-  return v.orcamentoNumero ? `${v.cliente || "Sem cliente"} · Orçamento ${numeroOrc(v.orcamentoNumero)}` : `${v.descricao}${v.cliente ? ` · ${v.cliente}` : ""}`;
+  return v.orcamentoNumero ? `${v.cliente || "Sem cliente"} · Orçamento ${numeroOrc(v.orcamentoNumero, v.teste)}` : `${v.descricao}${v.cliente ? ` · ${v.cliente}` : ""}`;
 }
 
 function renderizarPendentes(hoje) {
-  const lista = vendas.filter((v) => v.data <= hoje && restante(v) > 0n);
+  const lista = vendas.filter((v) => naoTeste(v) && v.data <= hoje && restante(v) > 0n);
   $("fin-pendentes").replaceChildren(
     ...(lista.length
       ? lista.slice(0, 12).map((v) => {
@@ -183,6 +185,7 @@ function renderizarVendas(periodo) {
       acoes.append(abrir);
       const sit = el("td");
       sit.append(chipSituacao(v));
+      if (v.teste) sit.append(el("span", "chip-venda chip-teste", "Teste"));
       tr.append(el("td", "", nomeVenda(v)), el("td", "", dataBr(v.data)), el("td", "n", reais(v.valorCentavos)), el("td", "n", reais(recebido(v))), el("td", "n", reais(restante(v))), sit, acoes);
       return tr;
     }),
@@ -194,7 +197,7 @@ function renderizarVendas(periodo) {
 function renderizarRegistros(periodo) {
   const noPeriodo = (d) => (!periodo.inicio || d >= periodo.inicio) && d <= periodo.fim;
   const itens = [];
-  for (const v of vendas) for (const p of v.pagamentos) if (noPeriodo(p.data)) itens.push({ dia: p.data, tipo: "recebimento", texto: `Recebimento · ${nomeVenda(v)}`, detalhe: formasTexto(p.formas), valor: BigInt(p.valorCentavos), venda: v });
+  for (const v of vendas.filter(naoTeste)) for (const p of v.pagamentos) if (noPeriodo(p.data)) itens.push({ dia: p.data, tipo: "recebimento", texto: `Recebimento · ${nomeVenda(v)}`, detalhe: formasTexto(p.formas), valor: BigInt(p.valorCentavos), venda: v });
   for (const d of despesas) if (noPeriodo(d.data)) itens.push({ dia: d.data, tipo: "despesa", texto: `Despesa · ${d.descricao}`, detalhe: "", valor: -BigInt(d.valorCentavos), despesa: d });
   itens.sort((a, b) => b.dia.localeCompare(a.dia));
   $("fin-registros").replaceChildren(
@@ -256,9 +259,9 @@ async function renderizarChecklist() {
   const etapas = [
     ["Dados da empresa preenchidos", Boolean(c.empresa?.nome), () => abrirConfig("cfg-orcamento")],
     ["Padrões da calculadora configurados", Boolean(c.calculadora?.salvoEm), () => abrirConfig("cfg-calculadora")],
-    ["Primeiro cliente cadastrado", rc.ok && rc.dados.length > 0, () => irPara("clientes")],
-    ["Primeiro produto no catálogo", rp.ok && rp.dados.length > 0, () => irPara("produtos")],
-    ["Primeiro orçamento criado", orcamentos.length > 0, () => irPara("orcamentos")],
+    ["Primeiro cliente cadastrado", rc.ok && rc.dados.some((x) => !x.teste), () => irPara("clientes")],
+    ["Primeiro produto no catálogo", rp.ok && rp.dados.some((x) => !x.teste), () => irPara("produtos")],
+    ["Primeiro orçamento criado", orcamentos.some((o) => !o.teste), () => irPara("orcamentos")],
     ["Fatiador selecionado", Boolean(c.fatiador?.caminho), () => abrirSeletorFatiador()],
   ];
   const feitas = etapas.filter(([, ok]) => ok).length;
@@ -342,7 +345,7 @@ function renderizarVenda(v) {
   const quitada = situacaoVenda(v) === "quitado";
   const topo = el("div", "fin-topo");
   const tit = el("div");
-  tit.append(el("h1", "titulo-pagina", v.cliente || v.descricao), el("p", "ajuda", [v.orcamentoNumero ? `Orçamento ${numeroOrc(v.orcamentoNumero)}` : v.descricao, `Venda de ${dataBr(v.data)}`].join(" · ")));
+  tit.append(el("h1", "titulo-pagina", v.cliente || v.descricao), el("p", "ajuda", [v.orcamentoNumero ? `Orçamento ${numeroOrc(v.orcamentoNumero, v.teste)}` : v.descricao, `Venda de ${dataBr(v.data)}`].join(" · ")));
   const acoes = el("div", "fin-topo-acoes");
   const prod = el("select", "seletor");
   prod.setAttribute("aria-label", "Produção");
@@ -511,7 +514,7 @@ export async function abrirPagamentoOrcamento(o, { revisao = false } = {}) {
   const sinal = valorSinal(o, total);
   const ja = existente ? recebido(existente) : 0n;
   $("pagamento-resumo").textContent =
-    `Orçamento ${numeroOrc(o.numero)}${o.cliente ? ` · ${o.cliente.nome}` : ""} · total ${reais(total)}` +
+    `Orçamento ${numeroOrc(o.numero, o.teste)}${o.cliente ? ` · ${o.cliente.nome}` : ""} · total ${reais(total)}` +
     (existente ? ` · já recebido ${reais(ja)}` : "") +
     (sinal > 0n ? ` · sinal pedido ${reais(sinal)} (só conta quando for recebido)` : "");
   const mesmasValor = todas.filter((v) => !v.orcamentoId && BigInt(v.valorCentavos) === total);

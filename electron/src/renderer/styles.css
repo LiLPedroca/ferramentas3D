@@ -5006,3 +5006,12 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Dados de teste ---------- */
+.chip.chip-teste,
+.chip-venda.chip-teste {
+  --cor-chip: #d9822b;
+  background: color-mix(in srgb, #d9822b 15%, transparent);
+  color: #d9822b;
+  margin-left: 6px;
+}

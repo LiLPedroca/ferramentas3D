@@ -51,7 +51,9 @@ function criarServicoOrcamentos(pasta, { clientes, configuracoes }) {
       }
       const config = configuracoes ? await configuracoes.ler() : null;
       const proximoNumero = config?.orcamento?.proximoNumero ?? 1;
-      return montarOrcamento({ ...v, cliente, proximoNumero }, { id, anterior, existentes: itens });
+      // Orçamento de teste: o do cliente marcado como teste (ou de um teste já excluído do cadastro).
+      const teste = Boolean(clienteId) && (cadastrado ? cadastrado.teste === true : anterior?.cliente?.id === clienteId && anterior?.teste === true);
+      return montarOrcamento({ ...v, cliente, proximoNumero, teste }, { id, anterior, existentes: itens });
     },
   });
 

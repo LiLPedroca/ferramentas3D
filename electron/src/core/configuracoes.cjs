@@ -315,6 +315,7 @@ function normalizarGravado(dados) {
     novidadesVistas: novidadesVistasDe(d.novidadesVistas, false),
     ocultarNovidades: d.ocultarNovidades === true,
     primeiraVersao: versaoDe(d.primeiraVersao, false),
+    dadosTesteCriados: d.dadosTesteCriados === true,
     calibracoes: calibracoesDe(d.calibracoes, false),
     medidasSalvas: medidasSalvasDe(d.medidasSalvas, false),
   };
@@ -338,6 +339,7 @@ function aplicarAlteracao(atual, alteracao) {
   if ("novidadesVistas" in a) novo.novidadesVistas = novidadesVistasDe(a.novidadesVistas, true);
   if ("ocultarNovidades" in a) novo.ocultarNovidades = a.ocultarNovidades === true;
   if ("primeiraVersao" in a && !base.primeiraVersao) novo.primeiraVersao = versaoDe(a.primeiraVersao, true);
+  if ("dadosTesteCriados" in a) novo.dadosTesteCriados = a.dadosTesteCriados === true;
   if ("calibracoes" in a) novo.calibracoes = calibracoesDe(a.calibracoes, true);
   if ("medidasSalvas" in a) novo.medidasSalvas = medidasSalvasDe(a.medidasSalvas, true);
   return novo;

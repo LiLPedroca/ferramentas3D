@@ -30,6 +30,7 @@ async function htmlParaPdf(html, opcoes = {}) {
 }
 const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
 const { criarServicoFinanceiro } = require("./financeiro.cjs");
+const { criarServicoDadosTeste } = require("./dados-teste.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
 let autoUpdater = null;
@@ -175,6 +176,10 @@ function registrarDados() {
   const filamentos = criarServicoFilamentos(pasta);
   const cadastros = { clientes, orcamentos, favoritos, projetos, filamentos };
 
+  // ---------- Dados de teste (cliente e produto fictícios) ----------
+  const dadosTeste = criarServicoDadosTeste({ clientes, produtos, orcamentos, vendas: financeiro.vendas, configuracoes });
+  const prontoTeste = dadosTeste.criarNaPrimeiraVez().catch((erro) => console.error("Dados de teste:", erro));
+
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
     colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos, vendas: financeiro.vendas, despesas: financeiro.despesas },
@@ -190,6 +195,8 @@ function registrarDados() {
   ipcMain.handle("stl:printables", comTela((_e, termo, pagina) => printables.pesquisar(termo, pagina)));
   ipcMain.handle("stl:miniatura", comTela((_e, url) => printables.miniatura(url)));
 
+  ipcMain.handle("teste:recriar", comTela(() => dadosTeste.recriar()));
+  ipcMain.handle("teste:limpar", comTela(() => dadosTeste.limpar()));
   ipcMain.handle("backup:resumo", comTela(() => backup.resumo()));
   ipcMain.handle(
     "backup:exportar",
@@ -497,7 +504,8 @@ function registrarDados() {
     daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
   );
   for (const [nome, servico] of Object.entries(cadastros)) {
-    ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(servico.listar()) : negado));
+    // Espera a criação dos dados de teste na primeira abertura, para a lista já vir com eles.
+    ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(prontoTeste.then(() => servico.listar())) : negado));
     ipcMain.handle(`${nome}:salvar`, (e, valores, id) =>
       daTela(e) ? responder(servico.salvar(valores, typeof id === "string" ? id : undefined)) : negado,
     );
@@ -519,7 +527,7 @@ function registrarDados() {
 
   ipcMain.handle("atualizacao:verificar", (e) => (daTela(e) ? verificarManualmente() : { estado: "erro" }));
 
-  ipcMain.handle("produtos:listar", (e) => (daTela(e) ? responder(produtos.listar()) : negado));
+  ipcMain.handle("produtos:listar", (e) => (daTela(e) ? responder(prontoTeste.then(() => produtos.listar())) : negado));
   ipcMain.handle("produtos:salvar", (e, valores, id) =>
     daTela(e) ? responder(produtos.salvar(valores, typeof id === "string" ? id : undefined)) : negado,
   );

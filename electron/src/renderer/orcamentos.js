@@ -34,7 +34,8 @@ export function reais(centavos) {
   return `${negativo ? "-" : ""}R$ ${inteiro},${(abs % 100n).toString().padStart(2, "0")}`;
 }
 const dataCurta = (iso) => new Date(iso).toLocaleDateString("pt-BR");
-export const numeroOrcamento = (n) => `#${String(n).padStart(4, "0")}`;
+// Orçamentos de teste têm numeração própria: "Teste #0001".
+export const numeroOrcamento = (n, teste = false) => `${teste ? "Teste " : ""}#${String(n).padStart(4, "0")}`;
 const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 function centavosOuNull(texto) {
@@ -184,7 +185,17 @@ function orcamentoParaPrevia() {
     descricaoComplementar: f.descricaoComplementar,
     observacoes: f.observacoes,
     exibirPdf: f.exibirPdf,
+    teste: ehTeste(),
   };
+}
+
+// O orçamento em edição é de teste? (cliente de teste, ou um teste cujo cliente foi excluído)
+function ehTeste() {
+  if (!f?.clienteId) return false;
+  const c = clientes.find((x) => x.id === f.clienteId);
+  if (c) return c.teste === true;
+  const o = orcamentos.find((x) => x.id === f.editandoId);
+  return o?.teste === true && o.cliente?.id === f.clienteId;
 }
 
 // ---------- Rascunho ----------
@@ -486,7 +497,7 @@ function atualizarPrevia() {
   const raiz = $("o-previa").shadowRoot ?? $("o-previa").attachShadow({ mode: "open" });
   if (!folhaPrevia) {
     folhaPrevia = new CSSStyleSheet();
-    folhaPrevia.replaceSync(`${CSS_ORCAMENTO.replace(/@page[^}]*}/, "")} .folha { padding: 22px 20px 34px; background: #fff; min-height: 100%; } .pagina { margin-top: 18px; font: 7pt Arial, sans-serif; text-align: right; color: #444; }`);
+    folhaPrevia.replaceSync(`${CSS_ORCAMENTO.replace(/@page[^}]*}/, "")} .folha { padding: 22px 20px 34px; background: #fff; min-height: 100%; } .pagina { margin-top: 18px; font: 7pt Arial, sans-serif; text-align: right; color: #444; } .orc { position: relative; } .orc .marca-teste { position: absolute; top: 260px; font-size: 90pt; }`);
   }
   raiz.adoptedStyleSheets = [folhaPrevia];
   // corpoOrcamento escapa todo texto do usuário.
@@ -494,7 +505,7 @@ function atualizarPrevia() {
 }
 
 function atualizarCabecalho() {
-  const n = f.numero ? `#${f.numero}` : "";
+  const n = f.numero ? `${ehTeste() ? "de teste " : ""}#${f.numero}` : "";
   $("o-titulo").textContent = f.editandoId ? `Orçamento ${n}` : `Orçamento ${n}`.trim();
 }
 
@@ -506,9 +517,9 @@ function chipSituacao(situacao) {
 function linhaOrcamento(o) {
   const linha = el("button", "linha-orcamento");
   linha.type = "button";
-  linha.setAttribute("aria-label", `Abrir orçamento ${numeroOrcamento(o.numero)}`);
+  linha.setAttribute("aria-label", `Abrir orçamento ${numeroOrcamento(o.numero, o.teste)}`);
   linha.append(
-    el("span", "orc-numero", numeroOrcamento(o.numero)),
+    el("span", "orc-numero", numeroOrcamento(o.numero, o.teste)),
     el("span", "orc-cliente", o.cliente?.nome ?? "Sem cliente"),
     el("span", "orc-data", dataCurta(o.criadoEm)),
     el("span", "orc-total", reais(calcularTotais(o).total)),
@@ -523,7 +534,7 @@ function renderizarLista() {
   const situacao = $("filtro-situacao").value;
   const filtrados = orcamentos.filter((o) => {
     if (situacao && o.situacao !== situacao) return false;
-    const texto = normalizar(`${numeroOrcamento(o.numero)} ${o.numero} ${o.cliente?.nome ?? ""} ${o.itens.map((i) => i.descricao).join(" ")}`);
+    const texto = normalizar(`${numeroOrcamento(o.numero, o.teste)} ${o.numero} ${o.cliente?.nome ?? ""} ${o.itens.map((i) => i.descricao).join(" ")}`);
     return palavras.every((p) => texto.includes(p));
   });
   $("lista-orcamentos").replaceChildren(...filtrados.map(linhaOrcamento));
@@ -562,9 +573,10 @@ async function carregarApoio() {
   produtos = rp.ok ? rp.dados : [];
 }
 
-function proximoNumeroSugerido() {
-  const maior = orcamentos.reduce((m, o) => Math.max(m, o.numero), 0) + 1;
-  return String(Math.max(maior, estado.config.orcamento?.proximoNumero ?? 1));
+// Orçamentos de teste seguem a própria numeração (começa em 1) e não gastam a real.
+function proximoNumeroSugerido(teste = ehTeste()) {
+  const maior = orcamentos.filter((o) => (o.teste === true) === teste).reduce((m, o) => Math.max(m, o.numero), 0) + 1;
+  return String(teste ? maior : Math.max(maior, estado.config.orcamento?.proximoNumero ?? 1));
 }
 
 // Primeira abertura: recupera o rascunho salvo (ou começa um novo).
@@ -594,11 +606,11 @@ export async function abrirEditor(o, { clienteId } = {}) {
     return;
   }
   f = o ? formularioDe(o) : formularioNovo();
-  if (!o) f.numero = proximoNumeroSugerido();
   if (!o && clienteId) {
     const c = clientes.find((x) => x.id === clienteId);
     if (c) aplicarCliente(c);
   }
+  if (!o) f.numero = proximoNumeroSugerido();
   preencherTudo();
   irPara("orcamentos");
   irEtapa(1);
@@ -657,7 +669,7 @@ async function finalizar({ pdf }) {
     irEtapa(1);
     aoMudar();
     atualizarAvisoRevisao();
-    mostrarAviso(`Orçamento ${numeroOrcamento(salvo.numero)} finalizado.`);
+    mostrarAviso(`Orçamento ${numeroOrcamento(salvo.numero, salvo.teste)} finalizado.`);
   } finally {
     botoes.forEach((b) => (b.disabled = false));
   }
@@ -668,7 +680,7 @@ async function excluir() {
   const o = orcamentos.find((x) => x.id === f.editandoId);
   const ok = await confirmar({
     titulo: "Excluir orçamento?",
-    texto: `O orçamento ${o ? numeroOrcamento(o.numero) : ""} será excluído. Uma venda já registrada no financeiro continua lá. Essa ação não pode ser desfeita.`,
+    texto: `O orçamento ${o ? numeroOrcamento(o.numero, o.teste) : ""} será excluído. Uma venda já registrada no financeiro continua lá. Essa ação não pode ser desfeita.`,
     botao: "Excluir",
   });
   if (!ok) return;
@@ -695,9 +707,12 @@ export function iniciarOrcamentos() {
   for (const b of document.querySelectorAll("#tela-orcamentos [data-ir]")) b.addEventListener("click", () => irEtapa(Number(b.dataset.ir)));
 
   $("o-cliente").addEventListener("change", () => {
+    const antes = ehTeste();
     const c = clientes.find((x) => x.id === $("o-cliente").value);
     if (c) aplicarCliente(c);
     else f.clienteId = "";
+    // Trocou entre cliente real e de teste: cada um tem a sua numeração.
+    if (antes !== ehTeste()) f.numero = proximoNumeroSugerido();
     preencherTudo();
     aoMudar();
   });

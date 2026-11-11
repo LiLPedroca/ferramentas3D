@@ -417,3 +417,20 @@ Convertido o .gitignore de Windows-1252 para UTF-8 sem BOM: o acento de "reposit
 - Clicar em "Gestão financeira" (início e menu) abre o painel (`tela` no grupo). Avisos de novidade para Calculadora, Orçamentos e Financeiro.
 - Testes: 320 npm passaram (novos: financeiro, serviço financeiro com backup, sinal/numeração, PDF, configurações). Captura com dados temporários conferiu o fluxo completo: padrões da calculadora → item no orçamento → prévia → sinal 30% → finalizar → venda parcial → pagamento acima do saldo recusado → quitação → despesa → caixa; PDF real gerado e conferido; revisão com cancelamento; sem IDs duplicados.
 - **Não conferido:** uso com os dados reais do Pedro (orçamentos antigos dele vão aparecer na revisão, como pedido); impressão do PDF em papel; cor de destaque configurável e Liquid Glass ficaram de fora (dúvida em aberto). "Catálogos" continua com o nome "Produtos".
+
+## Trabalho do Claude Code (11/11/2026) — dados de teste (v0.44.0)
+
+- **Cliente Teste e Peça teste** (`core/dados-teste.cjs`, `main/dados-teste.cjs`): ids fixos `cliente-teste` e
+  `produto-teste`, marcados com `teste: true` (a marca continua ao editar). Dados claramente falsos.
+  Criados uma vez na primeira abertura (`configuracoes.dadosTesteCriados`); se o Pedro excluir, só voltam
+  pelo botão "Recriar cliente e produto teste" (Configurações > Geral > Dados de teste).
+- **Orçamento de teste** = orçamento do cliente de teste (`teste: true`, decidido no `main/orcamentos.cjs`).
+  Numeração própria começando em 1 ("Teste #0001", "Nº T-0001" no PDF); não gasta a numeração real nem o
+  `proximoNumero`. Trocar entre cliente real e de teste dá um número novo do outro grupo.
+- **PDF**: marca d'água "TESTE" (`.marca-teste`, `position: fixed` para repetir nas páginas) e arquivo
+  "TESTE - Orçamento - ...pdf".
+- **Financeiro**: venda de teste (`teste: true`) fica fora de indicadores, gráfico, caixa, saldos pendentes,
+  registros recentes, revisão e checklist; aparece na tabela de vendas com a etiqueta "Teste".
+- **"Limpar testes"**: apaga só orçamentos e vendas com `teste: true` (com os pagamentos), pede confirmação.
+- Testes: `tests/dados-teste.test.js`. Conferido no modo de captura (orçamento de teste, PDF real, pagamento,
+  painel zerado, limpar).

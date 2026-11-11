@@ -32,7 +32,9 @@ function linhaCliente(c) {
 
   const avatar = el("span", "avatar", iniciais(c.nome));
   const principal = el("span", "cliente-principal");
-  principal.append(el("span", "cliente-nome", c.nome));
+  const nome = el("span", "cliente-nome", c.nome);
+  if (c.teste) nome.append(el("span", "chip chip-teste", "Teste"));
+  principal.append(nome);
   if (c.cidade) principal.append(el("span", "cliente-sub", c.cidade));
 
   const contato = el("span", "cliente-contato");
@@ -106,7 +108,7 @@ async function mostrarHistorico(c) {
     const linha = el("button", "historico-item");
     linha.type = "button";
     linha.append(
-      el("span", "orc-numero", numeroOrcamento(o.numero)),
+      el("span", "orc-numero", numeroOrcamento(o.numero, o.teste)),
       el("span", "cliente-sub", new Date(o.criadoEm).toLocaleDateString("pt-BR")),
       el("span", "orc-total", reais(calcularTotais(o).total)),
       el("span", `chip-situacao ${o.situacao}`, ROTULOS_SITUACAO[o.situacao]),

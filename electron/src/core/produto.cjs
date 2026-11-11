@@ -109,6 +109,7 @@ function validarProduto(p) {
     throw new ProdutoInvalido("Foto inválida ou muito grande. Escolha outra imagem.");
   }
   validarCusto(p.custo);
+  if (p.teste !== undefined && p.teste !== true) throw new ProdutoInvalido("Produto inválido.");
   for (const data of [p.criadoEm, p.atualizadoEm]) {
     if (typeof data !== "string" || Number.isNaN(Date.parse(data))) throw new ProdutoInvalido("Data inválida.");
   }
@@ -139,6 +140,8 @@ function montarProduto(valores, { id, anterior, agora = new Date().toISOString()
 
   const custo = v.custo !== undefined ? v.custo : anterior?.custo;
   if (custo) produto.custo = validarCusto(custo);
+  // O produto de teste continua marcado depois de editado.
+  if (anterior?.teste === true) produto.teste = true;
 
   return validarProduto(produto);
 }

@@ -42,6 +42,16 @@ export const NOVIDADES = [
     itens: ["Cada orçamento finalizado vira uma venda", "Registre pagamentos e acompanhe o que falta receber", "Lucro calculado com os custos guardados"],
     botao: "Conhecer o financeiro",
   },
+  {
+    id: "clientes-teste",
+    versao: "0.44.0",
+    tela: "clientes",
+    icone: "clientes",
+    titulo: "Cliente Teste para experimentar",
+    texto: "Teste orçamentos, PDF e pagamentos sem mexer nos seus números.",
+    itens: ["Cliente Teste e Peça teste já cadastrados", "Orçamentos de teste com numeração própria e marca TESTE no PDF", "Limpe tudo em Configurações > Geral"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

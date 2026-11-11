@@ -182,6 +182,7 @@ function validarOrcamento(o) {
   if (o.descricaoComplementar !== undefined) textoLongo(o.descricaoComplementar, "Descrição complementar", LIMITES.observacoes);
   if (o.exibirPdf !== undefined && (!o.exibirPdf || typeof o.exibirPdf !== "object")) throw new ErroValidacao("Opções do PDF inválidas.");
   if (o.nomeArquivo !== undefined) texto(o.nomeArquivo, "Nome do arquivo PDF", 100);
+  if (o.teste !== undefined && o.teste !== true) throw new ErroValidacao("Orçamento inválido.");
   if (!dataValida(o.criadoEm) || !dataValida(o.atualizadoEm)) throw new ErroValidacao("Data inválida.");
   return o;
 }
@@ -202,16 +203,23 @@ function montarOrcamento(valores, { id, anterior, existentes = [], agora = new D
   }
   if (v.itens.length > LIMITES.itens) throw new ErroValidacao(`Use no máximo ${LIMITES.itens} itens.`);
 
+  // Orçamentos de teste (do cliente de teste) têm numeração própria e não gastam a real.
+  const teste = v.teste === true;
+  const doGrupo = existentes.filter((o) => (o.teste === true) === teste);
   const proximo = Math.max(
-    existentes.reduce((max, o) => Math.max(max, Number.isInteger(o.numero) ? o.numero : 0), 0) + 1,
-    Number.isInteger(v.proximoNumero) ? v.proximoNumero : 1,
+    doGrupo.reduce((max, o) => Math.max(max, Number.isInteger(o.numero) ? o.numero : 0), 0) + 1,
+    !teste && Number.isInteger(v.proximoNumero) ? v.proximoNumero : 1,
   );
   const situacao = SITUACOES.includes(v.situacao) ? v.situacao : "rascunho";
-  // Número escolhido na tela: precisa ser único.
-  let numero = anterior?.numero ?? proximo;
-  if (v.numero !== undefined && String(v.numero).trim() !== "") {
+  const mudouGrupo = anterior !== undefined && (anterior.teste === true) !== teste;
+  // Número escolhido na tela: precisa ser único entre os do mesmo grupo.
+  let numero = anterior && !mudouGrupo ? anterior.numero : proximo;
+  const escolhido = v.numero !== undefined && String(v.numero).trim() !== "";
+  if (escolhido && !(mudouGrupo && String(v.numero).trim() === String(anterior.numero))) {
     numero = inteiro(v.numero, "Número do orçamento", 1, 9_999_999);
-    if (existentes.some((o) => o.numero === numero && o.id !== id)) throw new ErroValidacao(`Já existe um orçamento com o número ${numero}.`);
+    if (doGrupo.some((o) => o.numero === numero && o.id !== id)) {
+      throw new ErroValidacao(`Já existe um orçamento${teste ? " de teste" : ""} com o número ${numero}.`);
+    }
   }
 
   const orcamento = {
@@ -236,6 +244,7 @@ function montarOrcamento(valores, { id, anterior, existentes = [], agora = new D
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };
+  if (teste) orcamento.teste = true;
   return validarOrcamento(orcamento);
 }
 

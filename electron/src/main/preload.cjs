@@ -56,6 +56,10 @@ contextBridge.exposeInMainWorld("dados", {
     pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id),
     situacao: (id, situacao) => ipcRenderer.invoke("orcamentos:situacao", id, situacao),
   },
+  teste: {
+    recriar: () => ipcRenderer.invoke("teste:recriar"),
+    limpar: () => ipcRenderer.invoke("teste:limpar"),
+  },
   rascunho: {
     ler: () => ipcRenderer.invoke("rascunho:ler"),
     salvar: (dados) => ipcRenderer.invoke("rascunho:salvar", dados),

@@ -175,6 +175,7 @@ function cartaoProduto(p) {
   const cabeca = el("div", "produto-cabeca");
   cabeca.append(el("h3", "", p.nome));
   if (p.categoria) cabeca.append(el("span", "chip", p.categoria));
+  if (p.teste) cabeca.append(el("span", "chip chip-teste", "Teste"));
   info.append(cabeca, el("strong", "produto-preco", reais(p.precoCentavos)));
 
   const meta = textoMedidas(p);

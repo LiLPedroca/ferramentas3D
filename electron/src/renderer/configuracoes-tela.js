@@ -1,7 +1,7 @@
 // Tela de Configurações: dados da calculadora, dados do orçamento (empresa, condições, PDF) e geral.
 import { formatarDocumento, formatarTelefone } from "../core/formatos.js";
 import { abrirSeletorFatiador } from "./fatiador-ui.js";
-import { aoMudarConfig, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
+import { aoMudarConfig, confirmar, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -12,6 +12,25 @@ export const FORMAS = [
   ["pix", "Pix"],
   ["dinheiro", "Dinheiro"],
 ];
+// ---------- Dados de teste ----------
+async function recriarTeste() {
+  const r = await window.dados.teste.recriar();
+  $("erro-teste").textContent = r.ok ? "" : r.erro;
+  if (r.ok) mostrarAviso("Cliente Teste e Peça teste prontos.");
+}
+
+async function limparTestes() {
+  const ok = await confirmar({
+    titulo: "Limpar testes?",
+    texto: "Os orçamentos e as vendas do Cliente Teste serão apagados. Seus dados reais não mudam. Essa ação não pode ser desfeita.",
+    botao: "Limpar testes",
+  });
+  if (!ok) return;
+  const r = await window.dados.teste.limpar();
+  $("erro-teste").textContent = r.ok ? "" : r.erro;
+  if (r.ok) mostrarAviso(`${r.dados.orcamentos} orçamento(s) e ${r.dados.vendas} venda(s) de teste apagados.`);
+}
+
 export const CAMPOS_PDF = [
   ["numero", "Número do orçamento"],
   ["nome", "Nome do produto"],
@@ -229,6 +248,8 @@ export function iniciarConfiguracoes() {
     mostrarLogo();
   });
   $("abrir-pasta-dados").addEventListener("click", abrirPasta);
+  $("c-teste-recriar").addEventListener("click", recriarTeste);
+  $("c-teste-limpar").addEventListener("click", limparTestes);
   $("c-escolher-fatiador").addEventListener("click", () => abrirSeletorFatiador());
   aoMudarConfig(mostrarFatiador);
   registrarAoAbrir("configuracoes", () => {

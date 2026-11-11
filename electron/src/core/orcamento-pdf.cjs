@@ -78,6 +78,7 @@ const CSS = `
   .orc .totais td:first-child { font-weight: 600; }
   .orc .totais .final td { font-weight: 700; font-size: 10.5pt; }
   .orc .texto { white-space: normal; line-height: 1.4; }
+  .orc .marca-teste { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 120pt; font-weight: 700; letter-spacing: 8px; color: rgba(200, 0, 0, 0.14); transform: rotate(-30deg); pointer-events: none; z-index: 10; }
 `;
 
 function corpoOrcamento(o, empresa = {}) {
@@ -96,7 +97,7 @@ function corpoOrcamento(o, empresa = {}) {
   ].join("");
 
   const datas = [
-    ver.numero ? `<div>Orçamento<b>Nº ${numeroFormatado(o.numero)}</b></div>` : "",
+    ver.numero ? `<div>Orçamento${o.teste ? " de teste" : ""}<b>Nº ${o.teste ? "T-" : ""}${numeroFormatado(o.numero)}</b></div>` : "",
     `<div>Criado em<b>${data(o.criadoEm)}</b></div>`,
     `<div>Válido até<b>${data(dataValidade(o))}</b></div>`,
   ].join("");
@@ -153,6 +154,7 @@ function corpoOrcamento(o, empresa = {}) {
   const textoLivre = (titulo, texto) => (texto ? bloco(titulo, linha(`<div class="texto">${escapar(texto).replace(/\n/g, "<br>")}</div>`)) : "");
 
   return `<div class="orc">
+${o.teste ? `<div class="marca-teste">TESTE</div>` : ""}
 <div class="topo"><div class="empresa">${logo}<div class="dados">${dadosEmpresa}</div></div><div class="datas">${datas}</div></div>
 <h1>Orçamento</h1>
 ${bloco("Cliente", cliente)}
@@ -181,11 +183,12 @@ const RODAPE_PDF = `<div style="width:100%;padding:0 12mm;font:7pt Arial,sans-se
 function nomeArquivoPdf(o, { hoje = new Date() } = {}) {
   const limpar = (t) => String(t ?? "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
   const escolhido = limpar(o.nomeArquivo).replace(/\.pdf$/i, "");
-  if (escolhido) return `${escolhido}.pdf`;
+  const prefixo = o.teste ? "TESTE - " : "";
+  if (escolhido) return `${prefixo}${escolhido}.pdf`;
   const p = (n) => String(n).padStart(2, "0");
   const dia = `${p(hoje.getDate())}-${p(hoje.getMonth() + 1)}-${hoje.getFullYear()}`;
   const cliente = limpar(o.cliente?.nome);
-  return `Orçamento - ${cliente ? `${cliente} - ` : `${numeroFormatado(o.numero)} - `}${dia}.pdf`;
+  return `${prefixo}Orçamento - ${cliente ? `${cliente} - ` : `${numeroFormatado(o.numero)} - `}${dia}.pdf`;
 }
 
 module.exports = { CSS_ORCAMENTO: CSS, RODAPE_PDF, corpoOrcamento, escapar, gerarHtmlOrcamento, nomeArquivoPdf, reais };

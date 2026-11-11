@@ -66,6 +66,7 @@ function validarCliente(c) {
   emailDeTexto(c.email);
   texto(c.cidade, "Cidade", LIMITES.cidade);
   textoLongo(c.observacoes, "Observações", LIMITES.observacoes);
+  if (c.teste !== undefined && c.teste !== true) throw new ErroValidacao("Cliente com dados inválidos.");
   if (!dataValida(c.criadoEm) || !dataValida(c.atualizadoEm)) throw new ErroValidacao("Data inválida.");
   return c;
 }
@@ -73,7 +74,7 @@ function validarCliente(c) {
 // valores: { nome, telefone, email, documento, cidade, observacoes }
 function montarCliente(valores, { id, anterior, agora = new Date().toISOString() }) {
   const v = valores ?? {};
-  return validarCliente({
+  const cliente = {
     id,
     nome: texto(v.nome, "Nome", LIMITES.nome, { obrigatorio: true }),
     telefone: telefoneDeTexto(v.telefone),
@@ -83,7 +84,10 @@ function montarCliente(valores, { id, anterior, agora = new Date().toISOString()
     observacoes: textoLongo(v.observacoes, "Observações", LIMITES.observacoes),
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
-  });
+  };
+  // O cliente de teste continua marcado depois de editado.
+  if (anterior?.teste === true) cliente.teste = true;
+  return validarCliente(cliente);
 }
 
 module.exports = { LIMITES, cnpjValido, cpfValido, documentoDeTexto, emailDeTexto, montarCliente, telefoneDeTexto, validarCliente };

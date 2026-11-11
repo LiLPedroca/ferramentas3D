@@ -90,6 +90,7 @@ function validarVenda(v) {
   v.pagamentos.forEach(validarPagamento);
   if (recebido(v) > BigInt(v.valorCentavos)) throw new ErroValidacao("A venda recebeu mais do que o valor total.");
   if (!PRODUCAO.includes(v.producao)) throw new ErroValidacao("Venda inválida.");
+  if (v.teste !== undefined && typeof v.teste !== "boolean") throw new ErroValidacao("Venda inválida.");
   if (!dataValida(v.criadoEm) || !dataValida(v.atualizadoEm)) throw new ErroValidacao("Venda inválida.");
   return v;
 }
@@ -173,7 +174,7 @@ function dadosDoOrcamento(o) {
     return item;
   });
   return {
-    descricao: `Orçamento #${String(o.numero).padStart(4, "0")}`,
+    descricao: `Orçamento ${o.teste ? "teste " : ""}#${String(o.numero).padStart(4, "0")}`,
     cliente: o.cliente?.nome ?? "",
     orcamentoId: o.id,
     orcamentoNumero: o.numero,
@@ -181,6 +182,7 @@ function dadosDoOrcamento(o) {
     freteCentavos: t.frete.toString(),
     custoCentavos: t.custo === null ? null : t.custo.toString(),
     itens,
+    teste: o.teste === true, // venda de teste: fica fora dos números do painel
   };
 }
 
@@ -236,7 +238,9 @@ function reaisTexto(c) {
 
 // ---------- Indicadores do painel ----------
 // periodo: { inicio, fim }. "A receber" considera todas as vendas até o fim do período.
-function resumoFinanceiro(vendas, despesas, periodo) {
+// Vendas de teste ficam de fora.
+function resumoFinanceiro(todasVendas, despesas, periodo) {
+  const vendas = todasVendas.filter((v) => v.teste !== true);
   let vendasPeriodo = 0n;
   let recebidoPeriodo = 0n;
   let despesasPeriodo = 0n;
@@ -286,7 +290,7 @@ function resumoFinanceiro(vendas, despesas, periodo) {
 // Orçamentos que ainda não têm venda e precisam de revisão (fora rascunhos e cancelados).
 function orcamentosSemVenda(orcamentos, vendas) {
   const ligados = new Set(vendas.map((v) => v.orcamentoId).filter(Boolean));
-  return orcamentos.filter((o) => !ligados.has(o.id) && !["rascunho", "recusado"].includes(o.situacao));
+  return orcamentos.filter((o) => o.teste !== true && !ligados.has(o.id) && !["rascunho", "recusado"].includes(o.situacao));
 }
 
 module.exports = {
