@@ -92,8 +92,11 @@ describe("PDF", () => {
     expect(html).not.toContain("<b>Linha 2</b>");
   });
 
-  it("nome do arquivo sem acentos nem símbolos", () => {
+  it("nome do arquivo automático (cliente + data) ou escolhido, sem símbolos proibidos", () => {
     const o = montarOrcamento({ ...base, cliente: { ...base.cliente, nome: "José & Cia. Ltda" } }, { id: ID, agora: AGORA });
-    expect(nomeArquivoPdf(o)).toBe("Orcamento-0001-Jose-Cia-Ltda.pdf");
+    const hoje = new Date(2026, 10, 4);
+    expect(nomeArquivoPdf({ ...o, cliente: { nome: 'José "Cia" / Ltda' } }, { hoje })).toBe("Orçamento - José Cia Ltda - 04-11-2026.pdf");
+    expect(nomeArquivoPdf({ ...o, nomeArquivo: "Pedido Ana.pdf" }, { hoje })).toBe("Pedido Ana.pdf");
+    expect(nomeArquivoPdf({ ...o, cliente: null }, { hoje })).toBe("Orçamento - 0001 - 04-11-2026.pdf");
   });
 });

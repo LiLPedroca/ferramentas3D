@@ -12,6 +12,36 @@ export const NOVIDADES = [
     itens: ["Crie categorias no botão Categorias", "Escolha a categoria da lista ao cadastrar", "Filtre os produtos por categoria"],
     botao: "Conhecer as categorias",
   },
+  {
+    id: "calculadora-nova",
+    versao: "0.43.0",
+    tela: "calculadora",
+    icone: "calculadora",
+    titulo: "Sua calculadora está de cara nova",
+    texto: "A Calculadora 3D agora usa os seus custos habituais e leva o cálculo para o orçamento.",
+    itens: ["Padrões em Configurações > Dados da calculadora", "Adicione o cálculo direto ao orçamento", "O cálculo usado fica guardado na venda"],
+    botao: "Conhecer a nova calculadora",
+  },
+  {
+    id: "orcamentos-etapas",
+    versao: "0.43.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Orçamentos em 4 etapas",
+    texto: "Monte o orçamento por etapas e veja o PDF enquanto preenche.",
+    itens: ["Cliente, Produtos, Condições e Finalizar", "Prévia do PDF em tempo real e rascunho automático", "Sinal, formas de pagamento e entrega"],
+    botao: "Conhecer os novos orçamentos",
+  },
+  {
+    id: "financeiro-painel",
+    versao: "0.43.0",
+    tela: "financeiro",
+    icone: "taxas",
+    titulo: "Gestão financeira completa",
+    texto: "Vendas, recebimentos, despesas e lucro num só painel.",
+    itens: ["Cada orçamento finalizado vira uma venda", "Registre pagamentos e acompanhe o que falta receber", "Lucro calculado com os custos guardados"],
+    botao: "Conhecer o financeiro",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -11,10 +11,31 @@ class ConfiguracaoInvalida extends ErroValidacao {
   }
 }
 
-const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "" };
-const ORCAMENTO_PADRAO = { validadeDias: 7, prazoProducao: "", formaPagamento: "", observacoes: "" };
+const { centavosDeTexto } = require("./produto.cjs");
 
-const PADRAO = { nome: "", nomePerguntado: false, empresa: EMPRESA_VAZIA, orcamento: ORCAMENTO_PADRAO };
+const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "", endereco: "", logo: "" };
+const FORMAS = ["debito", "credito", "pix", "dinheiro"];
+const ENTREGAS = ["retirada", "entrega", "envio"];
+const CAMPOS_PDF = ["numero", "nome", "quantidade", "precoUnitario", "dimensoes"];
+const ORCAMENTO_PADRAO = {
+  validadeDias: 7,
+  prazoProducao: "",
+  formaPagamento: "",
+  observacoes: "",
+  formasPagamento: [],
+  entrega: "retirada",
+  freteCentavos: "0",
+  descricaoComplementar: "",
+  exibirPdf: { numero: true, nome: true, quantidade: true, precoUnitario: true, dimensoes: true },
+  nomeArquivo: "automatico",
+  proximoNumero: 1,
+};
+// Padrões da Calculadora 3D (texto decimal com ponto). salvoEm: quando o usuário gravou.
+const CALCULADORA_PADRAO = { precoKg: "100", potenciaW: "200", tarifaKwh: "0.9", custoHora: "2", maoDeObra: "15", lucroPct: "100", valorImpressora: "", salvoEm: "" };
+const LOGO = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+=*$/;
+const LIMITE_LOGO = 900_000;
+
+const PADRAO = { nome: "", nomePerguntado: false, empresa: EMPRESA_VAZIA, orcamento: ORCAMENTO_PADRAO, calculadora: CALCULADORA_PADRAO };
 
 // Tenta validar; se falhar, usa o valor de reserva (para leitura tolerante do que está gravado).
 function ou(funcao, reserva) {
@@ -35,6 +56,35 @@ function empresaDe(e, estrito) {
     documento: campo(() => documentoDeTexto(v.documento)),
     cidade: campo(() => texto(v.cidade, "Cidade", 80)),
     site: campo(() => texto(v.site, "Site ou Instagram", 120)),
+    endereco: campo(() => texto(v.endereco, "Endereço", 200)),
+    logo: campo(() => {
+      const l = String(v.logo ?? "");
+      if (l && (l.length > LIMITE_LOGO || !LOGO.test(l))) throw new ConfiguracaoInvalida("Logo: use uma imagem PNG ou JPG de até 2 MB.");
+      return l;
+    }),
+  };
+}
+
+// Número decimal positivo vindo da tela ("0,90", "15") -> "0.9"
+function decimalDe(valor, nome, { vazio = false } = {}) {
+  const t = String(valor ?? "").trim().replace(/\s/g, "").replace(",", ".");
+  if (!t && vazio) return "";
+  if (!/^\d{1,9}(\.\d{1,6})?$/.test(t)) throw new ConfiguracaoInvalida(`${nome}: use um número, como 12,5.`);
+  return String(Number(t));
+}
+
+function calculadoraDe(c, estrito) {
+  const v = c && typeof c === "object" ? c : {};
+  const campo = (k, nome, opcoes) => (estrito ? decimalDe(v[k] ?? CALCULADORA_PADRAO[k], nome, opcoes) : ou(() => decimalDe(v[k] ?? CALCULADORA_PADRAO[k], nome, opcoes), CALCULADORA_PADRAO[k]));
+  return {
+    precoKg: campo("precoKg", "Preço do filamento"),
+    potenciaW: campo("potenciaW", "Consumo da impressora"),
+    tarifaKwh: campo("tarifaKwh", "Tarifa de energia"),
+    custoHora: campo("custoHora", "Uso da impressora por hora"),
+    maoDeObra: campo("maoDeObra", "Mão de obra do lote"),
+    lucroPct: campo("lucroPct", "Lucro sobre o custo"),
+    valorImpressora: campo("valorImpressora", "Quanto custou sua impressora", { vazio: true }),
+    salvoEm: typeof v.salvoEm === "string" && !Number.isNaN(Date.parse(v.salvoEm)) ? v.salvoEm : "",
   };
 }
 
@@ -50,6 +100,25 @@ function orcamentoDe(o, estrito) {
     prazoProducao: campo(() => texto(v.prazoProducao, "Prazo de produção padrão", 80), ""),
     formaPagamento: campo(() => texto(v.formaPagamento, "Forma de pagamento padrão", 160), ""),
     observacoes: campo(() => textoLongo(v.observacoes, "Observações padrão", 1000), ""),
+    formasPagamento: campo(() => {
+      const l = v.formasPagamento ?? [];
+      if (!Array.isArray(l) || l.some((f) => !FORMAS.includes(f))) throw new ConfiguracaoInvalida("Formas de pagamento inválidas.");
+      return FORMAS.filter((f) => l.includes(f));
+    }, []),
+    entrega: campo(() => {
+      const e = v.entrega ?? "retirada";
+      if (!ENTREGAS.includes(e)) throw new ConfiguracaoInvalida("Entrega padrão inválida.");
+      return e;
+    }, "retirada"),
+    freteCentavos: campo(() => centavosDeTexto(v.frete ?? (v.freteCentavos !== undefined ? (Number(v.freteCentavos) / 100).toFixed(2) : ""), "Frete padrão") || "0", "0"),
+    descricaoComplementar: campo(() => textoLongo(v.descricaoComplementar, "Descrição complementar padrão", 1000), ""),
+    exibirPdf: Object.fromEntries(CAMPOS_PDF.map((k) => [k, v.exibirPdf && typeof v.exibirPdf === "object" && k in v.exibirPdf ? v.exibirPdf[k] === true : true])),
+    nomeArquivo: v.nomeArquivo === "manual" ? "manual" : "automatico",
+    proximoNumero: campo(() => {
+      const n = Number(String(v.proximoNumero ?? "1").trim());
+      if (!Number.isInteger(n) || n < 1 || n > 9_999_999) throw new ConfiguracaoInvalida("Numeração: use um número inteiro a partir de 1.");
+      return n;
+    }, 1),
   };
 }
 
@@ -239,6 +308,7 @@ function normalizarGravado(dados) {
     nomePerguntado: d.nomePerguntado === true,
     empresa: empresaDe(d.empresa, false),
     orcamento: orcamentoDe(d.orcamento, false),
+    calculadora: calculadoraDe(d.calculadora, false),
     fatiador: fatiadorDe(d.fatiador, false),
     fatiadores: fatiadoresDe(d.fatiadores, d.fatiador, false),
     categorias: categoriasDe(d.categorias, false),
@@ -258,7 +328,10 @@ function aplicarAlteracao(atual, alteracao) {
   if ("nome" in a) novo.nome = texto(a.nome, "Nome", 80, { Erro: ConfiguracaoInvalida });
   if ("nomePerguntado" in a) novo.nomePerguntado = a.nomePerguntado === true;
   if ("empresa" in a) novo.empresa = empresaDe(a.empresa, true);
-  if ("orcamento" in a) novo.orcamento = orcamentoDe(a.orcamento, true);
+  // Alteração parcial: campos não enviados continuam como estavam.
+  if ("orcamento" in a) novo.orcamento = orcamentoDe({ ...base.orcamento, ...(a.orcamento ?? {}) }, true);
+  if ("empresaParcial" in a) novo.empresa = empresaDe({ ...base.empresa, ...(a.empresaParcial ?? {}) }, true);
+  if ("calculadora" in a) novo.calculadora = { ...calculadoraDe(a.calculadora, true), salvoEm: new Date().toISOString() };
   if ("fatiador" in a) novo.fatiador = fatiadorDe(a.fatiador, true);
   if ("fatiadores" in a || "fatiador" in a) novo.fatiadores = fatiadoresDe("fatiadores" in a ? a.fatiadores : base.fatiadores, novo.fatiador, true);
   if ("categorias" in a) novo.categorias = categoriasDe(a.categorias, true);

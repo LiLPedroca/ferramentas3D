@@ -1,7 +1,10 @@
-// Monta o HTML do orçamento para virar PDF. Todo texto do usuário é escapado.
+// Monta o HTML do orçamento para virar PDF (e para a prévia na tela). Todo texto do usuário é escapado.
 "use strict";
 
-const { calcularTotais, dataValidade } = require("./orcamento.cjs");
+const { ROTULOS_ENTREGA, calcularTotais, dataValidade, exibirPdfDe, valorSinal } = require("./orcamento.cjs");
+
+const ROTULOS_FORMA = { debito: "Débito", credito: "Crédito", pix: "Pix", dinheiro: "Dinheiro" };
+const LOGO = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+=*$/;
 
 function escapar(valor) {
   return String(valor ?? "")
@@ -34,112 +37,155 @@ function telefone(d) {
 
 function documento(d) {
   if (!d) return "";
-  if (d.length === 11) return `CPF ${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-  if (d.length === 14) return `CNPJ ${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
   return d;
 }
 
-const linhas = (...partes) => partes.filter(Boolean).map(escapar).join("<br>");
+const numeroFormatado = (n) => String(n).padStart(4, "0");
+const medida = (t) => String(t).replace(".", ",");
 
-function numeroFormatado(n) {
-  return String(n).padStart(4, "0");
+// Linhas "Rótulo: valor" só com o que estiver preenchido.
+const linhasRotuladas = (pares) =>
+  pares
+    .filter(([, v]) => v)
+    .map(([r, v]) => `<div>${escapar(r)}: ${escapar(v)}</div>`)
+    .join("");
+
+const bloco = (titulo, linhas) =>
+  linhas ? `<table class="bloco"><tr><th>${escapar(titulo)}</th></tr>${linhas}</table>` : "";
+const linha = (texto) => `<tr><td>${texto}</td></tr>`;
+
+const CSS = `
+  @page { size: A4; margin: 14mm 12mm 16mm; }
+  * { box-sizing: border-box; }
+  .orc { margin: 0; font-family: Arial, "Segoe UI", sans-serif; color: #000; font-size: 9pt; background: #fff; }
+  .orc .topo { display: grid; grid-template-columns: 1fr 26%; border: 1px solid #000; }
+  .orc .empresa { display: flex; align-items: center; gap: 14px; padding: 8px 10px; border-right: 1px solid #000; }
+  .orc .empresa img { max-width: 110px; max-height: 70px; object-fit: contain; }
+  .orc .empresa .dados { line-height: 1.35; }
+  .orc .empresa strong { font-size: 10.5pt; }
+  .orc .datas div { padding: 5px 8px; border-bottom: 1px solid #000; }
+  .orc .datas div:last-child { border-bottom: 0; }
+  .orc .datas b { display: block; }
+  .orc h1 { margin: 12px 0 6px; font-size: 15pt; text-align: center; }
+  .orc table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .orc th, .orc td { padding: 3px 6px; border: 1px solid #000; text-align: left; vertical-align: top; }
+  .orc th { background: #000; color: #fff; font-size: 8.5pt; text-transform: uppercase; }
+  .orc .bloco th { text-transform: none; }
+  .orc .n { text-align: right; white-space: nowrap; }
+  .orc .totais { width: 46%; margin-left: auto; }
+  .orc .totais td:first-child { font-weight: 600; }
+  .orc .totais .final td { font-weight: 700; font-size: 10.5pt; }
+  .orc .texto { white-space: normal; line-height: 1.4; }
+`;
+
+function corpoOrcamento(o, empresa = {}) {
+  const t = calcularTotais(o);
+  const ver = exibirPdfDe(o.exibirPdf);
+  const logo = LOGO.test(String(empresa.logo ?? "")) ? `<img src="${empresa.logo}" alt="">` : "";
+  const dadosEmpresa = [
+    empresa.nome ? `<strong>${escapar(empresa.nome)}</strong>` : "",
+    linhasRotuladas([
+      ["Endereço", empresa.endereco || empresa.cidade],
+      ["WhatsApp", telefone(empresa.telefone)],
+      ["CPF/CNPJ", documento(empresa.documento)],
+      ["E-mail", empresa.email],
+      ["Site", empresa.site],
+    ]),
+  ].join("");
+
+  const datas = [
+    ver.numero ? `<div>Orçamento<b>Nº ${numeroFormatado(o.numero)}</b></div>` : "",
+    `<div>Criado em<b>${data(o.criadoEm)}</b></div>`,
+    `<div>Válido até<b>${data(dataValidade(o))}</b></div>`,
+  ].join("");
+
+  const c = o.cliente;
+  const cliente = c
+    ? [
+        ["Nome", c.nome],
+        ["Telefone / WhatsApp", telefone(c.telefone)],
+        ["CPF/CNPJ", documento(c.documento)],
+        ["E-mail", c.email],
+        ["Endereço", c.endereco || c.cidade],
+      ]
+        .filter(([, v]) => v)
+        .map(([r, v]) => linha(`${escapar(r)}: ${escapar(v)}`))
+        .join("")
+    : "";
+
+  const colunas = [
+    ver.nome ? ["Descrição", (i) => escapar(i.descricao), ""] : null,
+    ver.dimensoes && o.itens.some((i) => i.alturaMm || i.larguraMm || i.comprimentoMm)
+      ? ["Dimensões (mm)", (i) => (i.alturaMm || i.larguraMm || i.comprimentoMm ? [i.alturaMm, i.larguraMm, i.comprimentoMm].map((d) => (d ? medida(d) : "—")).join(" × ") : ""), ""]
+      : null,
+    ver.quantidade ? ["Qtd", (i) => String(i.quantidade), "n"] : null,
+    ver.precoUnitario ? ["Preço unit.", (i) => reais(BigInt(i.precoUnitarioCentavos)), "n"] : null,
+    ["Total", (i) => reais(BigInt(i.quantidade) * BigInt(i.precoUnitarioCentavos)), "n"],
+  ].filter(Boolean);
+  const itens = `<table class="itens"><tr>${colunas.map(([r, , cl]) => `<th class="${cl}">${escapar(r)}</th>`).join("")}</tr>${o.itens
+    .map((i) => `<tr>${colunas.map(([, f, cl]) => `<td class="${cl}">${f(i)}</td>`).join("")}</tr>`)
+    .join("")}</table>`;
+
+  const totais = `<table class="totais">
+    <tr><td>Subtotal</td><td class="n">${reais(t.subtotal)}</td></tr>
+    ${t.desconto > 0n ? `<tr><td>Desconto</td><td class="n">- ${reais(t.desconto)}</td></tr>` : ""}
+    ${t.frete > 0n ? `<tr><td>Frete</td><td class="n">${reais(t.frete)}</td></tr>` : ""}
+    <tr class="final"><td>Total final</td><td class="n">${reais(t.total)}</td></tr></table>`;
+
+  const formas = (o.formasPagamento ?? []).map((f) => ROTULOS_FORMA[f]).join(", ") || o.formaPagamento;
+  const condicoes = [
+    formas ? `Pagamento: ${escapar(formas)}` : "",
+    o.entrega ? `Entrega: ${escapar(ROTULOS_ENTREGA[o.entrega] ?? o.entrega)}` : "",
+    o.prazoProducao ? `Prazo de produção: ${escapar(o.prazoProducao)}` : "",
+    `Validade: ${o.validadeDias} dia(s)`,
+  ]
+    .filter(Boolean)
+    .map(linha)
+    .join("");
+
+  const sinal = o.cobrarSinal ? valorSinal(o, t.total) : null;
+  const blocoSinal =
+    sinal !== null
+      ? bloco("Sinal e saldo", linha(`Sinal solicitado: ${reais(sinal)}`) + linha(`Saldo restante: ${reais(t.total - sinal)}`))
+      : "";
+  const textoLivre = (titulo, texto) => (texto ? bloco(titulo, linha(`<div class="texto">${escapar(texto).replace(/\n/g, "<br>")}</div>`)) : "");
+
+  return `<div class="orc">
+<div class="topo"><div class="empresa">${logo}<div class="dados">${dadosEmpresa}</div></div><div class="datas">${datas}</div></div>
+<h1>Orçamento</h1>
+${bloco("Cliente", cliente)}
+${itens}
+${totais}
+${bloco("Condições", condicoes)}
+${blocoSinal}
+${textoLivre("Descrição", o.descricaoComplementar)}
+${textoLivre("Observações", o.observacoes)}
+</div>`;
 }
 
 function gerarHtmlOrcamento(o, empresa = {}) {
-  const t = calcularTotais(o);
-  const nomeEmpresa = empresa.nome || "Orçamento";
-  const contatoEmpresa = linhas(
-    telefone(empresa.telefone),
-    empresa.email,
-    empresa.site,
-    [empresa.cidade, documento(empresa.documento)].filter(Boolean).join(" · "),
-  );
-  const cliente = o.cliente
-    ? linhas(o.cliente.nome, telefone(o.cliente.telefone), o.cliente.email, documento(o.cliente.documento), o.cliente.cidade)
-    : "—";
-
-  const itens = o.itens
-    .map((item) => {
-      const totalItem = BigInt(item.quantidade) * BigInt(item.precoUnitarioCentavos);
-      return `<tr><td>${escapar(item.descricao)}</td><td class="n">${item.quantidade}</td><td class="n">${reais(BigInt(item.precoUnitarioCentavos))}</td><td class="n">${reais(totalItem)}</td></tr>`;
-    })
-    .join("");
-
-  const linhasTotais = [
-    `<tr><td>Subtotal</td><td class="n">${reais(t.subtotal)}</td></tr>`,
-    t.desconto > 0n ? `<tr><td>Desconto</td><td class="n">- ${reais(t.desconto)}</td></tr>` : "",
-    t.frete > 0n ? `<tr><td>Frete</td><td class="n">${reais(t.frete)}</td></tr>` : "",
-    `<tr class="total"><td>Total</td><td class="n">${reais(t.total)}</td></tr>`,
-  ].join("");
-
-  const condicoes = [
-    ["Validade", `${o.validadeDias} dia(s), até ${data(dataValidade(o))}`],
-    o.prazoProducao ? ["Prazo de produção", o.prazoProducao] : null,
-    o.formaPagamento ? ["Forma de pagamento", o.formaPagamento] : null,
-  ]
-    .filter(Boolean)
-    .map(([rotulo, valor]) => `<div><dt>${escapar(rotulo)}</dt><dd>${escapar(valor)}</dd></div>`)
-    .join("");
-
-  const observacoes = o.observacoes
-    ? `<section><h2>Observações</h2><p class="obs">${escapar(o.observacoes).replace(/\n/g, "<br>")}</p></section>`
-    : "";
-
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">
 <title>Orçamento ${numeroFormatado(o.numero)}</title>
-<style>
-  @page { size: A4; margin: 16mm 14mm; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #1a2033; font-size: 11pt; }
-  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 3px solid #3f72e0; }
-  .empresa h1 { margin: 0 0 6px; font-size: 18pt; }
-  .empresa p, .doc p { margin: 0; color: #5d6880; font-size: 9.5pt; line-height: 1.5; }
-  .doc { text-align: right; }
-  .doc .titulo { margin: 0; color: #3f72e0; font-size: 10pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
-  .doc .numero { margin: 2px 0 6px; font-size: 20pt; font-weight: 700; color: #1a2033; }
-  section { margin-top: 18px; }
-  h2 { margin: 0 0 6px; color: #5d6880; font-size: 9pt; letter-spacing: 1px; text-transform: uppercase; }
-  .cliente { line-height: 1.5; }
-  table { width: 100%; border-collapse: collapse; }
-  .itens th { padding: 8px 10px; background: #eef1f7; color: #5d6880; font-size: 9pt; text-align: left; }
-  .itens td { padding: 9px 10px; border-bottom: 1px solid #e3e7f0; vertical-align: top; }
-  .n, .itens th.n { text-align: right; white-space: nowrap; }
-  .totais { width: 46%; margin-left: auto; margin-top: 10px; }
-  .totais td { padding: 5px 10px; }
-  .totais .total td { padding-top: 9px; border-top: 2px solid #1a2033; font-size: 13pt; font-weight: 700; }
-  dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 0; }
-  dt { color: #5d6880; font-size: 9pt; }
-  dd { margin: 0; }
-  .obs { margin: 0; line-height: 1.5; }
-  footer { margin-top: 28px; color: #98a2b8; font-size: 8.5pt; text-align: center; }
-</style></head>
-<body>
-<header>
-  <div class="empresa"><h1>${escapar(nomeEmpresa)}</h1><p>${contatoEmpresa}</p></div>
-  <div class="doc"><p class="titulo">Orçamento</p><p class="numero">Nº ${numeroFormatado(o.numero)}</p><p>Emitido em ${data(o.criadoEm)}</p></div>
-</header>
-<section><h2>Cliente</h2><div class="cliente">${cliente}</div></section>
-<section>
-  <table class="itens"><thead><tr><th>Descrição</th><th class="n">Qtd.</th><th class="n">Valor unit.</th><th class="n">Total</th></tr></thead>
-  <tbody>${itens}</tbody></table>
-  <table class="totais"><tbody>${linhasTotais}</tbody></table>
-</section>
-<section><h2>Condições</h2><dl>${condicoes}</dl></section>
-${observacoes}
-<footer>Orçamento nº ${numeroFormatado(o.numero)}${empresa.nome ? ` · ${escapar(empresa.nome)}` : ""}</footer>
-</body></html>`;
+<style>body { margin: 0; } ${CSS}</style></head>
+<body>${corpoOrcamento(o, empresa)}</body></html>`;
 }
 
-function nomeArquivoPdf(o) {
-  const cliente = (o.cliente?.nome ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^A-Za-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
-  return `Orcamento-${numeroFormatado(o.numero)}${cliente ? `-${cliente}` : ""}.pdf`;
+// Rodapé do PDF (Electron preenche os números de página).
+const RODAPE_PDF = `<div style="width:100%;padding:0 12mm;font:7pt Arial,sans-serif;text-align:right;color:#444">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>`;
+
+// Nome do arquivo: "Orçamento - Cliente - DD-MM-AAAA.pdf" (data da geração) ou o escolhido no orçamento.
+function nomeArquivoPdf(o, { hoje = new Date() } = {}) {
+  const limpar = (t) => String(t ?? "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "").replace(/\s+/g, " ").trim().slice(0, 90);
+  const escolhido = limpar(o.nomeArquivo).replace(/\.pdf$/i, "");
+  if (escolhido) return `${escolhido}.pdf`;
+  const p = (n) => String(n).padStart(2, "0");
+  const dia = `${p(hoje.getDate())}-${p(hoje.getMonth() + 1)}-${hoje.getFullYear()}`;
+  const cliente = limpar(o.cliente?.nome);
+  return `Orçamento - ${cliente ? `${cliente} - ` : `${numeroFormatado(o.numero)} - `}${dia}.pdf`;
 }
 
-module.exports = { escapar, gerarHtmlOrcamento, nomeArquivoPdf, reais };
+module.exports = { CSS_ORCAMENTO: CSS, RODAPE_PDF, corpoOrcamento, escapar, gerarHtmlOrcamento, nomeArquivoPdf, reais };

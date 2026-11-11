@@ -9,25 +9,27 @@ const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { criarServicoPrintables } = require("./printables.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
+const { Documento } = require("./armazenamento.cjs");
 const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
-const { gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
+const { RODAPE_PDF, gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
 
 // Converte HTML em PDF numa janela invisível, sem scripts e sem acesso a nada local.
-async function htmlParaPdf(html) {
+async function htmlParaPdf(html, opcoes = {}) {
   const janela = new BrowserWindow({
     show: false,
     webPreferences: { javascript: false, sandbox: true, contextIsolation: true, nodeIntegration: false },
   });
   try {
     await janela.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    return await janela.webContents.printToPDF({ printBackground: true, pageSize: "A4", preferCSSPageSize: true });
+    return await janela.webContents.printToPDF({ printBackground: true, pageSize: "A4", preferCSSPageSize: true, ...opcoes });
   } finally {
     janela.destroy();
   }
 }
 const { criarServicoConfiguracoes, responderConfig } = require("./configuracoes.cjs");
+const { criarServicoFinanceiro } = require("./financeiro.cjs");
 
 // Só funciona com o app instalado (empacotado). Em desenvolvimento, não verifica.
 let autoUpdater = null;
@@ -166,7 +168,8 @@ function registrarDados() {
 
   // Cadastros em lista: <nome>:listar, <nome>:salvar, <nome>:excluir.
   const clientes = criarServicoClientes(pasta);
-  const orcamentos = criarServicoOrcamentos(pasta, { clientes });
+  const orcamentos = criarServicoOrcamentos(pasta, { clientes, configuracoes });
+  const financeiro = criarServicoFinanceiro(pasta, { orcamentos });
   const favoritos = criarServicoFavoritos(pasta);
   const projetos = criarServicoProjetos(pasta);
   const filamentos = criarServicoFilamentos(pasta);
@@ -174,7 +177,7 @@ function registrarDados() {
 
   // ---------- Backup e armazenamento ----------
   const backup = criarServicoBackup(pasta, {
-    colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos },
+    colecoes: { produtos, clientes, orcamentos, favoritos, projetos, filamentos, vendas: financeiro.vendas, despesas: financeiro.despesas },
     configuracoes,
     versaoApp: app.getVersion(),
   });
@@ -400,7 +403,7 @@ function registrarDados() {
         const orcamento = (await orcamentos.listar()).find((o) => o.id === id);
         if (!orcamento) throw new ErroValidacao("Este orçamento não existe mais.");
         const config = await configuracoes.ler();
-        const nome = nomeArquivoPdf(orcamento);
+        const nome = nomeArquivoPdf(orcamento, { hoje: new Date() });
         let destino;
         if (process.env.FERRAMENTAS_PDF_DESTINO) {
           destino = path.join(process.env.FERRAMENTAS_PDF_DESTINO, nome);
@@ -413,7 +416,11 @@ function registrarDados() {
           if (escolha.canceled || !escolha.filePath) return null;
           destino = escolha.filePath;
         }
-        const pdf = await htmlParaPdf(gerarHtmlOrcamento(orcamento, config.empresa));
+        const pdf = await htmlParaPdf(gerarHtmlOrcamento(orcamento, config.empresa), {
+          displayHeaderFooter: true,
+          headerTemplate: "<span></span>",
+          footerTemplate: RODAPE_PDF,
+        });
         await require("node:fs/promises").writeFile(destino, pdf);
         if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
         return destino;
@@ -462,6 +469,30 @@ function registrarDados() {
       })(),
     );
   });
+  // ---------- Gestão financeira ----------
+  const texto = (v) => typeof v === "string";
+  ipcMain.handle("financeiro:listar", comTela(() => financeiro.listar()));
+  ipcMain.handle("financeiro:salvar-venda", comTela((_e, valores, id) => financeiro.salvarVenda(valores, texto(id) ? id : undefined)));
+  ipcMain.handle("financeiro:excluir-venda", comTela((_e, id) => financeiro.excluirVenda(String(id))));
+  ipcMain.handle("financeiro:pagamento", comTela((_e, id, pagamento) => financeiro.registrarPagamento(String(id), pagamento)));
+  ipcMain.handle("financeiro:producao", comTela((_e, id, producao) => financeiro.definirProducao(String(id), producao)));
+  ipcMain.handle("financeiro:sincronizar", comTela((_e, orcamentoId, resposta) => financeiro.sincronizarOrcamento(String(orcamentoId), resposta)));
+  ipcMain.handle("financeiro:vincular", comTela((_e, orcamentoId, vendaId) => financeiro.vincularOrcamento(String(orcamentoId), String(vendaId))));
+  ipcMain.handle("financeiro:salvar-despesa", comTela((_e, valores, id) => financeiro.salvarDespesa(valores, texto(id) ? id : undefined)));
+  ipcMain.handle("financeiro:excluir-despesa", comTela((_e, id) => financeiro.excluirDespesa(String(id))));
+  // Rascunho do orçamento em andamento (estado do formulário). Fica na pasta de dados.
+  const rascunho = new Documento(pasta, "rascunho-orcamento");
+  ipcMain.handle("rascunho:ler", comTela(() => rascunho.ler()));
+  ipcMain.handle(
+    "rascunho:salvar",
+    comTela((_e, dados) => {
+      const texto = JSON.stringify(dados ?? {});
+      if (texto.length > 2_000_000) throw new ErroValidacao("Rascunho grande demais.");
+      return rascunho.alterarValor(async () => ({ novo: JSON.parse(texto), resultado: new Date().toISOString() }));
+    }),
+  );
+  ipcMain.handle("orcamentos:situacao", comTela((_e, id, situacao) => orcamentos.definirSituacao(String(id), situacao)));
+
   ipcMain.handle("filamentos:descontar", (e, id, gramas) =>
     daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
   );

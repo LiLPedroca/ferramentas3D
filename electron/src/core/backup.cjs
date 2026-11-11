@@ -9,6 +9,7 @@ const { normalizarGravado } = require("./configuracoes.cjs");
 const { validarFavorito } = require("./stl.cjs");
 const { validarProjeto } = require("./projeto.cjs");
 const { validarFilamento } = require("./filamento.cjs");
+const { validarDespesa, validarVenda } = require("./financeiro.cjs");
 
 const TIPO = "programa-ferramentas-3d-backup";
 
@@ -19,9 +20,11 @@ const COLECOES = {
   favoritos: validarFavorito,
   projetos: validarProjeto,
   filamentos: validarFilamento,
+  vendas: validarVenda,
+  despesas: validarDespesa,
 };
 
-const ROTULOS = { produtos: "produtos", clientes: "clientes", orcamentos: "orçamentos", favoritos: "favoritos de STL", projetos: "modelos salvos", filamentos: "rolos de filamento" };
+const ROTULOS = { produtos: "produtos", clientes: "clientes", orcamentos: "orçamentos", favoritos: "favoritos de STL", projetos: "modelos salvos", filamentos: "rolos de filamento", vendas: "vendas", despesas: "despesas" };
 
 // dados: { produtos: [], clientes: [], orcamentos: [], configuracoes: {} }
 function montarBackup(dados, { versaoApp, agora = new Date().toISOString() }) {
@@ -37,6 +40,8 @@ function montarBackup(dados, { versaoApp, agora = new Date().toISOString() }) {
       favoritos: dados.favoritos ?? [],
       projetos: dados.projetos ?? [],
       filamentos: dados.filamentos ?? [],
+      vendas: dados.vendas ?? [],
+      despesas: dados.despesas ?? [],
       configuracoes: dados.configuracoes ?? {},
     },
   };
@@ -71,7 +76,10 @@ function lerBackup(texto) {
     versaoApp: typeof json.versaoApp === "string" ? json.versaoApp : "",
   };
   let descartados = 0;
+  const ausentes = [];
   for (const [nome, validar] of Object.entries(COLECOES)) {
+    // Backup de uma versão que ainda não tinha este cadastro: ao restaurar, ele fica como está.
+    if (!(nome in json.dados)) ausentes.push(nome);
     const lista = Array.isArray(json.dados[nome]) ? json.dados[nome] : [];
     const bons = lista.filter((item) => valido(validar, item));
     descartados += lista.length - bons.length;
@@ -82,7 +90,7 @@ function lerBackup(texto) {
     resumo[nome] = dados[nome].length;
   }
   dados.configuracoes = normalizarGravado(json.dados.configuracoes);
-  return { dados, resumo, descartados };
+  return { dados, resumo, descartados, ausentes };
 }
 
 // "Backup-Ferramentas3D-2026-11-04-0215.json"

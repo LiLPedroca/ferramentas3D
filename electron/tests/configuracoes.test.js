@@ -28,6 +28,31 @@ describe("modelo de configurações", () => {
     expect(aplicarAlteracao(atual, { outro: 1 })).toMatchObject(atual);
   });
 
+  it("guarda os padrões da calculadora e marca quando foram salvos", () => {
+    expect(normalizarGravado({}).calculadora).toMatchObject({ precoKg: "100", tarifaKwh: "0.9", maoDeObra: "15", salvoEm: "" });
+    const c = aplicarAlteracao({}, { calculadora: { precoKg: "120,50", potenciaW: "250", tarifaKwh: "0,95", custoHora: "2", maoDeObra: "10", lucroPct: "80", valorImpressora: "" } });
+    expect(c.calculadora).toMatchObject({ precoKg: "120.5", tarifaKwh: "0.95", valorImpressora: "" });
+    expect(c.calculadora.salvoEm).not.toBe("");
+    expect(() => aplicarAlteracao({}, { calculadora: { precoKg: "-1" } })).toThrow(/Preço do filamento/);
+  });
+
+  it("dados do orçamento: condições padrão, PDF e numeração, sem perder o que não foi enviado", () => {
+    const c = aplicarAlteracao({}, { orcamento: { validadeDias: "10", frete: "15,00", entrega: "envio", formasPagamento: ["pix", "debito"], exibirPdf: { numero: false }, nomeArquivo: "manual", proximoNumero: "40592" } });
+    expect(c.orcamento).toMatchObject({ validadeDias: 10, freteCentavos: "1500", entrega: "envio", formasPagamento: ["debito", "pix"], nomeArquivo: "manual", proximoNumero: 40592 });
+    expect(c.orcamento.exibirPdf).toEqual({ numero: false, nome: true, quantidade: true, precoUnitario: true, dimensoes: true });
+    const so = aplicarAlteracao(c, { orcamento: { proximoNumero: "50000" } });
+    expect(so.orcamento).toMatchObject({ validadeDias: 10, freteCentavos: "1500", proximoNumero: 50000 });
+    expect(() => aplicarAlteracao({}, { orcamento: { entrega: "drone" } })).toThrow(/Entrega/);
+  });
+
+  it("empresa: endereço e logo (só PNG ou JPG)", () => {
+    const logo = "data:image/png;base64,iVBORw0KGgo=";
+    const c = aplicarAlteracao({}, { empresaParcial: { nome: "Estúdio", endereco: "Rua A, 10", logo } });
+    expect(c.empresa).toMatchObject({ nome: "Estúdio", endereco: "Rua A, 10", logo });
+    expect(aplicarAlteracao(c, { empresaParcial: { logo: "" } }).empresa).toMatchObject({ nome: "Estúdio", logo: "" });
+    expect(() => aplicarAlteracao({}, { empresaParcial: { logo: "data:image/svg+xml;base64,AAAA" } })).toThrow(/Logo/);
+  });
+
   it("cadastra vários fatiadores e mantém o ativo na lista", () => {
     const orca = { nome: "OrcaSlicer", caminho: "C:\\Programas\\Orca\\orca-slicer.exe" };
     const any = { nome: "Anycubic Slicer Next", caminho: "C:\\Programas\\Any\\AnycubicSlicerNext.exe" };

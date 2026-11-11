@@ -27,7 +27,7 @@ const TELAS = {
   projetos: { elemento: "tela-projetos" },
   svg: { elemento: "tela-svg" },
   backup: { elemento: "tela-backup" },
-  orcamento: { elemento: "tela-orcamento", titulo: "Orçamento", pai: "orcamentos" },
+  financeiro: { elemento: "tela-financeiro", titulo: "Gestão financeira", pai: "inicio" },
 };
 for (const f of FERRAMENTAS) {
   if (TELAS[f.tela]) Object.assign(TELAS[f.tela], { titulo: f.titulo, pai: `grupo:${f.grupo}` });
@@ -50,6 +50,9 @@ export function grupos() {
 export function irPara(destino) {
   let info;
   let elemento;
+  // Grupo com tela própria (Gestão financeira abre o painel).
+  const comTela = String(destino).startsWith("grupo:") && GRUPOS.find((g) => `grupo:${g.id}` === destino)?.tela;
+  if (comTela) destino = comTela;
   if (String(destino).startsWith("grupo:")) {
     const grupo = grupos().find((g) => `grupo:${g.id}` === destino);
     if (!grupo) return irPara("inicio");
@@ -124,7 +127,7 @@ const ICONE_GRUPO = { financeiro: "orcamentos", ferramentas: "medidas", modelos:
 function montarMenu() {
   const itens = [itemMenu("inicio", "Início", "inicio")];
   for (const g of grupos()) {
-    itens.push(itemMenu(`grupo:${g.id}`, g.titulo, ICONE_GRUPO[g.id] ?? "visualizador", "menu-grupo"));
+    itens.push(itemMenu(g.tela ?? `grupo:${g.id}`, g.titulo, ICONE_GRUPO[g.id] ?? "visualizador", "menu-grupo"));
     for (const f of g.ferramentas) itens.push(itemMenu(f.tela, f.titulo, f.id, "menu-filho"));
   }
   $("menu-itens").replaceChildren(...itens);

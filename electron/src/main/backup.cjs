@@ -97,6 +97,7 @@ function criarServicoBackup(pasta, { colecoes, configuracoes, versaoApp }) {
     async restaurar(lido) {
       const seguranca = await gravarAutomatico("antes-de-restaurar");
       for (const [nome, servico] of Object.entries(colecoes)) {
+        if (lido.ausentes?.includes(nome)) continue;
         await servico.colecao.alterar(async () => ({ itens: lido.dados[nome], resultado: true }));
       }
       await configuracoes.documento.alterarValor(async (atual) => ({

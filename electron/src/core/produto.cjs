@@ -14,6 +14,7 @@ const LIMITES = {
 };
 
 const { ErroValidacao } = require("./validacao.cjs");
+const { validarCalculo } = require("./calculo-salvo.cjs");
 
 class ProdutoInvalido extends ErroValidacao {
   constructor(mensagem) {
@@ -81,11 +82,13 @@ function validarCusto(custo) {
   ) {
     throw new ProdutoInvalido("Custo vindo da calculadora inválido.");
   }
-  return {
+  const r = {
     custoUnitarioCentavos: String(custo.custoUnitarioCentavos),
     lucroPct: String(custo.lucroPct),
     data: custo.data,
   };
+  if (custo.calculo) r.calculo = validarCalculo(custo.calculo);
+  return r;
 }
 
 // Confere um produto já gravado (ou prestes a ser gravado). Lança ProdutoInvalido.

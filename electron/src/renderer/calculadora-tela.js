@@ -11,24 +11,33 @@ import {
 import { Racional } from "../core/racional.js";
 import { abrirEditor } from "./produtos.js";
 import { carregarFilamentos, descontarDoRolo, listaDeRolos, nomeDoRolo, reaisDeCentavos } from "./filamentos-tela.js";
-import { confirmar, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
+import { adicionarItemDoCalculo } from "./orcamentos.js";
+import { aoMudarConfig, confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
-// Valores iniciais de exemplo.
-const PADROES = {
-  peso: "0",
-  quantidade: "1",
-  "preco-kg": "100",
-  horas: "0",
-  minutos: "0",
-  potencia: "200",
-  tarifa: "0,90",
-  "custo-hora": "1",
-  "mao-obra": "15",
-  lucro: "100",
-  "valor-impressora": "",
-};
+// Campos da tela e valores iniciais (os custos vêm de Configurações > Dados da calculadora).
+const CAMPOS = ["peso", "quantidade", "preco-kg", "horas", "minutos", "potencia", "tarifa", "custo-hora", "mao-obra", "lucro"];
+const reaisCampo = (t) => Number(t).toFixed(2).replace(".", ",");
+const numeroCampo = (t) => String(t).replace(".", ",");
+
+function padroes() {
+  const k = estado.config.calculadora ?? {};
+  return {
+    peso: "0",
+    quantidade: "1",
+    horas: "0",
+    minutos: "0",
+    "preco-kg": reaisCampo(k.precoKg ?? "100"),
+    potencia: numeroCampo(k.potenciaW ?? "200"),
+    tarifa: reaisCampo(k.tarifaKwh ?? "0.9"),
+    "custo-hora": reaisCampo(k.custoHora ?? "2"),
+    "mao-obra": reaisCampo(k.maoDeObra ?? "15"),
+    lucro: numeroCampo(k.lucroPct ?? "100"),
+  };
+}
+
+let usuarioMexeu = false; // os padrões só entram sozinhos antes de o usuário digitar
 
 let ultimoCalculo = null; // { entrada, resultado } do último cálculo válido
 let nomeDoModelo = ""; // quando o peso veio de um modelo personalizado (chaveiro, palavras)
@@ -36,6 +45,8 @@ let nomeDoModelo = ""; // quando o peso veio de um modelo personalizado (chaveir
 // Chamado pelos modelos personalizados: abre a calculadora com o peso estimado de uma peça.
 export function preencherDoModelo({ nome, pesoG, detalhe }) {
   nomeDoModelo = nome;
+  usuarioMexeu = true;
+  $("calc-nome").value = nome;
   $("peso").value = (Math.round(pesoG * 10) / 10).toLocaleString("pt-BR");
   $("quantidade").value = "1";
   $("origem-calculo").textContent = `Peso estimado de "${nome}"${detalhe ? `: ${detalhe}` : ""}. Preencha o tempo de impressão que o fatiador mostrar.`;
@@ -112,13 +123,14 @@ function atualizarResultado() {
     const resultado = calcular(entrada);
     ultimoCalculo = { entrada, resultado };
 
-    const textoValorImpressora = $("valor-impressora").value.trim();
+    // Quanto custou a impressora: vem das Configurações (Dados da calculadora).
+    const valorImpressora = estado.config.calculadora?.valorImpressora ?? "";
     let pecas = "—";
-    if (textoValorImpressora !== "") {
-      const valorImpressora = lerNumero(textoValorImpressora, "Valor da impressora (R$)");
-      const p = pecasParaPagarImpressora(valorImpressora, resultado.lucroUnitario);
+    if (valorImpressora !== "") {
+      const p = pecasParaPagarImpressora(Racional.deTexto(valorImpressora), resultado.lucroUnitario);
       pecas = p === null ? "Sem lucro por peça" : `${p} peças`;
     }
+    $("bloco-pecas-pagar").hidden = valorImpressora === "";
 
     erro.textContent = "";
     $("preco-unitario").textContent = formatarReais(resultado.precoUnitario);
@@ -142,6 +154,35 @@ function decimalCurto(r) {
   return String(Number(comoNumero(r).toFixed(4)));
 }
 
+// Cópia do cálculo (valores e parâmetros de agora), guardada no produto, no orçamento e na venda.
+function copiaDoCalculo() {
+  const { entrada, resultado } = ultimoCalculo;
+  const cent = (r) => r.centavosArredondados().toString();
+  return {
+    pesoG: decimalCurto(entrada.pesoG),
+    quantidade: entrada.quantidade,
+    precoKg: decimalCurto(entrada.precoKg),
+    horas: decimalCurto(entrada.horas),
+    potenciaW: decimalCurto(entrada.potenciaW),
+    tarifaKwh: decimalCurto(entrada.tarifaKwh),
+    custoHora: decimalCurto(entrada.custoHoraImpressora),
+    maoDeObra: decimalCurto(entrada.maoDeObra),
+    lucroPct: decimalCurto(entrada.lucroPct),
+    custosCentavos: {
+      filamento: cent(resultado.filamento),
+      energia: cent(resultado.energia),
+      impressora: cent(resultado.impressora),
+      maoDeObra: cent(resultado.maoDeObra),
+      total: cent(resultado.custoLote),
+    },
+    data: new Date().toISOString(),
+  };
+}
+
+function nomeDoCalculo() {
+  return $("calc-nome").value.trim() || nomeDoModelo || "";
+}
+
 // Abre o cadastro de produto já preenchido com o resultado da calculadora.
 function salvarComoProduto() {
   if (!ultimoCalculo) {
@@ -155,15 +196,42 @@ function salvarComoProduto() {
 
   irPara("produtos");
   abrirEditor(undefined, {
-    nome: nomeDoModelo || undefined,
+    nome: nomeDoCalculo() || undefined,
     preco: formatarReais(new Racional(precoCent, 100n)).replace("R$ ", ""),
     pesoG: peso > 0 ? String(peso).replace(".", ",") : "",
     custo: {
       custoUnitarioCentavos: resultado.custoUnitario.centavosArredondados().toString(),
       lucroPct: decimalCurto(entrada.lucroPct),
       data: new Date().toISOString(),
+      calculo: copiaDoCalculo(),
     },
   });
+}
+
+// Leva o cálculo para o orçamento em andamento, como um item com a quantidade do lote.
+function adicionarAoOrcamento() {
+  if (!ultimoCalculo) {
+    mostrarAviso("Corrija os campos da calculadora antes de adicionar.");
+    return;
+  }
+  const { entrada, resultado } = ultimoCalculo;
+  adicionarItemDoCalculo({
+    descricao: nomeDoCalculo() || "Peça impressa",
+    quantidade: entrada.quantidade,
+    precoUnitarioCentavos: resultado.precoUnitario.centavosArredondados().toString(),
+    custoUnitarioCentavos: resultado.custoUnitario.centavosArredondados().toString(),
+    calculo: copiaDoCalculo(),
+  });
+}
+
+function novoCalculo() {
+  for (const [id, valor] of Object.entries(padroes())) $(id).value = valor;
+  $("calc-nome").value = "";
+  $("origem-calculo").hidden = true;
+  nomeDoModelo = "";
+  usuarioMexeu = false;
+  sincronizarLucro("campo");
+  atualizarResultado();
 }
 
 // ---------- Rolo do estoque ----------
@@ -226,9 +294,15 @@ function sincronizarLucro(origem) {
 }
 
 export function iniciarCalculadora() {
-  for (const id of Object.keys(PADROES)) {
+  for (const id of CAMPOS) {
     if (id !== "lucro") $(id).addEventListener("input", atualizarResultado);
+    $(id).addEventListener("input", () => {
+      usuarioMexeu = true;
+    });
   }
+  $("calc-nome").addEventListener("input", () => {
+    usuarioMexeu = true;
+  });
   $("lucro").addEventListener("input", () => {
     sincronizarLucro("campo");
     atualizarResultado();
@@ -238,12 +312,17 @@ export function iniciarCalculadora() {
     atualizarResultado();
   });
   $("salvar-como-produto").addEventListener("click", salvarComoProduto);
+  $("adicionar-ao-orcamento").addEventListener("click", adicionarAoOrcamento);
+  $("novo-calculo").addEventListener("click", novoCalculo);
+  // Configurações carregadas (ou alteradas): aplica os padrões se nada foi digitado ainda.
+  aoMudarConfig(() => {
+    if (!usuarioMexeu) novoCalculo();
+    else atualizarResultado();
+  });
   $("rolo-calc").addEventListener("change", escolherRolo);
   $("peso").addEventListener("input", mostrarBotaoDescontar);
   $("descontar-rolo").addEventListener("click", descontarDoLote);
   registrarAoAbrir("calculadora", atualizarRolos);
 
-  for (const [id, valor] of Object.entries(PADROES)) $(id).value = valor;
-  sincronizarLucro("campo");
-  atualizarResultado();
+  novoCalculo();
 }

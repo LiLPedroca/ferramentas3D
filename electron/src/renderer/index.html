@@ -86,8 +86,15 @@
 
     <main class="tela oculta" id="tela-calculadora">
       <section class="painel formulario" aria-labelledby="titulo-form">
-        <h2 id="titulo-form">Dados do lote</h2>
+        <div class="calc-topo">
+          <h2 id="titulo-form">Dados do lote</h2>
+          <button class="botao-secundario" id="novo-calculo" type="button">Novo cálculo</button>
+        </div>
         <p class="ajuda origem-calculo" id="origem-calculo" hidden></p>
+        <label class="campo">
+          <span>Nome da peça ou produto</span>
+          <div class="entrada"><input id="calc-nome" maxlength="120" autocomplete="off" placeholder="Ex.: Suporte para celular" /></div>
+        </label>
 
         <fieldset class="grupo">
           <legend>Material e impressão</legend>
@@ -146,7 +153,7 @@
         </fieldset>
 
         <fieldset class="grupo">
-          <legend>Lucro e projeção</legend>
+          <legend>Lucro</legend>
           <div class="linha lucro">
             <label class="campo">
               <span>Lucro sobre o custo</span>
@@ -155,10 +162,6 @@
             <input id="lucro-barra" type="range" min="0" max="100" step="1" aria-label="Lucro em porcentagem" />
           </div>
           <p class="ajuda">A barra vai até 100%. Para lucro acima disso, digite o percentual no campo.</p>
-          <label class="campo">
-            <span>Valor da impressora (para calcular quantas peças pagam ela)</span>
-            <div class="entrada"><input id="valor-impressora" inputmode="decimal" autocomplete="off" placeholder="Ex.: 3000" /><em>R$</em></div>
-          </label>
         </fieldset>
 
         <p class="erro" id="erro" role="alert"></p>
@@ -174,7 +177,7 @@
           <div><span>Lucro por peça</span><strong id="lucro-unitario">R$ 0,00</strong></div>
         </div>
 
-        <div class="destaque">
+        <div class="destaque" id="bloco-pecas-pagar" hidden>
           <span>Peças para pagar a impressora</span>
           <strong id="pecas-pagar">—</strong>
         </div>
@@ -187,7 +190,10 @@
           <strong id="custo-lote">R$ 0,00</strong>
         </div>
         <p class="ajuda pequeno">Valores exibidos arredondados a centavos. O preço usa o cálculo completo, sem arredondamento intermediário.</p>
-        <button class="botao-secundario largo" id="salvar-como-produto" type="button">Salvar como produto</button>
+        <div class="calc-acoes">
+          <button class="botao-primario" id="adicionar-ao-orcamento" type="button">Adicionar ao orçamento →</button>
+          <button class="botao-secundario" id="salvar-como-produto" type="button">Salvar em Meus produtos</button>
+        </div>
         <button class="botao-secundario largo" id="descontar-rolo" type="button" hidden>Descontar do rolo</button>
       </section>
     </main>
@@ -692,12 +698,157 @@
     <!-- Tela: orcamentos -->
 
     <main class="tela oculta pagina" id="tela-orcamentos">
-      <div class="pagina-conteudo">
-        <div class="produtos-topo">
-          <div>
-            <h1 class="titulo-pagina">Orçamentos</h1>
-            <p class="ajuda" id="orcamentos-resumo"></p>
+      <div class="pagina-conteudo largo">
+        <div class="aviso-revisao" id="o-aviso-revisao" hidden>
+          <p><strong id="o-revisao-texto"></strong> Confirme os recebimentos para atualizar o financeiro.</p>
+          <button type="button" class="botao-secundario" id="o-revisar">Revisar orçamentos</button>
+        </div>
+
+        <div class="orc-topo">
+          <h1 class="titulo-pagina" id="o-titulo">Orçamento</h1>
+          <div class="orc-topo-acoes">
+            <button type="button" class="botao-secundario" id="o-novo">Novo orçamento</button>
+            <button type="button" class="botao-secundario" id="o-salvar-rascunho">Salvar rascunho agora</button>
+            <span class="ajuda" id="o-rascunho-status"></span>
+            <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="o-mostrar-previa" checked /> Mostrar prévia do PDF</label>
           </div>
+        </div>
+
+        <ol class="etapas" id="o-etapas">
+          <li><button type="button" data-etapa="1"><span>1</span>Cliente</button></li>
+          <li><button type="button" data-etapa="2"><span>2</span>Produtos</button></li>
+          <li><button type="button" data-etapa="3"><span>3</span>Condições</button></li>
+          <li><button type="button" data-etapa="4"><span>4</span>Finalizar</button></li>
+        </ol>
+
+        <div class="orc-layout" id="o-layout">
+          <div class="painel orc-etapa-painel">
+            <section class="orc-etapa" data-etapa="1">
+              <h2>Quem vai receber este orçamento?</h2>
+              <p class="ajuda">Selecione um cliente cadastrado ou preencha os dados abaixo.</p>
+              <label class="campo"><span>Cliente cadastrado (opcional)</span><select id="o-cliente" class="seletor"></select></label>
+              <h3 class="subtitulo-config">Dados do cliente</h3>
+              <div class="linha">
+                <label class="campo"><span>Nome *</span><div class="entrada"><input id="o-cli-nome" maxlength="120" autocomplete="off" /></div></label>
+                <label class="campo"><span>Telefone / WhatsApp *</span><div class="entrada"><input id="o-cli-telefone" inputmode="tel" autocomplete="off" placeholder="(00) 00000-0000" /></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>CPF / CNPJ (opcional)</span><div class="entrada"><input id="o-cli-documento" inputmode="numeric" autocomplete="off" /></div></label>
+                <label class="campo"><span>E-mail (opcional)</span><div class="entrada"><input id="o-cli-email" type="email" maxlength="120" autocomplete="off" /></div></label>
+              </div>
+              <label class="campo"><span>Endereço (opcional)</span><div class="entrada"><input id="o-cli-endereco" maxlength="200" autocomplete="off" /></div></label>
+              <h3 class="subtitulo-config">Identificação do orçamento</h3>
+              <div class="orc-numero">
+                <label class="campo"><span>Número do orçamento</span><div class="entrada"><input id="o-numero" inputmode="numeric" autocomplete="off" /></div></label>
+                <button type="button" class="botao-secundario" id="o-config-numero">Configurar numeração</button>
+              </div>
+              <div class="orc-navegacao"><span class="espaco"></span><button type="button" class="botao-secundario" data-ir="2">Continuar para Produtos →</button></div>
+            </section>
+
+            <section class="orc-etapa" data-etapa="2" hidden>
+              <h2>Produtos do orçamento</h2>
+              <div class="orc-add">
+                <button type="button" class="botao-primario" id="o-add-produto">+ Adicionar produto</button>
+                <button type="button" class="botao-texto" id="o-calcular">Calcular produto</button>
+                <button type="button" class="botao-texto" id="o-add-manual">Adicionar manualmente</button>
+              </div>
+              <div class="tabela-rolagem">
+                <table class="tabela-itens" id="o-tabela-itens">
+                  <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Total</th><th>Ações</th></tr></thead>
+                  <tbody id="o-itens"></tbody>
+                </table>
+              </div>
+              <p class="ajuda" id="o-itens-vazio">Adicione produtos do catálogo, um cálculo ou um item manual.</p>
+              <div class="orc-resumo-itens" id="o-resumo-itens"></div>
+              <p class="ajuda">Os custos originais dos produtos são preservados no financeiro.</p>
+              <div class="orc-navegacao">
+                <button type="button" class="botao-secundario" data-ir="1">← Voltar para Cliente</button>
+                <span class="espaco"></span>
+                <button type="button" class="botao-secundario" data-ir="3">Continuar para Condições →</button>
+              </div>
+            </section>
+
+            <section class="orc-etapa" data-etapa="3" hidden>
+              <div class="orc-total-caixa">
+                <strong id="o-total-texto">Total do orçamento: R$ 0,00</strong>
+                <button type="button" class="botao-secundario" id="o-desconto-abrir">Aplicar / editar desconto</button>
+              </div>
+              <div class="linha" id="o-desconto-campos" hidden>
+                <label class="campo"><span>Desconto</span><div class="entrada"><input id="o-desconto" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div></label>
+                <label class="campo"><span>Frete</span><div class="entrada"><input id="o-frete" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div></label>
+              </div>
+              <h3 class="subtitulo-config">Pagamento</h3>
+              <div class="chaves-grade" id="o-formas"></div>
+              <div class="orc-sinal">
+                <div class="orc-sinal-topo">
+                  <h3 class="subtitulo-config">Sinal</h3>
+                  <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="o-cobrar-sinal" /> Cobrar sinal</label>
+                </div>
+                <div class="linha" id="o-sinal-campos" hidden>
+                  <label class="campo"><span>Valor do sinal</span><div class="entrada"><input id="o-sinal-valor" inputmode="decimal" autocomplete="off" /></div></label>
+                  <label class="campo"><span>Em</span>
+                    <select id="o-sinal-tipo" class="seletor"><option value="reais">Reais (R$)</option><option value="percentual">Porcentagem do total (%)</option></select>
+                  </label>
+                </div>
+                <p class="ajuda">O recebimento será confirmado na finalização.</p>
+                <p class="orc-sinal-resumo" id="o-sinal-resumo"></p>
+              </div>
+              <h3 class="subtitulo-config">Entrega e prazos</h3>
+              <div class="linha">
+                <label class="campo"><span>Entrega</span>
+                  <select id="o-entrega" class="seletor">
+                    <option value="retirada">Retirada</option>
+                    <option value="entrega">Entrega no endereço</option>
+                    <option value="envio">Envio pelos Correios ou transportadora</option>
+                  </select>
+                </label>
+                <label class="campo"><span>Validade do orçamento</span><div class="entrada"><input id="o-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div></label>
+              </div>
+              <label class="campo"><span>Prazo de produção</span><div class="entrada"><input id="o-prazo" maxlength="80" placeholder="Ex.: 5 dias úteis" autocomplete="off" /></div></label>
+              <label class="campo"><span>Descrição complementar</span><textarea id="o-descricao" maxlength="1000" rows="2"></textarea></label>
+              <label class="campo"><span>Observações</span><textarea id="o-obs" maxlength="1000" rows="2"></textarea></label>
+              <div class="orc-navegacao">
+                <button type="button" class="botao-secundario" data-ir="2">← Voltar para Produtos</button>
+                <span class="espaco"></span>
+                <button type="button" class="botao-secundario" data-ir="4">Continuar para Finalizar →</button>
+              </div>
+            </section>
+
+            <section class="orc-etapa" data-etapa="4" hidden>
+              <p class="orc-pendencia" id="o-pendencia"></p>
+              <h3 class="subtitulo-config">Exibir no PDF</h3>
+              <div class="chaves-grade" id="o-pdf"></div>
+              <h3 class="subtitulo-config">Arquivo PDF</h3>
+              <select id="o-arquivo-modo" class="seletor largo-total">
+                <option value="automatico">Automático: cliente + data</option>
+                <option value="manual">Manual: escolher o nome</option>
+              </select>
+              <div class="entrada" id="o-arquivo-nome-campo" hidden><input id="o-arquivo-nome" maxlength="100" autocomplete="off" placeholder="Nome do arquivo" aria-label="Nome do arquivo PDF" /><em>.pdf</em></div>
+              <p class="ajuda">Automático: Orçamento - Nome do cliente - DD-MM-AAAA.pdf, com a data de geração. Manual: você decide o nome do PDF; .pdf é adicionado automaticamente.</p>
+              <p class="ajuda">O pagamento será confirmado na próxima janela.</p>
+              <p class="erro" id="erro-orcamento" role="alert"></p>
+              <div class="orc-finalizar">
+                <button type="button" class="botao-texto perigo" id="o-excluir" hidden>Excluir orçamento</button>
+                <span class="espaco"></span>
+                <button type="button" class="botao-secundario" id="o-finalizar">Finalizar orçamento</button>
+                <button type="button" class="botao-primario" id="o-finalizar-pdf">Finalizar e gerar PDF</button>
+              </div>
+              <div class="orc-navegacao"><button type="button" class="botao-secundario" data-ir="3">← Voltar para Condições</button></div>
+            </section>
+          </div>
+
+          <aside class="painel orc-previa" id="o-previa-painel">
+            <h2>Prévia do PDF</h2>
+            <div class="orc-previa-vazia" id="o-previa-vazia">
+              <strong>Seu orçamento aparece aqui</strong>
+              <p id="o-previa-falta">Preencha o nome do cliente.</p>
+            </div>
+            <div class="orc-folha" id="o-previa" hidden></div>
+          </aside>
+        </div>
+
+        <details class="orc-historico" id="o-historico">
+          <summary>Histórico de orçamentos <span class="ajuda" id="orcamentos-resumo"></span></summary>
           <div class="produtos-acoes">
             <label class="busca">
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
@@ -706,130 +857,210 @@
             <select id="filtro-situacao" class="seletor" aria-label="Filtrar por situação">
               <option value="">Todas as situações</option>
               <option value="rascunho">Rascunho</option>
+              <option value="finalizado">Finalizado</option>
               <option value="enviado">Enviado</option>
               <option value="aprovado">Aprovado</option>
-              <option value="recusado">Recusado</option>
+              <option value="recusado">Cancelado</option>
             </select>
-            <button class="botao-primario" id="novo-orcamento" type="button">+ Novo orçamento</button>
           </div>
-        </div>
-
-        <p class="erro" id="erro-orcamentos" role="alert"></p>
-        <div class="lista-clientes" id="lista-orcamentos"></div>
-
-        <div class="vazio-produtos" id="vazio-orcamentos" hidden>
-          <span class="vazio-icone" id="vazio-orcamentos-icone"></span>
-          <h2>Nenhum orçamento ainda</h2>
-          <p>Monte orçamentos com seus produtos ou itens avulsos, aplique desconto e frete, e gere o PDF para enviar ao cliente.</p>
-          <div class="vazio-botoes">
-            <button class="botao-primario" id="vazio-novo-orcamento" type="button">Criar orçamento</button>
-          </div>
-        </div>
-        <p class="vazio" id="sem-resultado-orcamentos" hidden>Nenhum orçamento encontrado com esse filtro.</p>
+          <p class="erro" id="erro-orcamentos" role="alert"></p>
+          <div class="lista-clientes" id="lista-orcamentos"></div>
+          <p class="vazio" id="vazio-orcamentos" hidden>Nenhum orçamento finalizado ainda.</p>
+          <p class="vazio" id="sem-resultado-orcamentos" hidden>Nenhum orçamento encontrado com esse filtro.</p>
+        </details>
       </div>
     </main>
 
-    <!-- Tela: orcamento -->
+    <!-- Diálogo: escolher produto do catálogo -->
 
-    <main class="tela oculta pagina" id="tela-orcamento">
-      <div class="pagina-conteudo largo">
-        <div class="editor-orcamento">
-          <section class="painel">
-            <div class="orc-cabecalho">
-              <div>
-                <h1 class="titulo-pagina" id="o-titulo">Novo orçamento</h1>
-                <p class="ajuda" id="o-data"></p>
-              </div>
+    <dialog class="dialogo dialogo-medio" id="dialogo-escolher-produto" aria-labelledby="titulo-escolher-produto">
+      <header class="dialogo-topo">
+        <h2 id="titulo-escolher-produto">Adicionar produto</h2>
+        <button type="button" class="fechar" id="fechar-escolher-produto" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <label class="busca largo-total">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+          <input id="busca-escolher-produto" type="search" placeholder="Buscar produto…" aria-label="Buscar produto" autocomplete="off" />
+        </label>
+        <div class="escolher-produtos" id="lista-escolher-produto"></div>
+      </div>
+    </dialog>
+
+    <!-- Diálogo: pagamento ao finalizar o orçamento -->
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-pagamento" aria-labelledby="titulo-pagamento">
+      <form id="form-pagamento" novalidate>
+        <header class="dialogo-topo">
+          <h2 id="titulo-pagamento">O cliente já pagou?</h2>
+        </header>
+        <div class="dialogo-corpo-simples">
+          <p class="ajuda" id="pagamento-resumo"></p>
+          <div class="opcoes-pagamento">
+            <label class="fatiador-opcao"><input type="radio" name="pag-modo" value="pendente" /> <span class="fatiador-texto"><strong>O cliente ainda não pagou</strong></span></label>
+            <label class="fatiador-opcao"><input type="radio" name="pag-modo" value="parcial" /> <span class="fatiador-texto"><strong>Pagou um sinal ou valor parcial</strong></span></label>
+            <label class="fatiador-opcao"><input type="radio" name="pag-modo" value="integral" /> <span class="fatiador-texto"><strong>Pagou o valor integral</strong></span></label>
+            <label class="fatiador-opcao" id="pag-op-vincular" hidden><input type="radio" name="pag-modo" value="vincular" /> <span class="fatiador-texto"><strong>Já lancei esta venda à mão</strong><span class="cliente-sub">Liga o orçamento à venda de mesmo valor, sem duplicar.</span></span></label>
+            <label class="fatiador-opcao" id="pag-op-cancelar" hidden><input type="radio" name="pag-modo" value="cancelar" /> <span class="fatiador-texto"><strong>Não virou venda</strong><span class="cliente-sub">O orçamento fica como cancelado.</span></span></label>
+          </div>
+          <label class="campo" id="pagamento-venda-campo" hidden><span>Venda lançada</span><select id="pagamento-venda" class="seletor"></select></label>
+          <div id="pagamento-detalhes" hidden>
+            <div class="linha">
+              <label class="campo" id="pagamento-valor-campo"><span>Quanto já pagou no total</span><div class="entrada"><input id="pagamento-valor" inputmode="decimal" autocomplete="off" /><em>R$</em></div></label>
+              <label class="campo"><span>Data do recebimento</span><div class="entrada"><input id="pagamento-data" type="date" /></div></label>
             </div>
+            <span class="rotulo-campo">Formas usadas</span>
+            <div class="chaves-grade" id="pagamento-formas"></div>
+          </div>
+        </div>
+        <p class="erro dialogo-erro" id="erro-pagamento" role="alert"></p>
+        <footer class="dialogo-rodape">
+          <button type="button" class="botao-texto" id="pagamento-depois">Responder depois</button>
+          <span class="espaco"></span>
+          <button type="submit" class="botao-primario" id="pagamento-confirmar">Confirmar</button>
+        </footer>
+      </form>
+    </dialog>
 
-            <fieldset class="grupo">
-              <legend>Cliente</legend>
-              <div class="linha">
-                <label class="campo">
-                  <span>Cadastro</span>
-                  <select id="o-cliente" class="seletor largo-total"></select>
-                </label>
-                <label class="campo" id="campo-cliente-nome" hidden>
-                  <span>Nome do cliente</span>
-                  <div class="entrada"><input id="o-cliente-nome" maxlength="120" autocomplete="off" /></div>
-                </label>
-              </div>
-            </fieldset>
+    <!-- Tela: financeiro -->
 
-            <fieldset class="grupo">
-              <legend>Itens</legend>
-              <div class="item-orcamento cabecalho-itens" id="o-itens-cabecalho" hidden>
-                <span>Descrição</span><span>Qtd.</span><span>Valor unit. (R$)</span><span class="direita">Total</span><span></span>
-              </div>
-              <div id="o-itens"></div>
-              <p class="ajuda" id="o-itens-vazio">Adicione produtos do seu catálogo ou itens avulsos.</p>
-              <div class="acoes-itens">
-                <select id="o-add-produto" class="seletor" aria-label="Adicionar produto"></select>
-                <button class="botao-secundario" id="o-add-item" type="button">+ Item avulso</button>
-              </div>
-            </fieldset>
+    <main class="tela oculta pagina" id="tela-financeiro">
+      <div class="pagina-conteudo largo">
+        <div class="aviso-revisao" id="fin-aviso-revisao" hidden>
+          <p><strong id="fin-revisao-texto"></strong> Confirme os recebimentos para atualizar o financeiro.</p>
+          <button type="button" class="botao-secundario" id="fin-revisar">Revisar orçamentos</button>
+        </div>
 
-            <fieldset class="grupo">
-              <legend>Condições</legend>
-              <div class="linha">
-                <label class="campo">
-                  <span>Desconto</span>
-                  <div class="entrada"><input id="o-desconto" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div>
-                </label>
-                <label class="campo">
-                  <span>Frete</span>
-                  <div class="entrada"><input id="o-frete" inputmode="decimal" placeholder="0,00" autocomplete="off" /><em>R$</em></div>
-                </label>
-              </div>
-              <div class="linha">
-                <label class="campo">
-                  <span>Validade</span>
-                  <div class="entrada"><input id="o-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div>
-                </label>
-                <label class="campo">
-                  <span>Prazo de produção</span>
-                  <div class="entrada"><input id="o-prazo" maxlength="80" placeholder="Ex.: 5 dias úteis" autocomplete="off" /></div>
-                </label>
-              </div>
-              <label class="campo">
-                <span>Forma de pagamento</span>
-                <div class="entrada"><input id="o-pagamento" maxlength="160" placeholder="Ex.: Pix, cartão ou 50% de sinal" autocomplete="off" /></div>
+        <div class="fin-abas" id="fin-abas" role="tablist" aria-label="Visão geral e vendas abertas"></div>
+
+        <section id="fin-geral">
+          <div class="fin-topo">
+            <div>
+              <h1 class="titulo-pagina">Gestão financeira</h1>
+              <p class="ajuda">Acompanhe vendas, recebimentos, custos e produção.</p>
+            </div>
+            <div class="fin-topo-acoes">
+              <label class="campo"><span>Período</span>
+                <select id="fin-periodo" class="seletor">
+                  <option value="30">Últimos 30 dias</option>
+                  <option value="90">Últimos 90 dias</option>
+                  <option value="tudo">Todo o histórico</option>
+                </select>
               </label>
-              <label class="campo">
-                <span>Observações</span>
-                <textarea id="o-obs" maxlength="1000" rows="3"></textarea>
-              </label>
-            </fieldset>
+              <button type="button" class="botao-primario" id="fin-novo-registro">Novo registro</button>
+            </div>
+          </div>
+          <p class="erro" id="erro-financeiro" role="alert"></p>
+
+          <div class="fin-cartoes" id="fin-cartoes"></div>
+          <p class="ajuda fin-nota" id="fin-nota"></p>
+
+          <div class="fin-grade">
+            <section class="painel fin-bloco">
+              <h2>Recebimentos e despesas</h2>
+              <div class="fin-grafico" id="fin-grafico"></div>
+              <p class="ajuda" id="fin-caixa"></p>
+            </section>
+            <section class="painel fin-bloco" id="fin-bloco-pendentes">
+              <h2>Saldos pendentes</h2>
+              <div id="fin-pendentes"></div>
+            </section>
+          </div>
+
+          <div class="fin-grade">
+            <section class="painel fin-bloco" id="fin-bloco-vendas">
+              <h2>Vendas no período</h2>
+              <p class="ajuda" id="fin-vendas-resumo"></p>
+              <div class="tabela-rolagem">
+                <table class="tabela-fin" id="fin-tabela-vendas">
+                  <thead><tr><th>Registro / orçamento</th><th>Data</th><th class="n">Valor</th><th class="n">Recebido</th><th class="n">A receber</th><th>Situação</th><th>Ações</th></tr></thead>
+                  <tbody id="fin-vendas"></tbody>
+                </table>
+              </div>
+              <p class="vazio" id="fin-vendas-vazio" hidden>Nenhuma venda neste período.</p>
+            </section>
+            <section class="painel fin-bloco">
+              <h2>Ações rápidas</h2>
+              <div class="fin-atalhos" id="fin-atalhos"></div>
+            </section>
+          </div>
+
+          <section class="painel fin-bloco" id="fin-bloco-registros">
+            <h2>Registros recentes</h2>
+            <div id="fin-registros"></div>
           </section>
 
-          <aside class="painel resumo-orcamento">
-            <label class="campo">
-              <span>Situação</span>
-              <select id="o-situacao" class="seletor largo-total">
-                <option value="rascunho">Rascunho</option>
-                <option value="enviado">Enviado</option>
-                <option value="aprovado">Aprovado</option>
-                <option value="recusado">Recusado</option>
-              </select>
-            </label>
-            <dl class="totais-orcamento">
-              <div><dt>Subtotal</dt><dd id="o-subtotal">R$ 0,00</dd></div>
-              <div><dt>Desconto</dt><dd id="o-res-desconto">R$ 0,00</dd></div>
-              <div><dt>Frete</dt><dd id="o-res-frete">R$ 0,00</dd></div>
-              <div class="total"><dt>Total</dt><dd id="o-total">R$ 0,00</dd></div>
-            </dl>
-            <dl class="totais-orcamento lucro" id="o-bloco-lucro" hidden>
-              <div><dt>Custo dos itens</dt><dd id="o-custo"></dd></div>
-              <div><dt>Lucro estimado</dt><dd id="o-lucro"></dd></div>
-            </dl>
-            <p class="erro" id="erro-orcamento" role="alert"></p>
-            <button class="botao-primario largo" id="o-salvar" type="button">Salvar</button>
-            <button class="botao-secundario largo" id="o-pdf" type="button">Salvar e gerar PDF</button>
-            <button class="botao-texto perigo" id="o-excluir" type="button" hidden>Excluir orçamento</button>
-          </aside>
-        </div>
+          <section class="painel fin-bloco" id="fin-checklist-bloco">
+            <div class="fin-checklist-topo">
+              <h2>Complete sua configuração inicial</h2>
+              <span class="ajuda" id="fin-checklist-progresso"></span>
+            </div>
+            <div class="fin-progresso"><div id="fin-checklist-barra"></div></div>
+            <ol class="fin-checklist" id="fin-checklist"></ol>
+          </section>
+        </section>
+
+        <section id="fin-venda" hidden></section>
       </div>
     </main>
+
+    <!-- Diálogo: novo registro do financeiro -->
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-registro" aria-labelledby="titulo-registro">
+      <form id="form-registro" novalidate>
+        <header class="dialogo-topo">
+          <h2 id="titulo-registro">Novo registro</h2>
+          <button type="button" class="fechar" id="fechar-registro" aria-label="Fechar">×</button>
+        </header>
+        <div class="dialogo-corpo-simples">
+          <label class="campo"><span>Tipo</span>
+            <select id="reg-tipo" class="seletor">
+              <option value="venda">Venda confirmada</option>
+              <option value="recebimento">Recebimento de uma venda</option>
+              <option value="despesa">Despesa</option>
+            </select>
+          </label>
+          <label class="campo" id="reg-venda-campo" hidden><span>Venda</span><select id="reg-venda" class="seletor"></select></label>
+          <label class="campo" id="reg-descricao-campo"><span>Descrição</span><div class="entrada"><input id="reg-descricao" maxlength="160" autocomplete="off" /></div></label>
+          <label class="campo" id="reg-cliente-campo"><span>Cliente (opcional)</span><div class="entrada"><input id="reg-cliente" maxlength="120" autocomplete="off" /></div></label>
+          <div class="linha">
+            <label class="campo"><span>Valor</span><div class="entrada"><input id="reg-valor" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div></label>
+            <label class="campo"><span>Data</span><div class="entrada"><input id="reg-data" type="date" /></div></label>
+          </div>
+          <div id="reg-formas-campo" hidden>
+            <span class="rotulo-campo">Formas usadas</span>
+            <div class="chaves-grade" id="reg-formas"></div>
+          </div>
+        </div>
+        <p class="erro dialogo-erro" id="erro-registro" role="alert"></p>
+        <footer class="dialogo-rodape">
+          <span class="espaco"></span>
+          <button type="button" class="botao-secundario" id="cancelar-registro">Cancelar</button>
+          <button type="submit" class="botao-primario">Salvar registro</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Diálogo: revisão dos orçamentos antigos -->
+
+    <dialog class="dialogo dialogo-medio" id="dialogo-revisao" aria-labelledby="titulo-revisao">
+      <header class="dialogo-topo">
+        <h2 id="titulo-revisao">Revisar orçamentos</h2>
+        <button type="button" class="fechar" id="fechar-revisao" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <p class="ajuda">Estes orçamentos ainda não estão no financeiro. Informe se cada um está pendente, parcialmente pago ou quitado. Nada é marcado como pago sem a sua confirmação.</p>
+        <div class="revisao-lista" id="revisao-lista"></div>
+      </div>
+    </dialog>
+
+    <!-- Diálogo: cálculo utilizado -->
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-calculo" aria-labelledby="titulo-calculo">
+      <h2 id="titulo-calculo">Cálculo utilizado</h2>
+      <dl class="calculo-lista" id="calculo-lista"></dl>
+      <div class="dialogo-rodape"><span class="espaco"></span><button type="button" class="botao-primario" id="fechar-calculo">Fechar</button></div>
+    </dialog>
 
     <!-- Tela: backup -->
 
@@ -1717,88 +1948,129 @@
     <!-- Tela: configuracoes -->
 
     <main class="tela oculta pagina" id="tela-configuracoes">
-      <div class="pagina-conteudo estreito">
+      <div class="pagina-conteudo largo">
         <h1 class="titulo-pagina">Configurações</h1>
-        <form class="painel cartao-config" id="form-config" novalidate>
-          <h2>Você</h2>
-          <label class="campo">
-            <span>Seu nome</span>
-            <div class="entrada"><input id="c-nome" maxlength="80" autocomplete="given-name" placeholder="Como você quer ser chamado" /></div>
-          </label>
+        <div class="config-layout">
+          <nav class="painel config-nav" aria-label="Seções das configurações">
+            <button type="button" class="config-aba" data-secao="cfg-calculadora">Dados da calculadora</button>
+            <button type="button" class="config-aba" data-secao="cfg-orcamento">Dados do orçamento</button>
+            <button type="button" class="config-aba" data-secao="cfg-geral">Geral</button>
+          </nav>
 
-          <h2 class="subtitulo-config">Sua empresa</h2>
-          <p class="ajuda">Aparece no cabeçalho dos orçamentos em PDF.</p>
-          <label class="campo">
-            <span>Nome da empresa ou marca</span>
-            <div class="entrada"><input id="c-emp-nome" maxlength="120" autocomplete="organization" /></div>
-          </label>
-          <div class="linha">
-            <label class="campo">
-              <span>Telefone / WhatsApp</span>
-              <div class="entrada"><input id="c-emp-telefone" inputmode="tel" autocomplete="off" /></div>
-            </label>
-            <label class="campo">
-              <span>E-mail</span>
-              <div class="entrada"><input id="c-emp-email" type="email" maxlength="120" autocomplete="off" /></div>
-            </label>
-          </div>
-          <div class="linha">
-            <label class="campo">
-              <span>CPF ou CNPJ</span>
-              <div class="entrada"><input id="c-emp-documento" inputmode="numeric" autocomplete="off" /></div>
-            </label>
-            <label class="campo">
-              <span>Cidade</span>
-              <div class="entrada"><input id="c-emp-cidade" maxlength="80" autocomplete="off" /></div>
-            </label>
-          </div>
-          <label class="campo">
-            <span>Site ou Instagram</span>
-            <div class="entrada"><input id="c-emp-site" maxlength="120" autocomplete="off" placeholder="Ex.: @minhaloja3d" /></div>
-          </label>
+          <div class="config-secoes">
+            <form class="painel cartao-config config-secao" id="cfg-calculadora" novalidate hidden>
+              <h2>Dados da calculadora</h2>
+              <p class="ajuda">Defina seus custos habituais. Eles preenchem um novo cálculo e podem ser ajustados em cada impressão.</p>
+              <div class="linha">
+                <label class="campo"><span>Preço do filamento</span><div class="entrada"><input id="cc-preco-kg" inputmode="decimal" autocomplete="off" /><em>R$/kg</em></div></label>
+                <label class="campo"><span>Consumo da impressora</span><div class="entrada"><input id="cc-potencia" inputmode="decimal" autocomplete="off" /><em>W</em></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Tarifa de energia</span><div class="entrada"><input id="cc-tarifa" inputmode="decimal" autocomplete="off" /><em>R$/kWh</em></div></label>
+                <label class="campo"><span>Uso da impressora por hora</span><div class="entrada"><input id="cc-custo-hora" inputmode="decimal" autocomplete="off" /><em>R$/h</em></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Mão de obra do lote</span><div class="entrada"><input id="cc-mao-obra" inputmode="decimal" autocomplete="off" /><em>R$</em></div></label>
+                <label class="campo"><span>Lucro sobre o custo</span><div class="entrada"><input id="cc-lucro" inputmode="decimal" autocomplete="off" /><em>%</em></div></label>
+              </div>
+              <label class="campo"><span>Quanto custou sua impressora?</span><div class="entrada"><input id="cc-valor-impressora" inputmode="decimal" autocomplete="off" placeholder="Opcional" /><em>R$</em></div></label>
+              <p class="ajuda">Usado para mostrar quantas peças pagam a impressora, com base no lucro por peça.</p>
+              <p class="ajuda">Um cálculo em andamento não é alterado. Use "Novo cálculo" para começar com os novos padrões.</p>
+              <p class="erro" id="erro-cfg-calculadora" role="alert"></p>
+              <div class="acoes-form"><button class="botao-primario" type="submit">Salvar dados da calculadora</button></div>
+            </form>
 
-          <h2 class="subtitulo-config">Padrões do orçamento</h2>
-          <p class="ajuda">Preenchidos automaticamente em cada orçamento novo.</p>
-          <div class="linha">
-            <label class="campo">
-              <span>Validade</span>
-              <div class="entrada"><input id="c-orc-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div>
-            </label>
-            <label class="campo">
-              <span>Prazo de produção</span>
-              <div class="entrada"><input id="c-orc-prazo" maxlength="80" autocomplete="off" placeholder="Ex.: 5 dias úteis" /></div>
-            </label>
-          </div>
-          <label class="campo">
-            <span>Forma de pagamento</span>
-            <div class="entrada"><input id="c-orc-pagamento" maxlength="160" autocomplete="off" /></div>
-          </label>
-          <label class="campo">
-            <span>Observações</span>
-            <textarea id="c-orc-obs" maxlength="1000" rows="3"></textarea>
-          </label>
+            <form class="painel cartao-config config-secao" id="cfg-orcamento" novalidate hidden>
+              <h2>Dados do orçamento</h2>
+              <p class="ajuda">Empresa e condições que preenchem novos orçamentos. Rascunhos e orçamentos anteriores mantêm seus dados.</p>
 
-          <p class="erro" id="erro-config" role="alert"></p>
-          <div class="acoes-form">
-            <button class="botao-primario" type="submit">Salvar</button>
-          </div>
-        </form>
+              <h3 class="subtitulo-config">Sua empresa</h3>
+              <div class="linha">
+                <label class="campo"><span>Nome da empresa</span><div class="entrada"><input id="c-emp-nome" maxlength="120" autocomplete="organization" /></div></label>
+                <label class="campo"><span>CPF / CNPJ</span><div class="entrada"><input id="c-emp-documento" inputmode="numeric" autocomplete="off" /></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Telefone / WhatsApp</span><div class="entrada"><input id="c-emp-telefone" inputmode="tel" autocomplete="off" /></div></label>
+                <label class="campo"><span>E-mail</span><div class="entrada"><input id="c-emp-email" type="email" maxlength="120" autocomplete="off" /></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Endereço</span><div class="entrada"><input id="c-emp-endereco" maxlength="200" autocomplete="off" /></div></label>
+                <label class="campo"><span>Site ou Instagram</span><div class="entrada"><input id="c-emp-site" maxlength="120" autocomplete="off" placeholder="Ex.: @minhaloja3d" /></div></label>
+              </div>
+              <span class="rotulo-campo">Logo (PNG ou JPG, até 2 MB)</span>
+              <div class="logo-campo">
+                <div class="logo-previa" id="c-logo-previa"></div>
+                <div class="logo-botoes">
+                  <button type="button" class="botao-secundario" id="c-logo-escolher">Selecionar imagem</button>
+                  <button type="button" class="botao-texto perigo" id="c-logo-remover" hidden>Remover logo</button>
+                  <input type="file" id="c-logo-arquivo" accept="image/png,image/jpeg" hidden />
+                </div>
+              </div>
 
-        <section class="painel cartao-config">
-          <h2>Meu fatiador</h2>
-          <p class="ajuda" id="c-fatiador-atual"></p>
-          <div class="acoes-form">
-            <button class="botao-secundario" type="button" id="c-escolher-fatiador">Escolher fatiador…</button>
-          </div>
-        </section>
+              <h3 class="subtitulo-config">Condições padrão</h3>
+              <div class="linha">
+                <label class="campo"><span>Validade do orçamento</span><div class="entrada"><input id="c-orc-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div></label>
+                <label class="campo"><span>Prazo de produção</span><div class="entrada"><input id="c-orc-prazo" maxlength="80" autocomplete="off" placeholder="Ex.: 5 dias úteis" /></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Entrega</span>
+                  <select id="c-orc-entrega" class="seletor">
+                    <option value="retirada">Retirada</option>
+                    <option value="entrega">Entrega no endereço</option>
+                    <option value="envio">Envio pelos Correios ou transportadora</option>
+                  </select>
+                </label>
+                <label class="campo"><span>Frete padrão</span><div class="entrada"><input id="c-orc-frete" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div></label>
+              </div>
+              <span class="rotulo-campo">Formas de pagamento</span>
+              <div class="chaves-grade" id="c-orc-formas"></div>
+              <label class="campo"><span>Descrição complementar padrão</span><textarea id="c-orc-descricao" maxlength="1000" rows="3"></textarea></label>
+              <label class="campo"><span>Observações padrão</span><textarea id="c-orc-obs" maxlength="1000" rows="3"></textarea></label>
 
-        <section class="painel cartao-config">
-          <h2>Seus dados</h2>
-          <p class="ajuda">Produtos e configurações ficam salvos neste computador, com cópia de segurança automática a cada alteração.</p>
-          <div class="acoes-form">
-            <button class="botao-secundario" type="button" id="abrir-pasta-dados">Abrir pasta de dados</button>
+              <h3 class="subtitulo-config">Exibir no PDF</h3>
+              <div class="chaves-grade" id="c-orc-pdf"></div>
+              <div class="linha">
+                <label class="campo"><span>Nome do arquivo PDF</span>
+                  <select id="c-orc-arquivo" class="seletor">
+                    <option value="automatico">Automático: cliente + data</option>
+                    <option value="manual">Manual: escolher em cada orçamento</option>
+                  </select>
+                </label>
+                <label class="campo"><span>Próximo número de orçamento</span><div class="entrada"><input id="c-orc-numero" inputmode="numeric" autocomplete="off" /></div></label>
+              </div>
+              <p class="erro" id="erro-cfg-orcamento" role="alert"></p>
+              <div class="acoes-form"><button class="botao-primario" type="submit">Salvar dados do orçamento</button></div>
+            </form>
+
+            <div class="config-secao" id="cfg-geral" hidden>
+              <form class="painel cartao-config" id="form-config" novalidate>
+                <h2>Você</h2>
+                <label class="campo">
+                  <span>Seu nome</span>
+                  <div class="entrada"><input id="c-nome" maxlength="80" autocomplete="given-name" placeholder="Como você quer ser chamado" /></div>
+                </label>
+                <p class="erro" id="erro-config" role="alert"></p>
+                <div class="acoes-form"><button class="botao-primario" type="submit">Salvar</button></div>
+              </form>
+
+              <section class="painel cartao-config">
+                <h2>Meu fatiador</h2>
+                <p class="ajuda" id="c-fatiador-atual"></p>
+                <div class="acoes-form">
+                  <button class="botao-secundario" type="button" id="c-escolher-fatiador">Gerenciar fatiadores…</button>
+                </div>
+              </section>
+
+              <section class="painel cartao-config">
+                <h2>Seus dados</h2>
+                <p class="ajuda">Produtos e configurações ficam salvos neste computador, com cópia de segurança automática a cada alteração.</p>
+                <div class="acoes-form">
+                  <button class="botao-secundario" type="button" id="abrir-pasta-dados">Abrir pasta de dados</button>
+                </div>
+              </section>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </main>
 

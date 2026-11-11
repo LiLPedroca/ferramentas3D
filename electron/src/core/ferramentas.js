@@ -8,6 +8,7 @@ export const GRUPOS = [
     titulo: "Gestão financeira",
     descricao: "Calculadora, orçamentos, clientes e produtos.",
     foto: "assets/grupo-financeiro.jpg",
+    tela: "financeiro", // abre o painel financeiro em vez da lista de ferramentas
   },
   {
     id: "ferramentas",

@@ -51,7 +51,26 @@ contextBridge.exposeInMainWorld("dados", {
   projetos: cadastro("projetos"),
   etiquetas: (pedido) => ipcRenderer.invoke("etiquetas:pdf", pedido),
   filamentos: { ...cadastro("filamentos"), descontar: (id, gramas) => ipcRenderer.invoke("filamentos:descontar", id, gramas) },
-  orcamentos: { ...cadastro("orcamentos"), pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id) },
+  orcamentos: {
+    ...cadastro("orcamentos"),
+    pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id),
+    situacao: (id, situacao) => ipcRenderer.invoke("orcamentos:situacao", id, situacao),
+  },
+  rascunho: {
+    ler: () => ipcRenderer.invoke("rascunho:ler"),
+    salvar: (dados) => ipcRenderer.invoke("rascunho:salvar", dados),
+  },
+  financeiro: {
+    listar: () => ipcRenderer.invoke("financeiro:listar"),
+    salvarVenda: (valores, id) => ipcRenderer.invoke("financeiro:salvar-venda", valores, id ?? null),
+    excluirVenda: (id) => ipcRenderer.invoke("financeiro:excluir-venda", id),
+    pagamento: (id, pagamento) => ipcRenderer.invoke("financeiro:pagamento", id, pagamento),
+    producao: (id, producao) => ipcRenderer.invoke("financeiro:producao", id, producao),
+    sincronizar: (orcamentoId, resposta) => ipcRenderer.invoke("financeiro:sincronizar", orcamentoId, resposta),
+    vincular: (orcamentoId, vendaId) => ipcRenderer.invoke("financeiro:vincular", orcamentoId, vendaId),
+    salvarDespesa: (valores, id) => ipcRenderer.invoke("financeiro:salvar-despesa", valores, id ?? null),
+    excluirDespesa: (id) => ipcRenderer.invoke("financeiro:excluir-despesa", id),
+  },
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
   config: {
     ler: () => ipcRenderer.invoke("config:ler"),
