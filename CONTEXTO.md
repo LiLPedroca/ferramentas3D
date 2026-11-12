@@ -608,3 +608,7 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - Início: painel dos cartões preso embaixo com altura mínima fixa; "Explorar" na mesma linha mesmo com título em 2 linhas.
 - Conferido: 369 testes; captura com escudo de teste (Branco/Preto/Dourado achados, borracha no 2D, balde no 3D,
   Ctrl+Z/Ctrl+Y, painel + Cor, tema claro, janela estreita). Não conferido: logos reais do Pedro, imprimir.
+- **v0.51.1** (Pedro testou o escudo do Santos: prévia vazia com "A ligação da argola ficou fina"): `prenderArgola`
+  com posição automática tenta pontos vizinhos da borda (passos de 1,5% do perímetro, até 24 de cada lado) antes de
+  desistir (vale também para o Chaveiro de nome). Se não couber em lugar nenhum, a tela mostra a peça sem argola,
+  com o aviso, e não deixa exportar. Zoom do 3D mostrava "100000000%" sem peça: corrigido.

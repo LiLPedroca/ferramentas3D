@@ -171,6 +171,16 @@ export const NOVIDADES = [
     itens: ["Corrija na prévia 2D ou 3D: borracha, varinha, pincel e balde", "× tira uma cor; + Cor separa uma cor nova", "Projeto com nome, \"Salvo\" e Exportar 3MF/STL"],
     botao: "Experimentar",
   },
+  {
+    id: "logo-argola-automatica",
+    versao: "0.51.1",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Argola que se ajeita sozinha",
+    texto: "No Criador de logos, se a argola não cabe no topo, ela vai sozinha para o ponto mais perto da borda que dá certo.",
+    itens: ["Logo com ponta fina em cima não some mais da prévia", "Se não couber em lugar nenhum, a peça aparece sem argola e o aviso diz o que fazer"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

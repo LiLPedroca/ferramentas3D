@@ -190,6 +190,17 @@ describe("criador de logos: qualidade da borda", () => {
 });
 
 describe("criador de logos: peça", () => {
+  it("argola automática: se o topo é uma ponta fina, procura outro ponto da borda", () => {
+    // quadrado com uma ponta fina saindo do meio de cima (onde a argola iria)
+    const quadrado = [[0, 0], [100, 0], [100, 100], [52, 100], [50, 140], [48, 100], [0, 100]];
+    const cores = [{ cor: "#1b1b1b", formas: [[quadrado]] }];
+    const peca = gerarLogo(M, cores, { largura: 50 });
+    expect(peca.argola).not.toBeNull();
+    expect(peca.dimensoes[0]).toBeCloseTo(50, 0);
+    // posição escolhida à mão continua valendo (e dá o erro de antes se não couber)
+    expect(() => gerarLogo(M, cores, { largura: 50, argola: peca.argola.t })).not.toThrow();
+  });
+
   it("mapa → SVG → peça 3D, com e sem argola, e o caminho de volta (mm → pixel)", () => {
     const img = imagemTeste();
     const { mapa, alvos, fundo } = recorteAutomatico(img, { areasInternas: true });

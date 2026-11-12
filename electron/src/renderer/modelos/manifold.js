@@ -122,10 +122,29 @@ export function pontoNoLaco(laco, t) {
 // Prende a argola na borda externa da base, na posição "t" (0 a 1) ou, sem ela, no ponto da borda
 // mais perto de "pontoPadrao". Recusa posições que furem a arte ou fiquem mal ligadas.
 // o: { furo, parede } em mm. Devolve { base, perimetro, argola: { t, centro, raio, furo } }.
+// t = null: posição automática. Começa no ponto da borda mais perto de pontoPadrao e, se ali não der
+// (ponta fina, desenho no caminho), tenta pontos vizinhos dos dois lados até achar um que dê.
 export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao) {
+  if (t !== null && t !== undefined) return prenderArgolaEm(M, guardar, base, arte, o, t);
+  const perimetro = contornoExterno(base);
+  const inicio = maisPertoNoLaco(perimetro, pontoPadrao).t;
+  let primeiroErro = null;
+  for (let k = 0; k <= 24; k++) {
+    for (const sinal of k ? [1, -1] : [1]) {
+      const tentativa = (((inicio + sinal * k * 0.015) % 1) + 1) % 1;
+      try {
+        return prenderArgolaEm(M, guardar, base, arte, o, tentativa);
+      } catch (erro) {
+        primeiroErro ??= erro;
+      }
+    }
+  }
+  throw primeiroErro;
+}
+
+function prenderArgolaEm(M, guardar, base, arte, o, posicao) {
   const C = M.CrossSection;
   const perimetro = contornoExterno(base);
-  const posicao = t ?? maisPertoNoLaco(perimetro, pontoPadrao).t;
   const ancora = pontoNoLaco(perimetro, posicao);
   const raio = o.furo / 2 + o.parede;
   const afastamento = raio - Math.min(o.parede, 2);

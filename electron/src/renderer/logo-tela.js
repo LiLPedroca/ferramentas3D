@@ -311,8 +311,16 @@ async function gerar() {
     if (minha !== geracao) return;
     const { argola, corBase, ...medidas } = opcoes;
     const chave = JSON.stringify(medidas);
-    const novo = gerarLogo(M, cores, opcoes, ultimaArte?.chave === chave ? ultimaArte.largura : null);
-    ultimaArte = { chave, largura: novo.escalaArte * 100 };
+    let novo;
+    let semArgola = null; // a argola não coube em nenhum ponto: mostra a peça sem ela (sem exportar)
+    try {
+      novo = gerarLogo(M, cores, opcoes, ultimaArte?.chave === chave ? ultimaArte.largura : null);
+      ultimaArte = { chave, largura: novo.escalaArte * 100 };
+    } catch (erro) {
+      if (!opcoes.comArgola || !/argola/i.test(erro.message)) throw erro;
+      novo = gerarLogo(M, cores, { ...opcoes, comArgola: false });
+      semArgola = opcoes.argola === null ? "A argola não coube em nenhum ponto da borda. Aumente a borda (Ajustes avançados) ou desligue a argola." : erro.message;
+    }
     const novasPartes = novo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
     // canto da peça antes de ir para a origem (o 3D é mostrado deslocado; o clique precisa voltar)
     const desloc = [Infinity, Infinity];
@@ -326,8 +334,13 @@ async function gerar() {
     partes = novasPartes;
     vinculo = { k: cores.quadro.escala * novo.escalaArte, minX: cores.quadro.minX, maxY: cores.quadro.maxY, desloc };
     if (modo === "3d") previa3d?.mostrar(partes);
-    status(modelo.avisos.join(" ") || "Pronto para exportar", "pronto");
-    habilitar(true);
+    if (semArgola) {
+      status(semArgola, "erro");
+      habilitar(false);
+    } else {
+      status(modelo.avisos.join(" ") || "Pronto para exportar", "pronto");
+      habilitar(true);
+    }
   } catch (erro) {
     if (minha !== geracao) return;
     modelo = null;

@@ -144,7 +144,7 @@ export function criarPrevia(container, opcoes = {}) {
       controles.update();
     },
     // quanto de zoom (1 = enquadrado)
-    nivel: () => distanciaInicial / Math.max(1e-6, camera.position.distanceTo(controles.target)),
+    nivel: () => (malhas.length ? distanciaInicial / Math.max(1e-6, camera.position.distanceTo(controles.target)) : 1),
     // Pintura sobre a peça: o botão esquerdo fica livre (pinta) e o direito gira.
     modoPintura(sim) {
       Object.assign(controles.mouseButtons, sim ? { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } : BOTOES);
