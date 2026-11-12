@@ -142,6 +142,16 @@ export const NOVIDADES = [
     itens: ["Leve o .zip para outro computador", "Para restaurar, escolha ou arraste o .zip"],
     botao: "Entendi",
   },
+  {
+    id: "3d-sem-placa",
+    versao: "0.49.1",
+    tela: "visualizador",
+    icone: "visualizador",
+    titulo: "3D em mais computadores",
+    texto: "Se a placa de vídeo não ajudar, o programa desenha o 3D sozinho. Fica mais lento, mas funciona.",
+    itens: ["Vale para o Visualizador e as prévias dos modelos", "Se nem assim der, aparece um aviso e o resto da tela continua funcionando"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

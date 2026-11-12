@@ -1,11 +1,17 @@
 // Pré-visualização 3D reutilizável: mostra as partes de um modelo, cada uma com sua cor.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { criarRenderizador, mostrarSem3d } from "./webgl.js";
+
+// Sem WebGL: a prévia vira um aviso e os comandos não fazem nada (exportar etc. continuam funcionando).
+const PREVIA_SEM_3D = { sem3d: true, colorir() {}, mostrarGrade() {}, mostrar() {}, enquadrar() {}, verBase() {}, zoom() {} };
 
 export function criarPrevia(container, opcoes = {}) {
-  const renderizador = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderizador.setClearColor(0x000000, 0);
-  renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderizador = criarRenderizador();
+  if (!renderizador) {
+    mostrarSem3d(container);
+    return PREVIA_SEM_3D;
+  }
   container.append(renderizador.domElement);
 
   const cena = new THREE.Scene();

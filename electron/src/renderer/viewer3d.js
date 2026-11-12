@@ -16,6 +16,7 @@ import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
 import { criarPaquimetro } from "./paquimetro.js";
+import { SEM_3D, criarRenderizador, mostrarSem3d } from "./modelos/webgl.js";
 import { estado as app, mostrarAviso, salvarConfig } from "./shell.js";
 
 const MODOS_MEDIDA = ["paquimetro", "distancia"];
@@ -53,9 +54,12 @@ export function iniciarVisualizador() {
   }
 
   const palco = $("palco");
-  const renderizador = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderizador.setClearColor(0x000000, 0);
-  renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderizador = criarRenderizador();
+  if (!renderizador) {
+    $("palco-vazio").hidden = true;
+    mostrarSem3d(palco);
+    return;
+  }
   palco.append(renderizador.domElement);
 
   const cena = new THREE.Scene();
@@ -304,6 +308,10 @@ export async function abrirArquivoNoVisualizador(arquivo) {
 }
 
 async function carregarArquivo(arquivo, opcoes = {}) {
+  if (!estado) {
+    mostrarAviso(SEM_3D);
+    return;
+  }
   const extensao = arquivo.name.toLowerCase().split(".").pop();
   if (!EXTENSOES.includes(extensao)) {
     mostrarAviso("Escolha um arquivo .stl, .3mf, .obj ou .ply.");

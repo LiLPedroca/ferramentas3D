@@ -595,6 +595,16 @@ function registrarDados() {
   );
 }
 
+// 3D: se a placa de vídeo não puder ser usada (driver antigo, acesso remoto, máquina virtual), o Chromium
+// desenha o WebGL por software (SwiftShader). Mais lento, mas a prévia aparece. O "unsafe" do nome vale para
+// sites da internet; aqui a tela só carrega arquivos do próprio programa, com CSP.
+app.commandLine.appendSwitch("enable-unsafe-swiftshader");
+// Testes: simular um computador sem placa de vídeo (FERRAMENTAS_SEM_GPU=1) ou sem nenhum 3D (=sem-3d).
+if (process.env.FERRAMENTAS_SEM_GPU) {
+  app.disableHardwareAcceleration();
+  if (process.env.FERRAMENTAS_SEM_GPU === "sem-3d") app.commandLine.appendSwitch("disable-webgl");
+}
+
 // Modo de captura (testes): continua desenhando mesmo com a janela encoberta ou a tela bloqueada.
 if (process.env.FERRAMENTAS_CAPTURA) {
   app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");

@@ -542,3 +542,15 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - Conferido: 356 testes; capturas de Início, menu, Produtos (grade/lista, Duplicar), Impressões (material/cores,
   Voltar reabre a janela), backup .zip gerado e restaurado numa pasta de dados vazia, programa empacotado gerando o
   .zip. Não conferido: arrastar o .zip de verdade com o mouse; restaurar em outro computador.
+
+## Correção (12/11/2026) — 3D em computadores sem placa de vídeo utilizável (v0.49.1)
+
+- No PC de um amigo do Pedro a prévia mostrava "THREE.WebGLRenderer: Error creating WebGL context." (em inglês).
+- `main.cjs`: `enable-unsafe-swiftshader` sempre ligado, então o Chromium desenha o WebGL por software quando a GPU
+  falha. Conferido com `FERRAMENTAS_SEM_GPU=1` (simula sem GPU): renderer "SwiftShader", copo aparece.
+- `renderer/modelos/webgl.js`: `criarRenderizador()` (null se falhar) e `mostrarSem3d()` com aviso em pt-BR.
+  `previa3d.js` devolve uma prévia que não faz nada (`sem3d: true`) e o resto da tela segue; o Visualizador mostra
+  o aviso e recusa abrir arquivos. Teste `tests/sem-3d.test.js` (happy-dom não tem WebGL).
+- `FERRAMENTAS_SEM_GPU=sem-3d` tenta desligar o WebGL de vez, mas com o SwiftShader ligado o Chromium continua
+  dando WebGL: o aviso só foi conferido pelo teste automático.
+- Não conferido no PC do amigo.
