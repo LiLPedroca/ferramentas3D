@@ -221,36 +221,36 @@ export function contornos(campo, w, h) {
   const W = w + 2;
   const H = h + 2;
   const v = (i, j) => (i < 1 || j < 1 || i > w || j > h ? 0 : campo[(j - 1) * w + (i - 1)]);
-  const ponto = (i1, j1, i2, j2) => {
+  // ponto da aresta "chave": horizontais (i,j)-(i+1,j) têm chave par; verticais (i,j)-(i,j+1), ímpar
+  const ponto = (chave) => {
+    const q = chave >> 1;
+    const i1 = q % W;
+    const j1 = (q - i1) / W;
+    const i2 = chave & 1 ? i1 : i1 + 1;
+    const j2 = chave & 1 ? j1 + 1 : j1;
     const va = v(i1, j1);
     const vb = v(i2, j2);
     const t = vb === va ? 0.5 : (0.5 - va) / (vb - va);
     return [i1 + (i2 - i1) * t - 0.5, j1 + (j2 - j1) * t - 0.5];
   };
-  // chaves das arestas da grade: horizontais e verticais
-  const H_ = (i, j) => (j * W + i) * 2;
-  const V_ = (i, j) => (j * W + i) * 2 + 1;
-  const proximo = new Map(); // aresta de saída por aresta de entrada
-  const pontos = new Map();
-  const ligar = (de, para, pDe, pPara) => {
-    proximo.set(de, para);
-    if (!pontos.has(de)) pontos.set(de, pDe());
-    if (!pontos.has(para)) pontos.set(para, pPara());
-  };
+  // grade com borda de 1: 1 onde a cobertura passa de 0,5 (consulta rápida; só as células de borda seguem)
+  const acima = new Uint8Array(W * H);
+  for (let j = 1; j <= h; j++) {
+    const linha = (j - 1) * w;
+    for (let i = 1; i <= w; i++) if (campo[linha + i - 1] > 0.5) acima[j * W + i] = 1;
+  }
+  const proximo = new Map(); // aresta de saída por aresta de entrada (só as da borda)
+  const seg = (de, para) => proximo.set(de, para);
   for (let j = 0; j < H - 1; j++) {
     for (let i = 0; i < W - 1; i++) {
-      const tl = v(i, j) > 0.5;
-      const tr = v(i + 1, j) > 0.5;
-      const br = v(i + 1, j + 1) > 0.5;
-      const bl = v(i, j + 1) > 0.5;
-      const caso = (tl ? 8 : 0) | (tr ? 4 : 0) | (br ? 2 : 0) | (bl ? 1 : 0);
+      const q = j * W + i;
+      const caso = (acima[q] << 3) | (acima[q + 1] << 2) | (acima[q + W + 1] << 1) | acima[q + W];
       if (caso === 0 || caso === 15) continue;
-      const T = [H_(i, j), () => ponto(i, j, i + 1, j)];
-      const B = [H_(i, j + 1), () => ponto(i, j + 1, i + 1, j + 1)];
-      const L = [V_(i, j), () => ponto(i, j, i, j + 1)];
-      const R = [V_(i + 1, j), () => ponto(i + 1, j, i + 1, j + 1)];
-      const seg = (x, y) => ligar(x[0], y[0], x[1], y[1]);
-      const centro = (v(i, j) + v(i + 1, j) + v(i + 1, j + 1) + v(i, j + 1)) / 4 > 0.5;
+      const T = q * 2;
+      const B = (q + W) * 2;
+      const L = q * 2 + 1;
+      const R = (q + 1) * 2 + 1;
+      const centro = caso === 5 || caso === 10 ? (v(i, j) + v(i + 1, j) + v(i + 1, j + 1) + v(i, j + 1)) / 4 > 0.5 : false;
       switch (caso) {
         case 1: seg(L, B); break;
         case 2: seg(B, R); break;
@@ -270,14 +270,14 @@ export function contornos(campo, w, h) {
     }
   }
   const lacos = [];
-  const usados = new Set();
+  const usado = new Set();
   for (const inicio of proximo.keys()) {
-    if (usados.has(inicio)) continue;
+    if (usado.has(inicio)) continue;
     const laco = [];
     let atual = inicio;
-    while (atual !== undefined && !usados.has(atual)) {
-      usados.add(atual);
-      laco.push(pontos.get(atual));
+    while (atual !== undefined && !usado.has(atual)) {
+      usado.add(atual);
+      laco.push(ponto(atual));
       atual = proximo.get(atual);
     }
     if (laco.length >= 3) lacos.push(laco);

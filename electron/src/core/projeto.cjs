@@ -5,7 +5,7 @@
 const { ErroValidacao, ID, dataValida, texto } = require("./validacao.cjs");
 
 const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Criador de logos", palavras: "Palavras decorativas", caneca: "Caneca de chopp" };
-const LIMITES = { nome: 80, projetos: 2000, opcoes: 20_000, miniatura: 300_000, imagem: 2_000_000 };
+const LIMITES = { nome: 80, projetos: 2000, opcoes: 20_000, miniatura: 300_000, imagem: 2_000_000, correcoes: 1_500_000 };
 const IMAGEM = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
 
 function imagemDe(valor, nome, maximo) {
@@ -22,7 +22,7 @@ function opcoesDe(valor) {
   return JSON.parse(json); // cópia limpa (só dados)
 }
 
-// valores: { tipo, nome, opcoes, miniatura, imagem }
+// valores: { tipo, nome, opcoes, miniatura, imagem, correcoes }
 function montarProjeto(valores, { id, anterior, agora = new Date().toISOString() } = {}) {
   const v = valores ?? {};
   const tipo = anterior?.tipo ?? v.tipo;
@@ -35,6 +35,8 @@ function montarProjeto(valores, { id, anterior, agora = new Date().toISOString()
     miniatura: imagemDe(v.miniatura, "Miniatura", LIMITES.miniatura),
     // chaveiro de nome: a imagem do símbolo (opcional)
     imagem: ["logo", "caneca", "chaveiro"].includes(tipo) ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
+    // Criador de logos: o que foi corrigido à mão, como imagem do tamanho do mapa (opcional)
+    correcoes: tipo === "logo" ? imagemDe(v.correcoes, "Correções do logo", LIMITES.correcoes) : "",
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };
@@ -51,6 +53,7 @@ function validarProjeto(p) {
   opcoesDe(p.opcoes);
   imagemDe(p.miniatura, "Miniatura", LIMITES.miniatura);
   imagemDe(p.imagem, "Imagem do logo", LIMITES.imagem);
+  imagemDe(p.correcoes, "Correções do logo", LIMITES.correcoes);
   if (!dataValida(p.criadoEm) || !dataValida(p.atualizadoEm)) throw new ErroValidacao("Data inválida.");
   return true;
 }

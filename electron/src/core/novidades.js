@@ -161,6 +161,16 @@ export const NOVIDADES = [
     itens: ["As cores achadas viram as cores prontas; toque numa para trocar", "Em Editar: borracha, restaurar, varinha, pincel e balde", "Com ou sem argola"],
     botao: "Experimentar",
   },
+  {
+    id: "criador-de-logos-novo",
+    versao: "0.51.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Criador de logos de cara nova",
+    texto: "Correção direto na peça, bordas bem mais lisas e cores com × e + Cor.",
+    itens: ["Corrija na prévia 2D ou 3D: borracha, varinha, pincel e balde", "× tira uma cor; + Cor separa uma cor nova", "Projeto com nome, \"Salvo\" e Exportar 3MF/STL"],
+    botao: "Experimentar",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

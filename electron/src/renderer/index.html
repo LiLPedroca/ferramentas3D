@@ -1675,52 +1675,82 @@
 
     <!-- Tela: logo -->
 
-    <main class="tela oculta pagina" id="tela-logo">
-      <div class="pagina-conteudo largo">
-        <div class="zona-arquivo" id="lg-zona" tabindex="0" role="button" aria-label="Escolher imagem do logo">
-          <p><strong>Arraste o logo aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP ou HEIC. O programa recorta o fundo e acha as cores; o que ele errar, você corrige à mão.</p>
-          <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
-        </div>
-        <div class="modelo-trabalho" id="lg-trabalho" hidden>
-          <aside class="painel modelo-opcoes ch-painel">
-            <nav class="ch-abas" aria-label="Partes do chaveiro">
-              <button type="button" data-alvo="lg-sec-arte">Logo</button>
-              <button type="button" data-alvo="lg-sec-base">Base</button>
-              <button type="button" data-alvo="lg-sec-argola">Argola</button>
-            </nav>
-            <div class="ch-rolagem">
-              <section id="lg-sec-arte">
-                <p class="cliente-sub" id="lg-nome"></p>
-                <button type="button" class="botao-texto" id="lg-trocar">Trocar imagem…</button>
-                <label class="campo">
-                  <span>Cores do logo: até <strong id="lg-cores-valor">3</strong></span>
-                  <input type="range" id="lg-cores" min="1" max="6" step="1" value="3" />
-                </label>
-                <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="lg-fundo" checked /> Tirar o fundo</label>
-                <label class="chave-linha" id="lg-fundo-dentro-linha"><input type="checkbox" class="chave" role="switch" id="lg-fundo-dentro" checked /> Tirar também o fundo de dentro do logo</label>
-                <span class="ch-rotulo">Cores achadas · toque numa para trocar</span>
-                <div class="lg-cores-achadas" id="lg-cores-lista"></div>
-                <div class="lg-trocar-cor" id="lg-trocar-cor" hidden></div>
-                <p class="ajuda">Sobrou fundo ou alguma cor saiu errada? Toque em <strong>Editar</strong>, em cima da prévia.</p>
-                <label class="campo">
-                  <span>Largura total</span>
-                  <div class="entrada"><input id="lg-largura" inputmode="decimal" /><em>mm</em></div>
-                </label>
-                <p class="ajuda" id="lg-largura-ajuda">Inclui base e argola. O arquivo exportado sai com esta largura.</p>
-              </section>
+    <main class="tela oculta lg-pagina" id="tela-logo">
+      <div class="zona-arquivo lg-zona" id="lg-zona" tabindex="0" role="button" aria-label="Escolher imagem do logo">
+        <p><strong>Arraste o logo aqui</strong></p>
+        <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP, HEIC ou SVG. O programa recorta o fundo e acha as cores; o que ele errar, você corrige na própria peça.</p>
+        <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/svg+xml,.heic,.heif,.svg" hidden />
+      </div>
+      <div class="lg-app" id="lg-trabalho" hidden>
+        <header class="lg-topo">
+          <div class="lg-projeto">
+            <span class="lg-projeto-nome" id="lg-projeto-nome"></span>
+            <input class="lg-projeto-campo" id="lg-projeto-campo" maxlength="80" aria-label="Nome do projeto" hidden />
+            <button type="button" class="botao-icone lg-renomear" id="lg-renomear" aria-label="Renomear o projeto" title="Renomear"></button>
+            <span class="lg-selo" id="lg-selo"></span>
+          </div>
+          <div class="lg-topo-acoes">
+            <button class="botao-secundario" id="lg-salvar-modelo" type="button" disabled>Salvar projeto</button>
+            <div class="lg-exportar">
+              <button class="botao-primario" id="lg-3mf" type="button" disabled>Exportar 3MF</button>
+              <button class="botao-primario lg-exportar-seta" id="lg-exportar-mais" type="button" aria-label="Outros formatos" aria-haspopup="menu" aria-expanded="false" disabled></button>
+              <div class="lg-menu" id="lg-menu-exportar" role="menu" hidden>
+                <button type="button" role="menuitem" id="lg-stl">Exportar STL</button>
+              </div>
+            </div>
+          </div>
+        </header>
 
-              <section id="lg-sec-base">
-                <h2 class="ch-titulo">Estilo da base</h2>
-                <div class="ch-estilos" role="group" aria-label="Estilo da base">
-                  <button type="button" data-lg-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
-                  <button type="button" data-lg-estilo="circulo"><span class="ch-forma circulo"></span>Círculo</button>
-                  <button type="button" data-lg-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
+        <div class="lg-corpo">
+          <aside class="lg-painel">
+            <h2 class="lg-painel-titulo">Personalizar</h2>
+            <nav class="lg-abas" role="tablist" aria-label="Partes da peça">
+              <button type="button" role="tab" data-lg-aba="logo" aria-selected="true"><span>1</span>Logo</button>
+              <button type="button" role="tab" data-lg-aba="base" aria-selected="false"><span>2</span>Base</button>
+              <button type="button" role="tab" data-lg-aba="argola" aria-selected="false"><span>3</span>Argola</button>
+            </nav>
+            <div class="lg-rolagem">
+              <section data-lg-secao="logo">
+                <div class="lg-imagem">
+                  <img id="lg-miniatura" alt="" />
+                  <div class="lg-imagem-info">
+                    <strong id="lg-nome"></strong>
+                    <span id="lg-tamanho-imagem"></span>
+                  </div>
+                  <button type="button" class="botao-secundario lg-trocar" id="lg-trocar">Trocar</button>
                 </div>
-                <span class="ch-rotulo">Cor da base</span>
-                <div class="ch-paleta" id="lg-paleta-base"></div>
-                <details class="ch-detalhes">
-                  <summary>Estrutura</summary>
+
+                <h3 class="lg-sub">Cores do logo</h3>
+                <div class="lg-chips" id="lg-cores-lista"></div>
+                <div class="lg-adicionar" id="lg-adicionar-cor" hidden>
+                  <div class="lg-adicionar-topo">
+                    <span id="lg-adicionar-titulo">Adicionar cor</span>
+                    <button type="button" class="fechar" id="lg-adicionar-fechar" aria-label="Fechar">×</button>
+                  </div>
+                  <div class="lg-bolinhas" id="lg-cores-novas"></div>
+                </div>
+
+                <h3 class="lg-sub">Limpeza da imagem</h3>
+                <label class="chave-linha lg-chave"><span>Remover fundo</span><input type="checkbox" class="chave" role="switch" id="lg-fundo" checked /></label>
+                <label class="chave-linha lg-chave" id="lg-fundo-dentro-linha"><span>Remover áreas internas</span><input type="checkbox" class="chave" role="switch" id="lg-fundo-dentro" /></label>
+                <button type="button" class="lg-link" id="lg-corrigir">Corrigir imagem manualmente</button>
+
+                <h3 class="lg-sub">Tamanho</h3>
+                <div class="lg-tamanhos">
+                  <label class="campo">
+                    <span>Largura</span>
+                    <div class="entrada"><input id="lg-largura" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                  <span class="lg-cadeado" title="Proporção mantida" aria-hidden="true"></span>
+                  <label class="campo">
+                    <span>Altura</span>
+                    <div class="entrada"><input id="lg-altura" inputmode="decimal" /><em>mm</em></div>
+                  </label>
+                </div>
+                <p class="ajuda" id="lg-largura-ajuda"></p>
+
+                <details class="lg-avancados">
+                  <summary>Ajustes avançados</summary>
                   <div class="linha">
                     <label class="campo">
                       <span>Borda em volta</span>
@@ -1738,76 +1768,83 @@
                 </details>
               </section>
 
-              <section id="lg-sec-argola">
-                <h2 class="ch-titulo">Argola</h2>
-                <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="lg-com-argola" checked /> Com argola (chaveiro)</label>
-                <div id="lg-argola-campos">
-                <p class="ajuda">Na prévia 2D, arraste o círculo tracejado para levar a argola a qualquer ponto da borda.</p>
-                <div class="linha">
-                  <label class="campo">
-                    <span>Furo</span>
-                    <div class="entrada"><input id="lg-furo" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                  <label class="campo">
-                    <span>Parede</span>
-                    <div class="entrada"><input id="lg-parede" inputmode="decimal" /><em>mm</em></div>
-                  </label>
+              <section data-lg-secao="base" hidden>
+                <h3 class="lg-sub">Estilo da base</h3>
+                <div class="ch-estilos" role="group" aria-label="Estilo da base">
+                  <button type="button" data-lg-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
+                  <button type="button" data-lg-estilo="circulo"><span class="ch-forma circulo"></span>Círculo</button>
+                  <button type="button" data-lg-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
                 </div>
-                <button type="button" class="botao-texto" id="lg-argola-auto">Voltar a argola para cima</button>
+                <h3 class="lg-sub">Cor da base</h3>
+                <div class="lg-bolinhas" id="lg-paleta-base"></div>
+              </section>
+
+              <section data-lg-secao="argola" hidden>
+                <label class="chave-linha lg-chave"><span>Com argola (chaveiro)</span><input type="checkbox" class="chave" role="switch" id="lg-com-argola" checked /></label>
+                <div id="lg-argola-campos">
+                  <p class="ajuda">Na prévia 2D, arraste o círculo tracejado para levar a argola a qualquer ponto da borda.</p>
+                  <div class="linha">
+                    <label class="campo">
+                      <span>Furo</span>
+                      <div class="entrada"><input id="lg-furo" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                    <label class="campo">
+                      <span>Parede</span>
+                      <div class="entrada"><input id="lg-parede" inputmode="decimal" /><em>mm</em></div>
+                    </label>
+                  </div>
+                  <button type="button" class="botao-texto" id="lg-argola-auto">Voltar a argola para cima</button>
                 </div>
               </section>
             </div>
           </aside>
-          <section class="painel modelo-previa">
-            <div class="ch-barra">
-              <span class="cliente-sub" id="lg-partes"></span>
-              <div class="ch-grupo" role="group" aria-label="Tipo de prévia">
-                <button type="button" class="ch-mini" id="lg-ver-2d" aria-pressed="true">2D</button>
-                <button type="button" class="ch-mini" id="lg-ver-3d" aria-pressed="false">3D</button>
-                <button type="button" class="ch-mini" id="lg-ver-editar" aria-pressed="false">Editar</button>
-              </div>
+
+          <section class="lg-area">
+            <div class="lg-ver" role="group" aria-label="Tipo de prévia">
+              <button type="button" id="lg-ver-2d" aria-pressed="true">2D</button>
+              <button type="button" id="lg-ver-3d" aria-pressed="false">3D</button>
             </div>
-            <div class="lg-ferramentas" id="lg-ferramentas" role="toolbar" aria-label="Corrigir o logo à mão" hidden>
-              <div class="ch-grupo" role="group" aria-label="Ferramenta">
-                <button type="button" class="ch-mini" data-ferramenta="borracha" title="Apaga por onde passa (tira restos do fundo)">Borracha</button>
-                <button type="button" class="ch-mini" data-ferramenta="restaurar" title="Devolve o que foi apagado">Restaurar</button>
-                <button type="button" class="ch-mini" data-ferramenta="varinha" title="Um clique apaga a mancha inteira">Varinha</button>
-                <button type="button" class="ch-mini" data-ferramenta="pincel" title="Pinta por onde passa">Pincel</button>
-                <button type="button" class="ch-mini" data-ferramenta="balde" title="Um clique pinta a região inteira">Balde</button>
+            <div class="lg-ferramentas" id="lg-ferramentas" role="toolbar" aria-label="Corrigir a peça à mão" hidden>
+              <div class="lg-grupo" role="group" aria-label="Ferramenta">
+                <button type="button" data-ferramenta="borracha" title="Apaga por onde passa (tira restos do fundo)">Borracha</button>
+                <button type="button" data-ferramenta="restaurar" title="Devolve o recorte automático por onde passa">Restaurar</button>
+                <button type="button" data-ferramenta="varinha" title="Um clique apaga a mancha inteira">Varinha</button>
+                <button type="button" data-ferramenta="pincel" title="Pinta por onde passa">Pincel</button>
+                <button type="button" data-ferramenta="balde" title="Um clique pinta a região inteira">Balde</button>
               </div>
-              <label class="lg-tamanho" id="lg-tamanho-campo">Tamanho <input type="range" id="lg-pincel" min="1" max="40" value="6" /></label>
-              <div class="lg-cores-pincel" id="lg-cores-pincel" role="group" aria-label="Cor do pincel e do balde"></div>
-              <div class="ch-grupo">
-                <button type="button" class="ch-mini" id="lg-desfazer" title="Desfazer (Ctrl+Z)" disabled>Desfazer</button>
-                <button type="button" class="ch-mini" id="lg-refazer" title="Refazer (Ctrl+Y)" disabled>Refazer</button>
+              <label class="lg-tamanho-pincel" id="lg-tamanho-campo">Tamanho <input type="range" id="lg-pincel" min="4" max="80" value="18" /></label>
+              <div class="lg-bolinhas lg-cores-pincel" id="lg-cores-pincel" role="group" aria-label="Cor do pincel e do balde"></div>
+              <div class="lg-grupo">
+                <button type="button" id="lg-desfazer" title="Desfazer (Ctrl+Z)" disabled>Desfazer</button>
+                <button type="button" id="lg-refazer" title="Refazer (Ctrl+Y)" disabled>Refazer</button>
               </div>
+              <button type="button" class="botao-primario lg-concluir" id="lg-concluir">Concluir</button>
             </div>
-            <div class="palco-modelo ch-palco" id="lg-palco">
+            <div class="lg-palco" id="lg-palco">
               <canvas id="lg-2d" class="ch-canvas"></canvas>
               <div class="ch-3d" id="lg-3d" hidden></div>
-              <canvas id="lg-editor" class="ch-canvas lg-editor" title="Roda do mouse: aproximar · botão direito: arrastar" hidden></canvas>
+              <canvas class="lg-camada" id="lg-camada" aria-hidden="true"></canvas>
             </div>
-            <div class="ch-barra">
-              <span class="cliente-sub" id="lg-medidas"></span>
-              <div class="ch-grupo">
-                <button type="button" class="ch-mini" id="lg-zoom-menos" aria-label="Diminuir zoom">−</button>
-                <button type="button" class="ch-mini" id="lg-ajustar">Ajustar à tela</button>
-                <button type="button" class="ch-mini" id="lg-zoom-mais" aria-label="Aumentar zoom">+</button>
-              </div>
-            </div>
-            <p class="ch-status" id="lg-status" role="status"></p>
-            <div class="modelo-rodape">
-              <span class="cliente-sub">No 3MF, a base vai no filamento 1 e cada cor do logo no seguinte (2, 3…).</span>
-              <div class="acoes-form">
-                <button class="botao-secundario" id="lg-salvar-modelo" type="button" disabled>Salvar modelo</button>
-                <button class="botao-secundario" id="lg-custo" type="button" disabled>Calcular custo</button>
-                <button class="botao-secundario" id="lg-stl" type="button" disabled>Salvar STL</button>
-                <button class="botao-secundario" id="lg-3mf" type="button" disabled>Salvar 3MF</button>
-                <button class="botao-primario" id="lg-fatiador" type="button" disabled>Abrir no fatiador</button>
-              </div>
+            <p class="lg-dica" id="lg-dica" hidden></p>
+            <div class="lg-zoom" role="group" aria-label="Zoom">
+              <button type="button" id="lg-zoom-menos" aria-label="Diminuir zoom">−</button>
+              <span id="lg-zoom-valor">100%</span>
+              <button type="button" id="lg-zoom-mais" aria-label="Aumentar zoom">+</button>
+              <button type="button" id="lg-ajustar" aria-label="Ajustar à tela" title="Ajustar à tela"></button>
             </div>
           </section>
         </div>
+
+        <footer class="lg-rodape">
+          <p class="lg-estado" id="lg-status" role="status"></p>
+          <div class="lg-dado"><span>Dimensões</span><strong id="lg-dimensoes">—</strong></div>
+          <div class="lg-dado"><span>Peso estimado</span><strong id="lg-peso">—</strong></div>
+          <div class="lg-dado"><span>Impressão</span><strong id="lg-partes">—</strong></div>
+          <div class="lg-rodape-acoes">
+            <button class="botao-secundario" id="lg-custo" type="button" disabled>Calcular custo</button>
+            <button class="botao-primario" id="lg-fatiador" type="button" disabled>Abrir no fatiador</button>
+          </div>
+        </footer>
       </div>
     </main>
 

@@ -4,7 +4,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { criarRenderizador, mostrarSem3d } from "./webgl.js";
 
 // Sem WebGL: a prévia vira um aviso e os comandos não fazem nada (exportar etc. continuam funcionando).
-const PREVIA_SEM_3D = { sem3d: true, colorir() {}, mostrarGrade() {}, mostrar() {}, enquadrar() {}, verBase() {}, zoom() {} };
+const PREVIA_SEM_3D = {
+  sem3d: true, colorir() {}, mostrarGrade() {}, mostrar() {}, enquadrar() {}, verBase() {}, zoom() {},
+  pontoNaPeca: () => null, paraTela: () => null, mmPorPixel: () => 1, modoPintura() {}, nivel: () => 1, aoMudarVista: null,
+};
 
 export function criarPrevia(container, opcoes = {}) {
   const renderizador = criarRenderizador();
@@ -21,6 +24,15 @@ export function criarPrevia(container, opcoes = {}) {
   const luz = new THREE.DirectionalLight(0xffffff, 1.5);
   luz.position.set(-60, -80, 160);
   cena.add(luz);
+  if (opcoes.luzExtra) {
+    // luz de preenchimento do outro lado: o relevo fica legível sem sombras chapadas
+    const preencher = new THREE.DirectionalLight(0xffffff, 0.7);
+    preencher.position.set(90, 60, 120);
+    cena.add(preencher);
+    const contra = new THREE.DirectionalLight(0xffffff, 0.35);
+    contra.position.set(0, 120, 40);
+    cena.add(contra);
+  }
   const luzFundo = new THREE.DirectionalLight(0xffffff, 1.3);
   luzFundo.visible = false;
   cena.add(luzFundo);
@@ -33,6 +45,9 @@ export function criarPrevia(container, opcoes = {}) {
 
   const controles = new OrbitControls(camera, renderizador.domElement);
   controles.enableDamping = true;
+  const BOTOES = { ...controles.mouseButtons };
+  const raio = new THREE.Raycaster();
+  let distanciaInicial = 1;
 
   let malhas = [];
   let primeiraVez = true;
@@ -59,7 +74,7 @@ export function criarPrevia(container, opcoes = {}) {
   };
   animar();
 
-  return {
+  const api = {
     colorir(cores) {
       malhas.forEach((malha, i) => { if (cores[i]) malha.material.color.set(cores[i]); });
     },
@@ -109,6 +124,7 @@ export function criarPrevia(container, opcoes = {}) {
       camera.position.set(centro.x - distancia * 0.1, centro.y - distancia * (opcoes.frente ? 0.94 : 0.75), centro.z + distancia * (opcoes.frente ? 0.30 : 0.65));
       controles.target.copy(centro);
       controles.update();
+      distanciaInicial = camera.position.distanceTo(controles.target);
     },
     verBase() {
       const fundo = centro.z - tamanho.z / 2;
@@ -127,5 +143,34 @@ export function criarPrevia(container, opcoes = {}) {
       camera.position.copy(controles.target).add(d);
       controles.update();
     },
+    // quanto de zoom (1 = enquadrado)
+    nivel: () => distanciaInicial / Math.max(1e-6, camera.position.distanceTo(controles.target)),
+    // Pintura sobre a peça: o botão esquerdo fica livre (pinta) e o direito gira.
+    modoPintura(sim) {
+      Object.assign(controles.mouseButtons, sim ? { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE } : BOTOES);
+    },
+    // ponto da peça sob o mouse (clientX/Y), em coordenadas da cena; null fora da peça
+    pontoNaPeca(clientX, clientY) {
+      const r = renderizador.domElement.getBoundingClientRect();
+      if (!r.width || !malhas.length) return null;
+      raio.setFromCamera(new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1), camera);
+      const acerto = raio.intersectObjects(malhas, false)[0];
+      return acerto ? [acerto.point.x, acerto.point.y, acerto.point.z] : null;
+    },
+    // ponto da cena → px (CSS) dentro do quadro da prévia
+    paraTela([x, y, z]) {
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      return [((v.x + 1) / 2) * container.clientWidth, ((1 - v.y) / 2) * container.clientHeight];
+    },
+    // mm da cena por px (CSS) da tela, perto de um ponto
+    mmPorPixel(ponto) {
+      const a = this.paraTela(ponto);
+      const dir = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0); // direita da câmera
+      const b = this.paraTela([ponto[0] + dir.x, ponto[1] + dir.y, ponto[2] + dir.z]);
+      return 1 / Math.max(1e-6, Math.hypot(b[0] - a[0], b[1] - a[1]));
+    },
+    aoMudarVista: null,
   };
+  controles.addEventListener("change", () => api.aoMudarVista?.());
+  return api;
 }

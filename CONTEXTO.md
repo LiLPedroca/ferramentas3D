@@ -577,3 +577,34 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - Pergunta "Como você vai imprimir?": "Com AMS" (tirado o "ou ACE").
 - Conferido: testes (`tests/mapa-logo.test.js`), captura com logo de teste (varinha tirou a sujeira, balde trocou a
   cor, desfazer, sem argola, salvar e reabrir em Meus modelos, 3D). Não conferido: logos reais do Pedro, imprimir.
+
+## Trabalho do Claude Code (12/11/2026) — Criador de logos de cara nova (v0.51.0, só no PC do Pedro)
+
+- Pedro reclamou do v0.50.0: editar num PNG à parte não servia (queria corrigir na peça), bordas com ondas, branco
+  sumindo no escudo (fundo branco + "tirar fundo de dentro" ligado) e não gostou da barra de número de cores.
+- **Tela nova** (desenho do GPT aprovado pelo Pedro, sem a engrenagem): barra do projeto (nome com lápis para
+  renomear, selo "Salvo" / "Alterações não salvas" / "Não salvo", "Salvar projeto", "Exportar 3MF" com seta para
+  STL); painel "Personalizar" com abas 1 Logo / 2 Base / 3 Argola; prévia grande com 2D/3D e zoom flutuantes;
+  barra de situação (estado, dimensões, peso, número de cores, Calcular custo, Abrir no fatiador).
+  "Salvar projeto" grava direto com o nome da barra (sem a janela de nome).
+- **Cores-alvo** (`mapa-logo.js`): `mascaraDoFundo` (só o fundo ligado à borda; "Remover áreas internas" agora
+  vem DESLIGADO), `coresAutomaticas` (paleta de 10, cada grupo vira a cor pronta mais próxima, tons de borda e
+  manchas ínfimas ficam de fora), `mapaPorAlvos` (cada pixel vai para o alvo com a cor ORIGINAL mais perto).
+  Chips com "×" (tira; pixels vão para a cor mais parecida) e "+ Cor" (painel com as 13 cores). Tocar no nome do
+  chip troca a cor pronta daquela parte.
+- **Correção à mão direto na peça**: "Corrigir imagem manualmente" mostra a barra de ferramentas por cima da prévia.
+  2D: `previa2d.paraModelo`; 3D: raycast (`previa3d.pontoNaPeca`) + o canto da peça antes de `posicionarNaOrigem`.
+  mm → pixel do mapa por `coresDoSvg(...).quadro` e `gerarLogo(...).escalaArte`. Máscara `manual`: o que foi
+  corrigido não muda quando cores/limpeza mudam (Restaurar desmarca). No 3D, com a correção ligada, o botão
+  esquerdo pinta e o direito gira (`modoPintura`). Prévia 2D ganhou arrastar (botão direito/meio) e zoom no cursor.
+- **Qualidade**: borda com fração de pixel pelo meio-tom da imagem original (`campoDaCamada`), sem o desvio para
+  fora do método antigo (círculo de teste: erro médio 0,36 px → 0,05 px). Mapa de até 800 px (imagem pequena é
+  ampliada com suavização; aviso abaixo de 600 px). Aceita SVG (desenhado direto no tamanho do mapa).
+- Velocidade: laços sem alocação, marching squares só nas células de borda, Douglas-Peucker (0,1 px) antes do
+  Manifold (`reduzirLaco`) e a largura da arte anterior como chute em `gerarLogo`.
+- Meus modelos: `opcoes.versao = 2` com `alvos` (id da cor + cor original), `removerFundo`, `areasInternas`; a imagem
+  guardada é a ORIGINAL (no tamanho do mapa) e as correções vão no campo novo `correcoes` (PNG; magenta = apagado
+  à mão; `core/projeto.cjs`, limite 1,5 MB). Modelos da v0.50 e antigos reabrem refazendo o automático.
+- Início: painel dos cartões preso embaixo com altura mínima fixa; "Explorar" na mesma linha mesmo com título em 2 linhas.
+- Conferido: 369 testes; captura com escudo de teste (Branco/Preto/Dourado achados, borracha no 2D, balde no 3D,
+  Ctrl+Z/Ctrl+Y, painel + Cor, tema claro, janela estreita). Não conferido: logos reais do Pedro, imprimir.

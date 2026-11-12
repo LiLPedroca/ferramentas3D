@@ -43,8 +43,10 @@ export function validarOpcoesLogo(entrada = {}) {
 }
 
 // SVG do vetorizador → contornos por cor, em unidades com a arte de 100 de largura e Y para cima.
-// Devolve [{ cor, formas: [[externo, ...furos]] }].
-export function coresDoSvg(svg) {
+// Devolve [{ cor, formas: [[externo, ...furos]] }], com .quadro = { minX, maxY, escala } (para voltar
+// de um ponto da peça ao ponto do SVG). juntar: une tons quase iguais (o mapa de cores prontas não precisa).
+// tolerancia: tira pontos que desviam menos que isso (em unidades do SVG) da reta entre os vizinhos.
+export function coresDoSvg(svg, { juntar = true, tolerancia = 0 } = {}) {
   const dados = new SVGLoader().parse(svg);
   const grupos = new Map();
   for (const caminho of dados.paths) {
@@ -72,14 +74,70 @@ export function coresDoSvg(svg) {
   if (!grupos.size || !(maxX > minX)) throw new Error("A imagem ficou vazia depois da conversão. Tente outra imagem ou desligue a remoção de fundo.");
   const escala = 100 / (maxX - minX);
   // o contorno do vetorizador repete cantos de pixel e faz "espinhos": simplifica antes
-  const converter = (pts) => simplificarContorno(pts.map((p) => new THREE.Vector2(p.x, p.y))).map((p) => [(p.x - minX) * escala, (maxY - p.y) * escala]);
+  const converter = (pts) => {
+    let lista = simplificarContorno(pts.map((p) => new THREE.Vector2(p.x, p.y)));
+    if (tolerancia > 0) lista = reduzirLaco(lista, tolerancia);
+    return lista.map((p) => [(p.x - minX) * escala, (maxY - p.y) * escala]);
+  };
   const lista = [...grupos].map(([cor, formas]) => ({
     cor,
     formas: formas
       .map((f) => [converter(f.getPoints(8)), ...f.holes.map((h) => converter(h.getPoints(8)))].filter((l) => l.length >= 3))
       .filter((lacos) => lacos.length && lacos[0].length >= 3),
   }));
-  return juntarCoresParecidas(lista);
+  const saida = juntar ? juntarCoresParecidas(lista) : lista;
+  saida.quadro = { minX, maxY, escala };
+  return saida;
+}
+
+// Douglas-Peucker num laço fechado: mantém o formato com desvio menor que "tolerancia".
+export function reduzirLaco(pts, tolerancia) {
+  const n = pts.length;
+  if (n < 8) return pts;
+  // começa pelo ponto mais longe do primeiro (dois "cantos" fixos)
+  let longe = 0;
+  let maior = -1;
+  for (let i = 1; i < n; i++) {
+    const d = (pts[i].x - pts[0].x) ** 2 + (pts[i].y - pts[0].y) ** 2;
+    if (d > maior) {
+      maior = d;
+      longe = i;
+    }
+  }
+  const manter = new Uint8Array(n);
+  manter[0] = manter[longe] = 1;
+  const t2 = tolerancia * tolerancia;
+  const pilha = [[0, longe], [longe, n]];
+  while (pilha.length) {
+    const [a, b] = pilha.pop();
+    if (b - a < 2) continue;
+    const A = pts[a];
+    const B = pts[b % n];
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const l2 = dx * dx + dy * dy;
+    let pior = -1;
+    let dpior = t2;
+    for (let i = a + 1; i < b; i++) {
+      const P = pts[i];
+      let d;
+      if (l2 < 1e-12) d = (P.x - A.x) ** 2 + (P.y - A.y) ** 2;
+      else {
+        const c = dx * (P.y - A.y) - dy * (P.x - A.x);
+        d = (c * c) / l2;
+      }
+      if (d > dpior) {
+        dpior = d;
+        pior = i;
+      }
+    }
+    if (pior >= 0) {
+      manter[pior] = 1;
+      pilha.push([a, pior], [pior, b]);
+    }
+  }
+  const saida = pts.filter((_, i) => manter[i]);
+  return saida.length >= 3 ? saida : pts;
 }
 
 // O serrilhado da imagem cria tons quase iguais (dois azuis): viram uma cor só, a que tem mais formas.
@@ -98,7 +156,9 @@ export function juntarCoresParecidas(lista, distancia = 48) {
 }
 
 // svgOuCores: texto SVG ou o resultado de coresDoSvg (para não reler o SVG a cada mudança).
-export function gerarLogo(M, svgOuCores, entrada) {
+// larguraArteAnterior (opcional): largura da arte da última peça; quando só o desenho mudou, a medida
+// certa costuma sair na primeira tentativa.
+export function gerarLogo(M, svgOuCores, entrada, larguraArteAnterior = null) {
   const o = validarOpcoesLogo(entrada);
   const cores = typeof svgOuCores === "string" ? coresDoSvg(svgOuCores) : svgOuCores;
   const C = M.CrossSection;
@@ -157,11 +217,12 @@ export function gerarLogo(M, svgOuCores, entrada) {
         base,
         presa,
         caixa: { min: cb.min, max: cb.max },
+        s,
         dimensoes: [cb.max[0] - cb.min[0], cb.max[1] - cb.min[1], o.base + o.relevo],
       };
     };
 
-    const chute = Math.max(5, o.largura - 2 * o.borda - (o.comArgola ? 2 * (o.furo / 2 + o.parede) : 0));
+    const chute = larguraArteAnterior > 0 ? larguraArteAnterior : Math.max(5, o.largura - 2 * o.borda - (o.comArgola ? 2 * (o.furo / 2 + o.parede) : 0));
     const r = resolverLargura(o.largura, chute, gerarCom);
     const avisos = [];
     if (o.base < 1.6 || (o.borda > 0 && o.borda < 1.6) || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
@@ -180,6 +241,8 @@ export function gerarLogo(M, svgOuCores, entrada) {
       perimetro: r.presa.perimetro,
       argola: r.presa.argola,
       caixa: r.caixa,
+      // ponto da peça (mm) = ponto da arte (0 a 100 de largura) × escalaArte
+      escalaArte: r.s,
       dimensoes: r.dimensoes,
       avisos,
       opcoes: o,

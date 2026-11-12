@@ -1,46 +1,75 @@
-// Tela do Criador de logos (antes "Chaveiro de logo"): imagem -> recorte e cores automáticos (nas 14 cores
-// prontas) -> correção à mão (borracha, restaurar, varinha, pincel, balde) -> relevo multicor sobre a base,
-// com ou sem argola.
+// Tela do Criador de logos: imagem -> recorte e cores automáticos (nas cores prontas) -> correção à mão
+// direto na peça (2D ou 3D) -> relevo multicor sobre a base, com ou sem argola.
+//
+// As "cores do logo" são cores-alvo (mapa-logo.js): "×" tira uma (os pixels vão para a mais parecida),
+// "+ Cor" põe outra (pega os pixels mais perto dela). O que foi corrigido à mão fica guardado na máscara
+// "manual" e não muda quando as cores ou a limpeza mudam.
 import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
-import { registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
+import { registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg, gerarLogo, LIMITES_LOGO, PADRAO_LOGO } from "./modelos/logo.js";
-import { CORES_LOGO, VAZIO, coresUsadas, encher, mapaAutomatico, mapaDeCoresProntas, mapaVazio, pintarTraco, rgbaDoMapa, svgDoMapa } from "./modelos/mapa-logo.js";
+import {
+  CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
+  mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
+} from "./modelos/mapa-logo.js";
 import { familiaCss } from "./modelos/fontes.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
-import { confirmar, estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
+import { criarPrevia } from "./modelos/previa3d.js";
+import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el, ligarZonaArquivos } from "./util-tela.js";
 import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
-const LADO = 512; // resolução do mapa: dá para corrigir detalhes à mão sem pesar
+const LADO = 800; // resolução do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
+const PEQUENA = 600; // imagem menor que isso (lado maior): avisa que as bordas podem sair menos lisas
 const MEDIDAS = { "lg-largura": "largura", "lg-borda": "borda", "lg-base": "base", "lg-relevo": "relevo", "lg-furo": "furo", "lg-parede": "parede" };
-const LIMITE_HISTORICO = 40;
+const LIMITE_HISTORICO = 30;
 
-let imagem = null; // { width, height, data, nome } (imagem reduzida, a que vira o mapa)
-let origem = null; // mapa do recorte automático (a ferramenta Restaurar volta para ele)
-let mapa = null; // mapa atual: { largura, altura, idx } (VAZIO ou índice em CORES_LOGO)
-let historico = []; // cópias de mapa.idx para desfazer
+const ICONES = {
+  lapis: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
+  seta: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  ajustar: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  cadeado: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+// ---------- Estado ----------
+let imagem = null; // { width, height, data, nome } (a imagem no tamanho do mapa)
+let tamanhoOriginal = null; // { w, h, svg }
+let vazio = null; // máscara do fundo (1 = sai)
+let fundo = null; // cor do fundo achada na borda da imagem
+let alvos = []; // cores do logo: [{ cor, ref }]
+let auto = null; // mapa automático com os alvos atuais (a ferramenta Restaurar volta para ele)
+let mapa = null; // mapa atual: automático + correções
+let manual = null; // Uint8Array: 1 = pixel corrigido à mão
+let historico = [];
 let refazer = [];
-let cores = null; // contornos por cor (coresDoSvg), refeitos quando o mapa muda
 let opcoes = { ...PADRAO_LOGO };
 let modelo = null;
 let partes = null;
+let vinculo = null; // { k, minX, maxY, desloc } liga a peça mostrada ao mapa (mm <-> pixel)
 let modo = "2d";
 let previa2d = null;
-let projetoAtual = null; // { id, nome } quando veio de Meus modelos
 let previa3d = null;
 let temporizador = null;
 let geracao = 0;
-let corTrocando = null; // cor achada que o usuário está trocando
+let projetoAtual = null; // { id, nome } quando está em Meus modelos
+let nomeProjeto = "";
+let sujo = false;
+let painelCor = null; // null | "adicionar" | índice da cor sendo trocada
+let ultimaArte = null; // { chave, largura }: reaproveita a escala quando só o desenho mudou
 
 const formatar = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-const status = (texto, erro = false) => {
-  $("lg-status").textContent = texto;
-  $("lg-status").classList.toggle("erro", erro);
-};
+const formatar1 = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+// tipo: "pronto" | "trabalhando" | "erro"
+function status(texto, tipo = "pronto") {
+  const s = $("lg-status");
+  s.textContent = texto;
+  s.title = texto;
+  s.className = `lg-estado ${tipo}`;
+}
 
 // ---------- Botões de cor (as cores prontas, sem seletor livre) ----------
 function botaoCor(c, aoEscolher, classe = "im-cor") {
@@ -58,8 +87,50 @@ function marcarCores(caixa, hex) {
   for (const b of caixa.querySelectorAll("[data-cor]")) b.setAttribute("aria-pressed", String(b.dataset.cor === hex));
 }
 
+// ---------- Projeto (nome e "Salvo") ----------
+function mostrarSelo() {
+  const selo = $("lg-selo");
+  const salvo = projetoAtual && !sujo;
+  selo.textContent = salvo ? "Salvo" : projetoAtual ? "Alterações não salvas" : "Não salvo";
+  selo.className = `lg-selo ${salvo ? "salvo" : "pendente"}`;
+}
+
+function marcarSujo() {
+  sujo = true;
+  mostrarSelo();
+}
+
+function mostrarNome() {
+  $("lg-projeto-nome").textContent = nomeProjeto;
+}
+
+function renomear() {
+  const campo = $("lg-projeto-campo");
+  campo.value = nomeProjeto;
+  campo.hidden = false;
+  $("lg-projeto-nome").hidden = true;
+  $("lg-renomear").hidden = true;
+  campo.focus();
+  campo.select();
+}
+
+function terminarRenomear(aceitar) {
+  const campo = $("lg-projeto-campo");
+  if (campo.hidden) return;
+  const novo = campo.value.trim().slice(0, 80);
+  campo.hidden = true;
+  $("lg-projeto-nome").hidden = false;
+  $("lg-renomear").hidden = false;
+  if (aceitar && novo && novo !== nomeProjeto) {
+    nomeProjeto = novo;
+    mostrarNome();
+    marcarSujo();
+  }
+}
+
+// ---------- Campos ----------
 function preencherCampos() {
-  for (const [id, chave] of Object.entries(MEDIDAS)) $(id).value = formatar(opcoes[chave]);
+  for (const [id, chave] of Object.entries(MEDIDAS)) if (document.activeElement !== $(id)) $(id).value = formatar(opcoes[chave]);
   for (const b of document.querySelectorAll("[data-lg-estilo]")) b.setAttribute("aria-pressed", String(b.dataset.lgEstilo === opcoes.estilo));
   marcarCores($("lg-paleta-base"), opcoes.corBase);
   $("lg-com-argola").checked = opcoes.comArgola !== false;
@@ -72,45 +143,32 @@ function mudar(mudancas) {
   if ("estilo" in mudancas) mudancas.argola = null;
   opcoes = { ...opcoes, ...mudancas };
   preencherCampos();
+  marcarSujo();
   gerar();
 }
 
-// ---------- Mapa (recorte e cores) ----------
-const copiaDoMapa = (m) => ({ largura: m.largura, altura: m.altura, idx: m.idx.slice() });
-const editado = () => historico.length > 0;
-
-function recortar() {
-  $("lg-cores-valor").textContent = $("lg-cores").value;
-  if (!imagem) return;
-  origem = mapaAutomatico(imagem, {
-    cores: Number($("lg-cores").value),
-    tirarFundo: $("lg-fundo").checked,
-    fundoDeDentro: $("lg-fundo-dentro").checked,
-  });
-  mapa = copiaDoMapa(origem);
-  historico = [];
-  refazer = [];
-  mapaMudou();
+function mostrarAba(aba) {
+  for (const b of document.querySelectorAll("[data-lg-aba]")) b.setAttribute("aria-selected", String(b.dataset.lgAba === aba));
+  for (const s of document.querySelectorAll("[data-lg-secao]")) s.hidden = s.dataset.lgSecao !== aba;
 }
 
-// Mudar o recorte automático joga fora as correções à mão: pergunta antes.
-async function mudarRecorte(desfazerControle) {
-  if (editado()) {
-    const ok = await confirmar({
-      titulo: "Refazer o recorte automático?",
-      texto: "As correções feitas à mão serão perdidas.",
-      botao: "Refazer",
-    });
-    if (!ok) {
-      desfazerControle();
-      return;
-    }
-  }
-  recortar();
+// ---------- Mapa (recorte, cores-alvo e correções) ----------
+const limpeza = () => ({ tirarFundo: $("lg-fundo").checked, areasInternas: $("lg-fundo-dentro").checked });
+const copiaAlvos = (lista) => lista.map((a) => ({ cor: a.cor, ref: a.ref.slice() }));
+
+// Refaz o recorte automático. achar: acha as cores de novo (imagem nova ou limpeza mudou).
+function refazerAutomatico({ achar = false } = {}) {
+  ({ vazio, fundo } = mascaraDoFundo(imagem, limpeza()));
+  if (achar || !alvos.length) alvos = coresAutomaticas(imagem, vazio, fundo);
+  auto = mapaPorAlvos(imagem, vazio, alvos);
+  if (!mapa || !manual) {
+    mapa = { largura: auto.largura, altura: auto.altura, idx: auto.idx.slice() };
+    manual = new Uint8Array(auto.idx.length);
+  } else juntarManual(auto, mapa, manual);
 }
 
 function guardarParaDesfazer() {
-  historico.push(mapa.idx.slice());
+  historico.push({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() });
   if (historico.length > LIMITE_HISTORICO) historico.shift();
   refazer = [];
   atualizarDesfazer();
@@ -122,58 +180,113 @@ function atualizarDesfazer() {
 }
 
 function voltarEdicao(de, para) {
-  if (!de.length) return;
-  para.push(mapa.idx.slice());
-  mapa.idx = de.pop();
-  atualizarDesfazer();
+  if (!de.length || !mapa) return;
+  para.push({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() });
+  const e = de.pop();
+  const mudouLimpeza = e.limpeza.tirarFundo !== $("lg-fundo").checked || e.limpeza.areasInternas !== $("lg-fundo-dentro").checked;
+  $("lg-fundo").checked = e.limpeza.tirarFundo;
+  $("lg-fundo-dentro").checked = e.limpeza.areasInternas;
+  alvos = e.alvos;
+  if (mudouLimpeza) ({ vazio, fundo } = mascaraDoFundo(imagem, limpeza()));
+  auto = mapaPorAlvos(imagem, vazio, alvos);
+  mapa.idx = e.idx;
+  manual = e.manual;
+  preencherCampos();
   mapaMudou();
 }
 
-// Depois de qualquer mudança no mapa: redesenha o editor, a lista de cores e refaz a peça.
-function mapaMudou({ refazerPeca = true } = {}) {
-  editor.desenhar(true);
-  mostrarCoresAchadas();
+// Depois de qualquer mudança no mapa: lista de cores, desfazer, e a peça é refeita.
+function mapaMudou({ espera = 120 } = {}) {
+  marcarSujo();
+  mostrarCores();
   atualizarDesfazer();
-  if (refazerPeca) agendar(400);
+  agendar(espera);
 }
 
-function mostrarCoresAchadas() {
-  const usadas = mapa ? coresUsadas(mapa) : [];
-  $("lg-cores-lista").replaceChildren(
-    ...usadas.map((i) => {
-      const c = CORES_LOGO[i];
-      const chip = el("button", "lg-cor-chip");
-      chip.type = "button";
-      chip.setAttribute("aria-pressed", String(corTrocando === i));
-      const bola = el("span", "im-bolinha");
-      bola.style.setProperty("--cor", c.hex);
-      chip.append(bola, c.nome);
-      chip.addEventListener("click", () => {
-        corTrocando = corTrocando === i ? null : i;
-        mostrarCoresAchadas();
-      });
-      return chip;
+function tirarCor(cor) {
+  if (alvos.length <= 1) return;
+  guardarParaDesfazer();
+  alvos = alvos.filter((a) => a.cor !== cor);
+  painelCor = null;
+  refazerAutomatico();
+  mapaMudou();
+}
+
+function porCor(cor) {
+  if (alvos.some((a) => a.cor === cor)) return;
+  guardarParaDesfazer();
+  alvos = [...alvos, alvoDaCor(cor)];
+  painelCor = null;
+  refazerAutomatico();
+  mapaMudou();
+}
+
+// Troca a cor pronta de um alvo (a parte continua a mesma, só muda a tinta). Correções feitas com a
+// cor antiga também passam para a nova.
+function trocarCor(de, para) {
+  painelCor = null;
+  if (de === para) return mostrarCores();
+  guardarParaDesfazer();
+  const ja = alvos.find((a) => a.cor === para);
+  if (ja) alvos = alvos.filter((a) => a.cor !== de); // a nova já era cor do logo: as duas viram uma
+  else alvos = alvos.map((a) => (a.cor === de ? { cor: para, ref: a.ref } : a));
+  for (let p = 0; p < mapa.idx.length; p++) if (manual[p] && mapa.idx[p] === de) mapa.idx[p] = para;
+  refazerAutomatico();
+  mapaMudou();
+}
+
+function mostrarCores() {
+  const lista = $("lg-cores-lista");
+  const chips = alvos.map((a) => {
+    const c = CORES_LOGO[a.cor];
+    const chip = el("span", `lg-chip${painelCor === a.cor ? " trocando" : ""}`);
+    const nome = el("button", "lg-chip-nome");
+    nome.type = "button";
+    nome.title = `Trocar ${c.nome} por outra cor`;
+    const bola = el("span", "im-bolinha");
+    bola.style.setProperty("--cor", c.hex);
+    nome.append(bola, c.nome);
+    nome.addEventListener("click", () => {
+      painelCor = painelCor === a.cor ? null : a.cor;
+      mostrarCores();
+    });
+    const tirar = el("button", "lg-chip-tirar", "×");
+    tirar.type = "button";
+    tirar.disabled = alvos.length <= 1;
+    tirar.title = alvos.length <= 1 ? "O logo precisa de pelo menos uma cor" : `Tirar ${c.nome}`;
+    tirar.setAttribute("aria-label", `Tirar ${c.nome}`);
+    tirar.addEventListener("click", () => tirarCor(a.cor));
+    chip.append(nome, tirar);
+    return chip;
+  });
+  const mais = el("button", "lg-mais-cor", "+ Cor");
+  mais.type = "button";
+  mais.setAttribute("aria-expanded", String(painelCor === "adicionar"));
+  mais.disabled = alvos.length >= CORES_LOGO.length;
+  mais.addEventListener("click", () => {
+    painelCor = painelCor === "adicionar" ? null : "adicionar";
+    mostrarCores();
+  });
+  lista.replaceChildren(...chips, mais);
+
+  const painel = $("lg-adicionar-cor");
+  if (typeof painelCor === "number" && !alvos.some((a) => a.cor === painelCor)) painelCor = null;
+  painel.hidden = painelCor === null;
+  if (painelCor === null) return;
+  const trocando = painelCor !== "adicionar";
+  $("lg-adicionar-titulo").textContent = trocando ? `Trocar ${CORES_LOGO[painelCor].nome} por` : "Adicionar cor";
+  const usadas = new Set(alvos.map((a) => a.cor));
+  $("lg-cores-novas").replaceChildren(
+    ...CORES_LOGO.map((c, i) => {
+      const b = botaoCor(c, () => (trocando ? trocarCor(painelCor, i) : porCor(i)));
+      if (!trocando && usadas.has(i)) {
+        b.disabled = true;
+        b.title = `${c.nome} (já está no logo)`;
+      }
+      return b;
     }),
   );
-  if (corTrocando !== null && !usadas.includes(corTrocando)) corTrocando = null;
-  const caixa = $("lg-trocar-cor");
-  caixa.hidden = corTrocando === null;
-  if (corTrocando !== null) {
-    caixa.replaceChildren(
-      ...CORES_LOGO.map((c, i) =>
-        botaoCor(c, () => {
-          const de = corTrocando;
-          corTrocando = null;
-          if (i !== de) {
-            guardarParaDesfazer();
-            for (let p = 0; p < mapa.idx.length; p++) if (mapa.idx[p] === de) mapa.idx[p] = i;
-          }
-          mapaMudou({ refazerPeca: i !== de });
-        }),
-      ),
-    );
-    marcarCores(caixa, CORES_LOGO[corTrocando].hex);
-  }
+  if (trocando) marcarCores($("lg-cores-novas"), CORES_LOGO[painelCor].hex);
 }
 
 // ---------- Peça ----------
@@ -181,34 +294,59 @@ async function gerar() {
   invalidar();
   if (!mapa) return;
   if (mapaVazio(mapa)) {
-    cores = null;
     modelo = null;
-    status("O logo ficou vazio. Desfaça a última correção ou desligue \"Tirar o fundo\".", true);
-    $("lg-medidas").textContent = "";
+    vinculo = null;
+    status("O logo ficou vazio. Desfaça a última correção ou desligue \"Remover fundo\".", "erro");
+    mostrarDados();
     previa2d.mostrar(null);
     return;
   }
   const minha = ++geracao;
+  status("Atualizando a peça…", "trabalhando");
   try {
-    cores = coresDoSvg(svgDoMapa(mapa));
     conferirMedidas(MEDIDAS, LIMITES_LOGO);
+    const refs = Object.fromEntries(alvos.map((a) => [a.cor, a.ref]));
+    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual } }), { juntar: false, tolerancia: 0.1 });
     const M = await motorDaTela();
     if (minha !== geracao) return;
-    modelo = gerarLogo(M, cores, opcoes);
-    partes = modelo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
-    posicionarNaOrigem(partes.map((p) => p.geometria));
+    const { argola, corBase, ...medidas } = opcoes;
+    const chave = JSON.stringify(medidas);
+    const novo = gerarLogo(M, cores, opcoes, ultimaArte?.chave === chave ? ultimaArte.largura : null);
+    ultimaArte = { chave, largura: novo.escalaArte * 100 };
+    const novasPartes = novo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
+    // canto da peça antes de ir para a origem (o 3D é mostrado deslocado; o clique precisa voltar)
+    const desloc = [Infinity, Infinity];
+    for (const p of novasPartes) {
+      p.geometria.computeBoundingBox();
+      desloc[0] = Math.min(desloc[0], p.geometria.boundingBox.min.x);
+      desloc[1] = Math.min(desloc[1], p.geometria.boundingBox.min.y);
+    }
+    posicionarNaOrigem(novasPartes.map((p) => p.geometria));
+    modelo = novo;
+    partes = novasPartes;
+    vinculo = { k: cores.quadro.escala * novo.escalaArte, minX: cores.quadro.minX, maxY: cores.quadro.maxY, desloc };
     if (modo === "3d") previa3d?.mostrar(partes);
-    status(modelo.avisos.join(" ") || "Peça pronta. Confira a prévia e as medidas antes de exportar.");
-    $("lg-partes").textContent = `${modelo.cores.length} cor(es) no logo + base`;
+    status(modelo.avisos.join(" ") || "Pronto para exportar", "pronto");
     habilitar(true);
   } catch (erro) {
     if (minha !== geracao) return;
     modelo = null;
-    status(erro.message, true);
+    vinculo = null;
+    status(erro.message, "erro");
     habilitar(false);
   }
-  $("lg-medidas").textContent = modelo ? `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo())}` : "";
+  mostrarDados();
   previa2d.mostrar(modelo);
+  pincel.limparTraco();
+}
+
+function mostrarDados() {
+  $("lg-dimensoes").textContent = modelo ? `${modelo.dimensoes.map(formatar1).join(" × ")} mm` : "—";
+  $("lg-peso").textContent = modelo ? pesoCurto(modelo.malhas, densidadeDoModelo()) : "—";
+  const n = modelo ? modelo.cores.length + 1 : 0;
+  $("lg-partes").textContent = modelo ? `${n} ${n === 1 ? "cor" : "cores"}` : "—";
+  $("lg-partes").title = modelo ? "No 3MF, a base vai no filamento 1 e cada cor do logo no seguinte (2, 3…)." : "";
+  if (modelo && document.activeElement !== $("lg-altura")) $("lg-altura").value = formatar1(modelo.dimensoes[1]);
 }
 
 // Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
@@ -220,135 +358,132 @@ function invalidar() {
 
 function agendar(espera = 250) {
   invalidar();
-  status("Atualizando a peça…");
+  status("Atualizando a peça…", "trabalhando");
   temporizador = setTimeout(gerar, espera);
 }
 
 function habilitar(pronto) {
-  for (const id of ["lg-3mf", "lg-stl", "lg-fatiador", "lg-custo", "lg-salvar-modelo"]) $(id).disabled = !pronto;
+  for (const id of ["lg-3mf", "lg-exportar-mais", "lg-fatiador", "lg-custo", "lg-salvar-modelo"]) $(id).disabled = !pronto;
+  if (!pronto) fecharMenuExportar();
 }
 
 async function argolaSolta(t) {
   const anterior = opcoes.argola;
   opcoes = { ...opcoes, argola: t };
+  marcarSujo();
   await gerar();
   if ($("lg-status").classList.contains("erro")) {
     const motivo = $("lg-status").textContent;
     opcoes = { ...opcoes, argola: anterior };
     await gerar();
-    status(motivo, true);
+    status(motivo, "erro");
   }
 }
 
-// ---------- Editor (correção à mão) ----------
-const editor = (() => {
-  const canvas = () => $("lg-editor");
+// ---------- Correção à mão, direto na peça (2D e 3D) ----------
+const pincel = (() => {
+  let ligado = false;
   let ferramenta = "borracha";
   let corPincel = CORES_LOGO.findIndex((c) => c.nome === "Preto");
-  let vista = null; // { escala, ox, oy } em pixels do canvas
-  let ponteiro = null; // posição do mouse em coordenadas do mapa (para o círculo do pincel)
-  let tracando = null; // { x, y } último ponto do traço
-  let arrastando = null; // { x, y, ox, oy } arrastar a vista
-  let imagemMapa = null; // OffscreenCanvas com o mapa
-  let xadrez = null;
+  let ponteiro = null; // { x, y } em px (CSS) no palco
+  let tracando = null; // último ponto do traço no mapa { x, y, raio }
+  let marcas = []; // traço desenhado por cima até a peça ser refeita: [{ x, y, r }] em px (CSS)
 
-  const raio = () => Number($("lg-pincel").value) / 2;
-  const usaPincel = () => ["borracha", "restaurar", "pincel"].includes(ferramenta);
+  const palco = () => $("lg-palco");
+  const camada = () => $("lg-camada");
+  const usaDisco = () => ["borracha", "restaurar", "pincel"].includes(ferramenta);
+  const raioTela = () => Number($("lg-pincel").value) / 2;
 
-  function ajustar() {
-    if (!mapa) return;
-    const c = canvas();
-    const margem = 24 * devicePixelRatio;
-    const escala = Math.min((c.width - margem * 2) / mapa.largura, (c.height - margem * 2) / mapa.altura);
-    vista = { escala, ox: (c.width - mapa.largura * escala) / 2, oy: (c.height - mapa.altura * escala) / 2 };
-    desenhar();
+  // evento -> { mapa: [x, y] (pixels do mapa), raio (pixels do mapa) } ou null (fora da peça)
+  function ondeNoMapa(ev) {
+    if (!vinculo) return null;
+    let mm;
+    let mmPorPx;
+    if (modo === "3d") {
+      const p = previa3d?.pontoNaPeca(ev.clientX, ev.clientY);
+      if (!p) return null;
+      mm = [p[0] + vinculo.desloc[0], p[1] + vinculo.desloc[1]];
+      mmPorPx = previa3d.mmPorPixel(p);
+    } else {
+      mm = previa2d.paraModelo(ev.clientX, ev.clientY);
+      if (!mm) return null;
+      mmPorPx = previa2d.mmPorPixel();
+    }
+    const { k, minX, maxY } = vinculo;
+    return { x: mm[0] / k + minX, y: maxY - mm[1] / k, raio: Math.max(0.5, (raioTela() * mmPorPx) / k) };
   }
 
-  function tamanho() {
-    const c = canvas();
-    const w = Math.round(c.clientWidth * devicePixelRatio);
-    const h = Math.round(c.clientHeight * devicePixelRatio);
-    if (w && h && (c.width !== w || c.height !== h)) {
+  const valor = () => (ferramenta === "borracha" || ferramenta === "varinha" ? VAZIO : ferramenta === "restaurar" ? "restaurar" : corPincel);
+
+  function corDoTraco() {
+    if (ferramenta === "pincel") return CORES_LOGO[corPincel].hex;
+    if (ferramenta === "restaurar") return "rgba(91, 141, 239, 0.55)";
+    return "rgba(255, 80, 80, 0.5)";
+  }
+
+  function desenhar() {
+    const c = camada();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(c.clientWidth * dpr);
+    const h = Math.round(c.clientHeight * dpr);
+    if (c.width !== w || c.height !== h) {
       c.width = w;
       c.height = h;
-      return true;
-    }
-    return false;
-  }
-
-  function desenhar(mapaNovo = false) {
-    const c = canvas();
-    if (c.hidden || !mapa) return;
-    if (tamanho() || !vista) return ajustar();
-    if (mapaNovo || !imagemMapa || imagemMapa.width !== mapa.largura) {
-      imagemMapa = new OffscreenCanvas(mapa.largura, mapa.altura);
-      imagemMapa.getContext("2d").putImageData(new ImageData(rgbaDoMapa(mapa), mapa.largura, mapa.altura), 0, 0);
     }
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, c.width, c.height);
-    // xadrez = vazio (o fundo recortado)
-    if (!xadrez) {
-      const t = document.createElement("canvas");
-      t.width = t.height = 16;
-      const tc = t.getContext("2d");
-      tc.fillStyle = "#d9d9d9";
-      tc.fillRect(0, 0, 16, 16);
-      tc.fillStyle = "#f2f2f2";
-      tc.fillRect(0, 0, 8, 8);
-      tc.fillRect(8, 8, 8, 8);
-      xadrez = ctx.createPattern(t, "repeat");
-    }
-    const { escala, ox, oy } = vista;
+    if (!ligado) return;
     ctx.save();
-    ctx.fillStyle = xadrez;
-    ctx.fillRect(ox, oy, mapa.largura * escala, mapa.altura * escala);
-    ctx.imageSmoothingEnabled = escala < 1;
-    ctx.drawImage(imagemMapa, ox, oy, mapa.largura * escala, mapa.altura * escala);
-    ctx.strokeStyle = "rgba(127,127,127,0.6)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(ox - 0.5, oy - 0.5, mapa.largura * escala + 1, mapa.altura * escala + 1);
-    // círculo do pincel / mira da varinha e do balde
-    if (ponteiro && !arrastando) {
-      const x = ox + ponteiro.x * escala;
-      const y = oy + ponteiro.y * escala;
-      ctx.lineWidth = 1.5 * devicePixelRatio;
-      ctx.strokeStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0,0,0,0.8)";
-      ctx.shadowBlur = 2;
+    ctx.scale(dpr, dpr);
+    if (marcas.length) {
+      ctx.fillStyle = corDoTraco();
       ctx.beginPath();
-      if (usaPincel()) ctx.arc(x, y, Math.max(2, raio() * escala), 0, Math.PI * 2);
-      else {
-        const r = 7 * devicePixelRatio;
-        ctx.moveTo(x - r, y);
-        ctx.lineTo(x + r, y);
-        ctx.moveTo(x, y - r);
-        ctx.lineTo(x, y + r);
+      for (const m of marcas) {
+        ctx.moveTo(m.x + m.r, m.y);
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
       }
+      ctx.fill();
+    }
+    if (ponteiro && usaDisco()) {
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0,0,0,0.85)";
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.arc(ponteiro.x, ponteiro.y, raioTela(), 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();
   }
 
-  function noMapa(ev) {
-    const r = canvas().getBoundingClientRect();
-    const px = (ev.clientX - r.left) * devicePixelRatio;
-    const py = (ev.clientY - r.top) * devicePixelRatio;
-    return { x: (px - vista.ox) / vista.escala, y: (py - vista.oy) / vista.escala, px, py };
+  function noPalco(ev) {
+    const r = palco().getBoundingClientRect();
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top };
   }
-
-  const valorDaFerramenta = () =>
-    ferramenta === "borracha" || ferramenta === "varinha" ? VAZIO : ferramenta === "restaurar" ? "restaurar" : corPincel;
 
   function escolher(nova) {
     ferramenta = nova;
     for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.setAttribute("aria-pressed", String(b.dataset.ferramenta === nova));
-    $("lg-tamanho-campo").hidden = !usaPincel();
+    $("lg-tamanho-campo").hidden = !usaDisco();
     $("lg-cores-pincel").hidden = !(nova === "pincel" || nova === "balde");
+    palco().classList.toggle("mira", !usaDisco());
+    desenhar();
+  }
+
+  function ligar(sim) {
+    ligado = sim;
+    $("lg-ferramentas").hidden = !sim;
+    $("lg-corrigir").setAttribute("aria-pressed", String(sim));
+    $("lg-corrigir").textContent = sim ? "Corrigindo na peça… (Concluir)" : "Corrigir imagem manualmente";
+    palco().classList.toggle("corrigindo", sim);
+    previa3d?.modoPintura?.(sim && modo === "3d");
+    mostrarDica();
+    tracando = null;
+    marcas = [];
     desenhar();
   }
 
   function iniciar() {
-    const c = canvas();
     $("lg-cores-pincel").replaceChildren(
       ...CORES_LOGO.map((cor, i) =>
         botaoCor(cor, () => {
@@ -360,208 +495,374 @@ const editor = (() => {
     marcarCores($("lg-cores-pincel"), CORES_LOGO[corPincel].hex);
     for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.addEventListener("click", () => escolher(b.dataset.ferramenta));
     escolher("borracha");
-    $("lg-pincel").addEventListener("input", () => desenhar());
+    $("lg-pincel").addEventListener("input", desenhar);
 
-    c.addEventListener("contextmenu", (ev) => ev.preventDefault());
-    c.addEventListener("pointerdown", (ev) => {
-      if (!mapa || !vista) return;
-      c.setPointerCapture(ev.pointerId);
-      const p = noMapa(ev);
-      // botão direito ou do meio: arrasta a vista
-      if (ev.button === 1 || ev.button === 2) {
-        arrastando = { x: p.px, y: p.py, ox: vista.ox, oy: vista.oy };
-        return;
-      }
-      if (ev.button !== 0) return;
-      if (usaPincel()) {
-        guardarParaDesfazer();
-        tracando = { x: p.x, y: p.y };
-        if (pintarTraco(mapa, p.x, p.y, p.x, p.y, raio(), valorDaFerramenta(), origem)) desenhar(true);
-      } else {
-        const antes = mapa.idx.slice();
-        if (encher(mapa, p.x, p.y, valorDaFerramenta())) {
-          historico.push(antes);
-          if (historico.length > LIMITE_HISTORICO) historico.shift();
-          refazer = [];
-          mapaMudou();
+    const p = palco();
+    // fase de captura: com a correção ligada, o botão esquerdo é do pincel (não gira o 3D nem move a argola)
+    p.addEventListener(
+      "pointerdown",
+      (ev) => {
+        if (!ligado || ev.button !== 0) return;
+        ev.stopPropagation();
+        ev.preventDefault();
+        const ponto = ondeNoMapa(ev);
+        if (!ponto) return;
+        if (usaDisco()) {
+          try {
+            p.setPointerCapture(ev.pointerId);
+          } catch {
+            // ponteiro já solto: o traço termina no pointerup do palco
+          }
+          guardarParaDesfazer();
+          tracando = ponto;
+          pintarTraco(mapa, ponto.x, ponto.y, ponto.x, ponto.y, ponto.raio, valor(), auto, manual);
+          const t = noPalco(ev);
+          marcas.push({ x: t.x, y: t.y, r: raioTela() });
+          desenhar();
+        } else {
+          const antes = { idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() };
+          const v = valor();
+          if (encher(mapa, ponto.x, ponto.y, v, manual)) {
+            historico.push(antes);
+            if (historico.length > LIMITE_HISTORICO) historico.shift();
+            refazer = [];
+            mapaMudou({ espera: 0 });
+          }
         }
-      }
-    });
-    c.addEventListener("pointermove", (ev) => {
-      if (!mapa || !vista) return;
-      const p = noMapa(ev);
-      ponteiro = { x: p.x, y: p.y };
-      if (arrastando) {
-        vista.ox = arrastando.ox + (p.px - arrastando.x);
-        vista.oy = arrastando.oy + (p.py - arrastando.y);
-      } else if (tracando) {
-        if (pintarTraco(mapa, tracando.x, tracando.y, p.x, p.y, raio(), valorDaFerramenta(), origem)) {
-          tracando = { x: p.x, y: p.y };
-          return desenhar(true);
+      },
+      true,
+    );
+    p.addEventListener(
+      "pointermove",
+      (ev) => {
+        if (!ligado) return;
+        const t = noPalco(ev);
+        ponteiro = t;
+        if (tracando) {
+          ev.stopPropagation();
+          const ponto = ondeNoMapa(ev);
+          if (ponto) {
+            pintarTraco(mapa, tracando.x, tracando.y, ponto.x, ponto.y, ponto.raio, valor(), auto, manual);
+            // marcas na tela a cada meio raio, para o traço aparecer contínuo
+            const ultima = marcas[marcas.length - 1];
+            const r = raioTela();
+            const passos = ultima ? Math.max(1, Math.ceil(Math.hypot(t.x - ultima.x, t.y - ultima.y) / Math.max(1, r / 2))) : 1;
+            for (let i = 1; i <= passos; i++) {
+              const f = i / passos;
+              marcas.push({ x: ultima ? ultima.x + (t.x - ultima.x) * f : t.x, y: ultima ? ultima.y + (t.y - ultima.y) * f : t.y, r });
+            }
+            tracando = ponto;
+          }
         }
-        tracando = { x: p.x, y: p.y };
-      }
-      desenhar();
-    });
-    const soltar = () => {
-      arrastando = null;
-      if (tracando) {
-        tracando = null;
-        mapaMudou();
-      }
+        desenhar();
+      },
+      true,
+    );
+    const soltar = (ev) => {
+      if (!tracando) return;
+      tracando = null;
+      if (p.hasPointerCapture?.(ev.pointerId)) p.releasePointerCapture(ev.pointerId);
+      mapaMudou({ espera: 0 });
     };
-    c.addEventListener("pointerup", soltar);
-    c.addEventListener("pointercancel", soltar);
-    c.addEventListener("pointerleave", () => {
+    p.addEventListener("pointerup", soltar, true);
+    p.addEventListener("pointercancel", soltar, true);
+    p.addEventListener("pointerleave", () => {
       ponteiro = null;
       desenhar();
     });
-    c.addEventListener(
-      "wheel",
-      (ev) => {
-        if (!vista) return;
-        ev.preventDefault();
-        const p = noMapa(ev);
-        zoom(ev.deltaY > 0 ? 1.15 : 1 / 1.15, p.px, p.py);
-      },
-      { passive: false },
-    );
-    new ResizeObserver(() => desenhar()).observe(c);
+    new ResizeObserver(desenhar).observe(camada());
   }
 
-  // fator > 1 afasta (mesmo sentido das outras prévias); (cx, cy) fica parado na tela
-  function zoom(fator, cx, cy) {
-    if (!vista) return;
-    const c = canvas();
-    cx ??= c.width / 2;
-    cy ??= c.height / 2;
-    const nova = Math.min(64, Math.max(0.2, vista.escala / fator));
-    vista.ox = cx - ((cx - vista.ox) * nova) / vista.escala;
-    vista.oy = cy - ((cy - vista.oy) * nova) / vista.escala;
-    vista.escala = nova;
-    desenhar();
-  }
-
-  return { iniciar, desenhar, ajustar, zoom, novoMapa: () => (vista = null) };
+  return {
+    iniciar,
+    ligar,
+    ligado: () => ligado,
+    desenhar,
+    limparTraco() {
+      if (tracando) return;
+      marcas = [];
+      desenhar();
+    },
+  };
 })();
+
+function mostrarDica() {
+  const dica = $("lg-dica");
+  dica.hidden = !pincel.ligado();
+  dica.textContent = modo === "3d" ? "Botão esquerdo: corrigir · direito: girar · roda: zoom" : "Botão esquerdo: corrigir · direito: arrastar · roda: zoom";
+}
+
+// ---------- Prévia ----------
+function atualizarZoom() {
+  const nivel = modo === "3d" ? previa3d?.nivel?.() ?? 1 : previa2d.nivel();
+  $("lg-zoom-valor").textContent = `${Math.round(nivel * 100)}%`;
+  pincel.desenhar();
+}
 
 function mudarModo(novo) {
   modo = novo;
-  const editando = novo === "editar";
-  $("lg-ver-editar").setAttribute("aria-pressed", String(editando));
-  $("lg-ferramentas").hidden = !editando;
-  $("lg-editor").hidden = !editando;
-  if (editando) {
-    $("lg-ver-2d").setAttribute("aria-pressed", "false");
-    $("lg-ver-3d").setAttribute("aria-pressed", "false");
-    previa2d.ativar(false);
-    $("lg-3d").hidden = true;
-    editor.desenhar(true);
-    return;
+  if (novo === "3d" && !previa3d) {
+    previa3d = criarPrevia($("lg-3d"), { luzExtra: true });
+    previa3d.aoMudarVista = atualizarZoom;
   }
   previa3d = mudarPrevia("lg", modo, previa2d, previa3d, partes);
+  previa3d?.modoPintura?.(pincel.ligado() && modo === "3d");
+  mostrarDica();
+  atualizarZoom();
 }
 
 // ---------- Abrir imagem ----------
-// salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes }).
-async function carregar([arquivo], salvo = null) {
-  try {
+const ehSvg = (arquivo) => arquivo.type === "image/svg+xml" || /\.svg$/i.test(arquivo.name || "");
+
+// Imagem desenhável + tamanho. SVG é desenhado direto no tamanho do mapa (vetor: borda perfeita).
+async function abrirDesenhavel(arquivo) {
+  if (!ehSvg(arquivo)) {
     const bitmap = await abrirImagem(arquivo);
-    const escala = Math.min(1, LADO / Math.max(bitmap.width, bitmap.height));
-    const w = Math.max(1, Math.round(bitmap.width * escala));
-    const h = Math.max(1, Math.round(bitmap.height * escala));
-    const canvas = new OffscreenCanvas(w, h);
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(bitmap, 0, 0, w, h);
-    imagem = { width: w, height: h, data: ctx.getImageData(0, 0, w, h).data, nome: arquivo.name };
-    $("lg-trabalho").hidden = false;
-    $("lg-zona").hidden = true;
-    $("lg-nome").textContent = arquivo.name;
-    corTrocando = null;
-    editor.novoMapa();
-    if (salvo) {
-      const { coresLogo, removerFundo, fundoDeDentro, mapaPronto, nomeImagem, ...resto } = salvo.opcoes;
-      opcoes = { ...PADRAO_LOGO, ...resto };
-      if (coresLogo) $("lg-cores").value = String(coresLogo);
-      if (typeof removerFundo === "boolean") $("lg-fundo").checked = removerFundo;
-      if (typeof fundoDeDentro === "boolean") $("lg-fundo-dentro").checked = fundoDeDentro;
-      if (nomeImagem) $("lg-nome").textContent = nomeImagem;
-      projetoAtual = { id: salvo.id, nome: salvo.nome };
-      preencherCampos();
-      status("Preparando a peça…");
-      if (mapaPronto) {
-        // modelo salvo pelo Criador de logos: a imagem já é o mapa (com as correções à mão)
-        $("lg-cores-valor").textContent = $("lg-cores").value;
-        origem = mapaDeCoresProntas(imagem);
-        mapa = copiaDoMapa(origem);
-        historico = [];
-        refazer = [];
-        mapaMudou();
-        return;
-      }
-    } else {
-      opcoes = { ...opcoes, argola: null };
-      projetoAtual = null;
-      preencherCampos();
-    }
-    status("Preparando a peça…");
-    recortar();
-  } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP ou HEIC.");
+    return { fonte: bitmap, w: bitmap.width, h: bitmap.height, svg: false };
+  }
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const w = img.naturalWidth || 1024;
+    const h = img.naturalHeight || 1024;
+    return { fonte: img, w, h, svg: true, url };
+  } catch (erro) {
+    URL.revokeObjectURL(url);
+    throw erro;
   }
 }
 
-const nomeBase = () => ($("lg-nome").textContent || "logo").replace(/\.[^.]+$/, "");
-const nomeArquivo = () => `${opcoes.comArgola === false ? "Logo" : "Chaveiro logo"} ${nomeBase()}`.slice(0, 60);
+async function pixelsDe(dataUrl) {
+  const bitmap = await createImageBitmap(arquivoDeTexto(dataUrl));
+  const c = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = c.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0);
+  return { width: bitmap.width, height: bitmap.height, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
+}
+
+// salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes, correcoes }).
+async function carregar([arquivo], salvo = null) {
+  let aberta;
+  try {
+    aberta = await abrirDesenhavel(arquivo);
+  } catch {
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP, HEIC ou SVG.");
+    return;
+  }
+  try {
+    // o lado maior vira LADO: imagem grande é reduzida e pequena é ampliada com suavização
+    // (o meio-tom ampliado ainda dá a borda com fração de pixel)
+    const escala = LADO / Math.max(aberta.w, aberta.h);
+    const w = Math.max(1, Math.round(aberta.w * escala));
+    const h = Math.max(1, Math.round(aberta.h * escala));
+    const canvas = new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(aberta.fonte, 0, 0, w, h);
+    imagem = { width: w, height: h, data: ctx.getImageData(0, 0, w, h).data, nome: arquivo.name };
+    tamanhoOriginal = { w: aberta.w, h: aberta.h, svg: aberta.svg };
+    $("lg-miniatura").src = await imagemComoTexto(canvas);
+  } finally {
+    if (aberta.url) URL.revokeObjectURL(aberta.url);
+  }
+
+  $("lg-trabalho").hidden = false;
+  $("lg-zona").hidden = true;
+  painelCor = null;
+  historico = [];
+  refazer = [];
+  mapa = null;
+  manual = null;
+  alvos = [];
+  const o = salvo?.opcoes ?? {};
+  const nomeImagem = o.nomeImagem || arquivo.name;
+  $("lg-nome").textContent = nomeImagem;
+  const pequena = !tamanhoOriginal.svg && Math.max(tamanhoOriginal.w, tamanhoOriginal.h) < PEQUENA;
+  $("lg-tamanho-imagem").textContent = tamanhoOriginal.svg
+    ? "SVG (vetor)"
+    : `${tamanhoOriginal.w} × ${tamanhoOriginal.h} px${pequena ? " · pequena: se tiver, use uma maior ou SVG" : ""}`;
+  $("lg-tamanho-imagem").classList.toggle("aviso", pequena);
+
+  if (salvo) {
+    const { removerFundo, areasInternas, fundoDeDentro, alvos: alvosSalvos, versao, coresLogo, mapaPronto, nomeImagem: _n, ...resto } = o;
+    opcoes = { ...PADRAO_LOGO, ...resto };
+    $("lg-fundo").checked = removerFundo !== false;
+    // modelos antigos: "fundoDeDentro" era a mesma chave (o padrão era ligado)
+    $("lg-fundo-dentro").checked = versao === 2 ? areasInternas === true : mapaPronto ? false : fundoDeDentro !== false;
+    if (versao === 2 && Array.isArray(alvosSalvos)) {
+      alvos = alvosSalvos
+        .map((a) => ({ cor: CORES_LOGO.findIndex((c) => c.id === a.cor), ref: Array.isArray(a.ref) ? a.ref.slice(0, 3).map(Number) : null }))
+        .filter((a) => a.cor >= 0 && a.ref?.length === 3 && a.ref.every(Number.isFinite));
+    }
+    projetoAtual = { id: salvo.id, nome: salvo.nome };
+    nomeProjeto = salvo.nome;
+  } else {
+    opcoes = { ...opcoes, argola: null };
+    projetoAtual = null;
+    nomeProjeto = nomeImagem.replace(/\.[^.]+$/, "").slice(0, 80) || "Logo";
+  }
+  preencherCampos();
+  refazerAutomatico({ achar: !alvos.length });
+  if (salvo?.correcoes) {
+    try {
+      aplicarCorrecoes(await pixelsDe(salvo.correcoes), mapa, manual);
+    } catch {
+      mostrarAviso("As correções à mão deste modelo não puderam ser lidas. O recorte automático foi refeito.");
+    }
+  }
+  sujo = !salvo;
+  mostrarNome();
+  mostrarSelo();
+  mostrarCores();
+  atualizarDesfazer();
+  previa2d.ajustar();
+  agendar(0);
+}
+
+const nomeArquivo = () => nomeProjeto || "Logo";
 
 async function salvar(extensao) {
+  fecharMenuExportar();
   if (!partes) return;
   await salvarModeloComo(extensao, partes, nomeArquivo());
 }
 
-// Mapa atual como PNG (fundo transparente), para guardar em Meus modelos.
-async function mapaComoTexto() {
-  const canvas = new OffscreenCanvas(mapa.largura, mapa.altura);
-  canvas.getContext("2d").putImageData(new ImageData(rgbaDoMapa(mapa), mapa.largura, mapa.altura), 0, 0);
-  return imagemComoTexto(canvas);
+function fecharMenuExportar() {
+  $("lg-menu-exportar").hidden = true;
+  $("lg-exportar-mais").setAttribute("aria-expanded", "false");
+}
+
+// Imagem como data URL dentro do limite de Meus modelos (PNG; se passar, WebP).
+async function imagemParaGuardar(rgba, w, h, limite = 1_900_000) {
+  const c = new OffscreenCanvas(w, h);
+  c.getContext("2d").putImageData(new ImageData(rgba, w, h), 0, 0);
+  const png = await imagemComoTexto(c);
+  if (png.length <= limite) return png;
+  for (const qualidade of [0.95, 0.85, 0.7]) {
+    const blob = await c.convertToBlob({ type: "image/webp", quality: qualidade });
+    const url = await new Promise((ok) => {
+      const leitor = new FileReader();
+      leitor.onload = () => ok(leitor.result);
+      leitor.readAsDataURL(blob);
+    });
+    if (url.length <= limite) return url;
+  }
+  throw new Error("A imagem do logo ficou grande demais para guardar.");
+}
+
+async function salvarProjeto() {
+  if (!modelo || !mapa) return;
+  terminarRenomear(true);
+  $("lg-salvar-modelo").disabled = true;
+  try {
+    const temCorrecao = manual.some((v) => v);
+    const valores = {
+      tipo: "logo",
+      nome: nomeProjeto || "Logo",
+      opcoes: {
+        ...opcoes,
+        versao: 2,
+        removerFundo: $("lg-fundo").checked,
+        areasInternas: $("lg-fundo-dentro").checked,
+        alvos: alvos.map((a) => ({ cor: CORES_LOGO[a.cor].id, ref: a.ref.map(Math.round) })),
+        nomeImagem: $("lg-nome").textContent,
+      },
+      miniatura: miniatura(modelo),
+      imagem: await imagemParaGuardar(new Uint8ClampedArray(imagem.data), imagem.width, imagem.height),
+      correcoes: temCorrecao ? await imagemParaGuardar(rgbaDasCorrecoes(mapa, manual), mapa.largura, mapa.altura, 1_400_000) : "",
+    };
+    const resposta = await window.dados.projetos.salvar(valores, projetoAtual?.id);
+    if (!resposta.ok) {
+      mostrarAviso(resposta.erro);
+      return;
+    }
+    projetoAtual = { id: resposta.dados.id, nome: resposta.dados.nome };
+    sujo = false;
+    mostrarSelo();
+    mostrarAviso(`"${resposta.dados.nome}" salvo em Meus modelos.`);
+  } catch (erro) {
+    mostrarAviso(erro.message);
+  } finally {
+    $("lg-salvar-modelo").disabled = !modelo;
+  }
 }
 
 export function iniciarLogo() {
   ligarZonaArquivos($("lg-zona"), $("lg-entrada"), carregar);
   $("lg-trocar").addEventListener("click", () => $("lg-entrada").click());
   familiaCss("Lobster"); // ícone "Aa" do estilo Contorno
+  $("lg-renomear").innerHTML = ICONES.lapis;
+  $("lg-exportar-mais").innerHTML = ICONES.seta;
+  $("lg-ajustar").innerHTML = ICONES.ajustar;
+  document.querySelector("#tela-logo .lg-cadeado").innerHTML = ICONES.cadeado;
   $("lg-paleta-base").replaceChildren(...CORES_LOGO.map((c) => botaoCor(c, () => mudar({ corBase: c.hex }))));
   preencherCampos();
-  editor.iniciar();
+  pincel.iniciar();
 
-  // recorte automático
-  $("lg-cores").addEventListener("input", () => {
-    $("lg-cores-valor").textContent = $("lg-cores").value;
+  // projeto
+  $("lg-renomear").addEventListener("click", renomear);
+  $("lg-projeto-nome").addEventListener("dblclick", renomear);
+  $("lg-projeto-campo").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") terminarRenomear(true);
+    if (ev.key === "Escape") {
+      ev.stopPropagation();
+      terminarRenomear(false);
+    }
   });
-  let coresAntes = $("lg-cores").value;
-  $("lg-cores").addEventListener("pointerdown", () => (coresAntes = $("lg-cores").value));
-  $("lg-cores").addEventListener("change", () =>
-    mudarRecorte(() => {
-      $("lg-cores").value = coresAntes;
-      $("lg-cores-valor").textContent = coresAntes;
-    }).then(() => (coresAntes = $("lg-cores").value)),
-  );
+  $("lg-projeto-campo").addEventListener("blur", () => terminarRenomear(true));
+  $("lg-salvar-modelo").addEventListener("click", salvarProjeto);
+
+  // exportar (3MF; a seta abre o STL)
+  $("lg-3mf").addEventListener("click", () => salvar("3mf"));
+  $("lg-stl").addEventListener("click", () => salvar("stl"));
+  $("lg-exportar-mais").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const abrir = $("lg-menu-exportar").hidden;
+    $("lg-menu-exportar").hidden = !abrir;
+    $("lg-exportar-mais").setAttribute("aria-expanded", String(abrir));
+  });
+  document.addEventListener("click", (ev) => {
+    if (!ev.target.closest?.(".lg-exportar")) fecharMenuExportar();
+  });
+
+  // abas
+  for (const b of document.querySelectorAll("[data-lg-aba]")) b.addEventListener("click", () => mostrarAba(b.dataset.lgAba));
+
+  // cores do logo
+  $("lg-adicionar-fechar").addEventListener("click", () => {
+    painelCor = null;
+    mostrarCores();
+  });
+
+  // limpeza: acha as cores de novo; correções à mão continuam
   for (const id of ["lg-fundo", "lg-fundo-dentro"]) {
     $(id).addEventListener("change", () => {
+      if (!imagem) return;
+      const marcado = $(id).checked;
+      $(id).checked = !marcado;
+      guardarParaDesfazer();
+      $(id).checked = marcado;
       preencherCampos();
-      mudarRecorte(() => {
-        $(id).checked = !$(id).checked;
-        preencherCampos();
-      });
+      refazerAutomatico({ achar: true });
+      mapaMudou();
     });
   }
+  $("lg-corrigir").addEventListener("click", () => pincel.ligar(!pincel.ligado()));
+  $("lg-concluir").addEventListener("click", () => pincel.ligar(false));
 
-  // desfazer / refazer (botões e Ctrl+Z / Ctrl+Y nesta tela)
+  // desfazer / refazer (botões e Ctrl+Z / Ctrl+Y nesta tela); Esc sai da correção
   $("lg-desfazer").addEventListener("click", () => voltarEdicao(historico, refazer));
   $("lg-refazer").addEventListener("click", () => voltarEdicao(refazer, historico));
   document.addEventListener("keydown", (ev) => {
-    if ($("tela-logo").classList.contains("oculta") || !mapa || !(ev.ctrlKey || ev.metaKey)) return;
+    if ($("tela-logo").classList.contains("oculta") || !mapa) return;
     if (ev.target.closest?.("input, textarea, select") || document.querySelector("dialog[open]")) return;
+    if (ev.key === "Escape" && pincel.ligado()) {
+      pincel.ligar(false);
+      return;
+    }
+    if (!(ev.ctrlKey || ev.metaKey)) return;
     const tecla = ev.key.toLowerCase();
     if (tecla === "z" && !ev.shiftKey) {
       ev.preventDefault();
@@ -572,17 +873,19 @@ export function iniciarLogo() {
     }
   });
 
+  // medidas
   for (const [id, chave] of Object.entries(MEDIDAS)) {
     $(id).addEventListener("input", () => {
       const valor = Number(String($(id).value).replace(",", "."));
       invalidar();
       const [minimo, maximo] = LIMITES_LOGO[chave];
       if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
-        status(`${chave === "largura" ? "Largura total" : "Medida"}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, true);
+        status(`${chave === "largura" ? "Largura" : "Medida"}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, "erro");
         habilitar(false);
         return;
       }
       opcoes = { ...opcoes, [chave]: valor };
+      marcarSujo();
       agendar();
     });
     $(id).addEventListener("change", () => {
@@ -590,50 +893,54 @@ export function iniciarLogo() {
       gerar();
     });
   }
+  // altura: muda a largura na mesma proporção da peça atual
+  $("lg-altura").addEventListener("input", () => {
+    const altura = Number(String($("lg-altura").value).replace(",", "."));
+    if (!modelo || !(altura > 0)) return;
+    const [minimo, maximo] = LIMITES_LOGO.largura;
+    const largura = Math.round(((altura * modelo.dimensoes[0]) / modelo.dimensoes[1]) * 10) / 10;
+    invalidar();
+    if (largura < minimo || largura > maximo) {
+      status(`Com essa altura a largura ficaria ${formatar1(largura)} mm. Use de ${formatar(minimo)} a ${formatar(maximo)} mm de largura.`, "erro");
+      return;
+    }
+    opcoes = { ...opcoes, largura };
+    $("lg-largura").value = formatar(largura);
+    marcarSujo();
+    agendar();
+  });
+  $("lg-altura").addEventListener("change", () => mostrarDados());
+
   for (const b of document.querySelectorAll("[data-lg-estilo]")) b.addEventListener("click", () => mudar({ estilo: b.dataset.lgEstilo }));
   $("lg-com-argola").addEventListener("change", () => mudar({ comArgola: $("lg-com-argola").checked, argola: null }));
   $("lg-argola-auto").addEventListener("click", () => mudar({ argola: null }));
-  for (const b of document.querySelectorAll("#tela-logo .ch-abas button")) {
-    b.addEventListener("click", () => $(b.dataset.alvo).scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
+
+  // prévia
   previa2d = criarPrevia2d($("lg-2d"), {
-    aoComecar: () => status("Posicione a argola. A peça é refeita ao soltar."),
+    aoComecar: () => status("Posicione a argola. A peça é refeita ao soltar.", "trabalhando"),
     aoSoltar: argolaSolta,
   });
+  previa2d.aoMudarVista = atualizarZoom;
   $("lg-ver-2d").addEventListener("click", () => mudarModo("2d"));
   $("lg-ver-3d").addEventListener("click", () => mudarModo("3d"));
-  $("lg-ver-editar").addEventListener("click", () => mudarModo("editar"));
-  $("lg-zoom-menos").addEventListener("click", () => (modo === "editar" ? editor.zoom(1.25) : zoomPrevia(modo, previa2d, previa3d, 1.25)));
-  $("lg-zoom-mais").addEventListener("click", () => (modo === "editar" ? editor.zoom(0.8) : zoomPrevia(modo, previa2d, previa3d, 0.8)));
-  $("lg-ajustar").addEventListener("click", () => (modo === "editar" ? editor.ajustar() : ajustarPrevia(modo, previa2d, previa3d)));
-
-  $("lg-3mf").addEventListener("click", () => salvar("3mf"));
-  $("lg-stl").addEventListener("click", () => salvar("stl"));
-  $("lg-salvar-modelo").addEventListener("click", async () => {
-    if (!modelo || !mapa) return;
-    const r = await salvarEmMeusModelos({
-      tipo: "logo",
-      atual: projetoAtual,
-      nomePadrao: nomeArquivo(),
-      montar: async () => ({
-        opcoes: {
-          ...opcoes,
-          coresLogo: Number($("lg-cores").value),
-          removerFundo: $("lg-fundo").checked,
-          fundoDeDentro: $("lg-fundo-dentro").checked,
-          nomeImagem: $("lg-nome").textContent,
-          mapaPronto: true,
-        },
-        miniatura: miniatura(modelo),
-        imagem: await mapaComoTexto(),
-      }),
-    });
-    if (r) {
-      projetoAtual = r;
-      mostrarAviso(`"${r.nome}" salvo em Meus modelos.`);
-    }
+  $("lg-zoom-menos").addEventListener("click", () => {
+    zoomPrevia(modo, previa2d, previa3d, 1.25);
+    atualizarZoom();
   });
-  registrarAbridor("logo", (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p));
+  $("lg-zoom-mais").addEventListener("click", () => {
+    zoomPrevia(modo, previa2d, previa3d, 0.8);
+    atualizarZoom();
+  });
+  $("lg-ajustar").addEventListener("click", () => {
+    ajustarPrevia(modo, previa2d, previa3d);
+    atualizarZoom();
+  });
+
+  // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
+  const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, abrirSalvo };
+
+  registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {
     if (!modelo) return;
     calcularCustoModelo(modelo, nomeArquivo());
@@ -642,7 +949,7 @@ export function iniciarLogo() {
     if (partes) enviarModeloAoFatiador(partes, nomeArquivo());
   });
   registrarAoAbrir("logo", () => {
-    if (modelo) $("lg-medidas").textContent = `${modelo.dimensoes.map(formatar).join(" × ")} mm · ${pesoCurto(modelo.malhas, densidadeDoModelo())}`;
+    mostrarDados();
     const nome = estado.config.fatiador?.nome;
     $("lg-fatiador").textContent = nome ? `Abrir no ${nome}` : "Abrir no fatiador";
   });

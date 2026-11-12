@@ -38,6 +38,19 @@ describe("Meus modelos", () => {
     expect(() => montarProjeto({ tipo: "chaveiro", nome: "x", opcoes: [] }, { id: ID })).toThrow(/Opções/);
   });
 
+  it("logo guarda as correções à mão (só no logo) e recusa imagem inválida nelas", () => {
+    const logo = montarProjeto({ tipo: "logo", nome: "Logo", opcoes: {}, imagem: PNG, correcoes: PNG }, { id: ID });
+    expect(logo.correcoes).toBe(PNG);
+    expect(validarProjeto(logo)).toBe(true);
+    expect(montarProjeto({ tipo: "logo", nome: "Logo", opcoes: {}, imagem: PNG }, { id: ID }).correcoes).toBe("");
+    expect(montarProjeto({ tipo: "chaveiro", nome: "x", opcoes: {}, correcoes: PNG }, { id: ID }).correcoes).toBe("");
+    expect(() => montarProjeto({ tipo: "logo", nome: "Logo", opcoes: {}, imagem: PNG, correcoes: "data:text/html,oi" }, { id: ID })).toThrow(/Correções/);
+    // modelos gravados antes (sem o campo) continuam válidos
+    const { correcoes, ...antigo } = logo;
+    expect(correcoes).toBe(PNG);
+    expect(validarProjeto(antigo)).toBe(true);
+  });
+
   it("entra no backup e volta na restauração", () => {
     const p = montarProjeto({ tipo: "chaveiro", nome: "Pedro", opcoes: { texto: "Pedro" } }, { id: ID });
     const texto = JSON.stringify(montarBackup({ projetos: [p, { id: "x" }] }, { versaoApp: "0.22.0" }));

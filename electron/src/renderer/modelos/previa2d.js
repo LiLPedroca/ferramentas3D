@@ -40,6 +40,8 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   let modelo = null;
   let ativa = true;
   let zoom = 1;
+  let desvio = [0, 0]; // arrasto da vista (px do canvas)
+  let panorama = null; // { x, y, desvio } enquanto arrasta a vista (botão direito ou do meio)
   let arrasto = null; // { t, centro }
   let arrastoSimbolo = null; // { inicio: [x, y], atual: [x, y] } em mm
 
@@ -51,8 +53,8 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     const cy = (min[1] + max[1]) / 2;
     return {
       escala,
-      paraTela: ([x, y]) => [canvas.width / 2 + (x - cx) * escala, canvas.height / 2 - (y - cy) * escala],
-      paraModelo: (px, py) => [cx + (px - canvas.width / 2) / escala, cy - (py - canvas.height / 2) / escala],
+      paraTela: ([x, y]) => [canvas.width / 2 + desvio[0] + (x - cx) * escala, canvas.height / 2 + desvio[1] - (y - cy) * escala],
+      paraModelo: (px, py) => [cx + (px - canvas.width / 2 - desvio[0]) / escala, cy - (py - canvas.height / 2 - desvio[1]) / escala],
     };
   }
 
@@ -147,8 +149,23 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     return p[0] >= min[0] - 1 && p[0] <= max[0] + 1 && p[1] >= min[1] - 1 && p[1] <= max[1] + 1;
   }
 
+  const noCanvas = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const dpr = canvas.width / r.width;
+    return [(e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr];
+  };
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   canvas.addEventListener("pointerdown", (e) => {
     if (!modelo || !ativa) return;
+    // botão direito ou do meio: arrasta a vista
+    if (e.button === 1 || e.button === 2) {
+      canvas.setPointerCapture?.(e.pointerId);
+      const [x, y] = noCanvas(e);
+      panorama = { x, y, desvio: desvio.slice() };
+      canvas.style.cursor = "grabbing";
+      return;
+    }
+    if (e.button !== 0) return;
     const p = pontoDoEvento(e);
     if (!sobreArgola(p) && sobreSimbolo(p)) {
       canvas.setPointerCapture?.(e.pointerId);
@@ -165,6 +182,13 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!modelo || !ativa) return;
+    if (panorama) {
+      const [x, y] = noCanvas(e);
+      desvio = [panorama.desvio[0] + x - panorama.x, panorama.desvio[1] + y - panorama.y];
+      desenhar();
+      api.aoMudarVista?.();
+      return;
+    }
     const p = pontoDoEvento(e);
     if (arrastoSimbolo) {
       canvas.style.cursor = "grabbing";
@@ -182,6 +206,12 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     desenhar();
   });
   const soltar = (e, cancelar) => {
+    if (panorama) {
+      panorama = null;
+      canvas.style.cursor = "";
+      if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      return;
+    }
     if (arrastoSimbolo) {
       const { inicio, atual } = arrastoSimbolo;
       arrastoSimbolo = null;
@@ -207,7 +237,7 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     (e) => {
       if (!ativa || !modelo) return;
       e.preventDefault();
-      api.zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15);
+      api.zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, noCanvas(e));
     },
     { passive: false },
   );
@@ -223,15 +253,42 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       canvas.hidden = !sim;
       desenhar();
     },
-    // fator < 1 aproxima, > 1 afasta (mesmo sentido da prévia 3D)
-    zoom(fator) {
-      zoom = Math.min(8, Math.max(0.3, zoom / fator));
+    // fator < 1 aproxima, > 1 afasta (mesmo sentido da prévia 3D). foco: ponto do canvas que fica parado.
+    zoom(fator, foco = null) {
+      const novo = Math.min(16, Math.max(0.3, zoom / fator));
+      if (modelo && foco) {
+        const antes = transformacao().paraModelo(foco[0], foco[1]);
+        zoom = novo;
+        const depois = transformacao().paraTela(antes);
+        desvio = [desvio[0] + foco[0] - depois[0], desvio[1] + foco[1] - depois[1]];
+      } else zoom = novo;
       desenhar();
+      api.aoMudarVista?.();
     },
     ajustar() {
       zoom = 1;
+      desvio = [0, 0];
       desenhar();
+      api.aoMudarVista?.();
     },
+    // quanto de zoom (1 = peça inteira na tela)
+    nivel: () => zoom,
+    // ponto da tela (clientX/Y) → mm da peça, e mm → ponto do canvas (px do canvas)
+    paraModelo(clientX, clientY) {
+      if (!modelo) return null;
+      const r = canvas.getBoundingClientRect();
+      const dpr = canvas.width / r.width;
+      return transformacao().paraModelo((clientX - r.left) * dpr, (clientY - r.top) * dpr);
+    },
+    paraTela(ponto) {
+      return modelo ? transformacao().paraTela(ponto) : null;
+    },
+    // mm da peça por px (CSS) da tela
+    mmPorPixel() {
+      const r = canvas.getBoundingClientRect();
+      return modelo && r.width ? canvas.width / r.width / transformacao().escala : 1;
+    },
+    aoMudarVista: null,
   };
   return api;
 }
