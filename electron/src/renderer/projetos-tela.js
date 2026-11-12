@@ -4,7 +4,7 @@ import { confirmar, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
-const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Chaveiro de logo", palavras: "Palavras decorativas", caneca: "Copos personalizados" };
+const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Criador de logos", palavras: "Palavras decorativas", caneca: "Copos personalizados" };
 
 let lista = [];
 

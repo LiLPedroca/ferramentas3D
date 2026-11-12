@@ -554,3 +554,26 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - `FERRAMENTAS_SEM_GPU=sem-3d` tenta desligar o WebGL de vez, mas com o SwiftShader ligado o Chromium continua
   dando WebGL: o aviso só foi conferido pelo teste automático.
 - Não conferido no PC do amigo.
+
+## Trabalho do Claude Code (12/11/2026) — Criador de logos (v0.50.0, só no PC do Pedro)
+
+- **A partir daqui não há release automática**: o Pedro instala o `.exe` de `electron/release/` e só depois de
+  aprovar a gente faz push + `gh release create`. Commits ficam locais até lá.
+- O **Chaveiro de logo virou Criador de logos** (mesma tela `logo`, mesmo tipo `logo` em Meus modelos).
+- `renderer/modelos/mapa-logo.js`: a imagem (até 512 px) vira um mapa de pixels com uma das 13 cores prontas
+  (`CORES` de `core/impressao.cjs` sem Transparente) ou vazio.
+  - `mapaAutomatico`: paleta (`escolherPaleta`), fundo pela cor da borda (`corDoFundo`), opção de tirar também o
+    fundo de dentro do logo ou só o ligado à borda, cor pronta mais próxima (distância "redmean") e
+    `limparSerrilhado` (pixel com < 3 vizinhos iguais vira a cor mais comum em volta; tira contornos de meio-tom).
+  - Edição: `pintarTraco`/`pintarDisco` (borracha = vazio, restaurar = volta ao automático, pincel = cor) e
+    `encher` (varinha = vazio, balde = cor) na região ligada da mesma cor.
+  - `svgDoMapa`: camadas empilhadas como no vetorizador, cobertura suavizada (1-2-1) antes do marching squares.
+- `logo-tela.js` reescrito: modo "Editar" na prévia (ferramentas, tamanho, cores do pincel, desfazer/refazer com
+  Ctrl+Z/Ctrl+Y, roda = zoom, botão direito = arrastar). Cores achadas em chips; tocar troca a cor no logo todo.
+  Mudar o número de cores ou o fundo refaz o recorte e pergunta antes se houver correções à mão.
+- Argola opcional (`comArgola` em `modelos/logo.js`); sem argola a malha da base chama "Base".
+- Cor da base também só nas cores prontas. Meus modelos guarda o mapa como PNG (`opcoes.mapaPronto`); modelos
+  antigos (sem `mapaPronto`) refazem o recorte automático a partir da imagem guardada.
+- Pergunta "Como você vai imprimir?": "Com AMS" (tirado o "ou ACE").
+- Conferido: testes (`tests/mapa-logo.test.js`), captura com logo de teste (varinha tirou a sujeira, balde trocou a
+  cor, desfazer, sem argola, salvar e reabrir em Meus modelos, 3D). Não conferido: logos reais do Pedro, imprimir.

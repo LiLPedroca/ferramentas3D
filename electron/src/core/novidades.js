@@ -151,6 +151,15 @@ export const NOVIDADES = [
     texto: "Se a placa de vídeo não ajudar, o programa desenha o 3D sozinho. Fica mais lento, mas funciona.",
     itens: ["Vale para o Visualizador e as prévias dos modelos", "Se nem assim der, aparece um aviso e o resto da tela continua funcionando"],
     botao: "Entendi",
+  },  {
+    id: "criador-de-logos",
+    versao: "0.50.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Criador de logos",
+    texto: "O Chaveiro de logo virou Criador de logos: recorte, cores prontas e correção à mão.",
+    itens: ["As cores achadas viram as cores prontas; toque numa para trocar", "Em Editar: borracha, restaurar, varinha, pincel e balde", "Com ou sem argola"],
+    botao: "Experimentar",
   },
 ];
 

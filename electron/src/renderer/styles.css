@@ -5634,3 +5634,86 @@ textarea:focus {
   font-size: 14px;
   text-align: center;
 }
+
+/* ---------- Criador de logos ---------- */
+.lg-cores-achadas,
+.lg-trocar-cor,
+.lg-cores-pincel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lg-cores-achadas {
+  margin: 4px 0 8px;
+}
+
+.lg-trocar-cor {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.lg-cor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 5px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.lg-cor-chip[aria-pressed="true"] {
+  border-color: var(--acento);
+}
+
+.lg-cor-chip .im-bolinha {
+  width: 16px;
+  height: 16px;
+}
+
+.lg-ferramentas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+}
+
+.lg-ferramentas[hidden],
+.lg-editor[hidden] {
+  display: none;
+}
+
+.lg-ferramentas .ch-mini[aria-pressed="true"] {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.lg-tamanho {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.lg-tamanho input {
+  width: 110px;
+}
+
+.lg-cores-pincel .im-cor {
+  width: 22px;
+  height: 22px;
+}
+
+.lg-editor {
+  cursor: none;
+}

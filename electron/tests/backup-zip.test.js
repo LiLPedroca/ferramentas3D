@@ -37,8 +37,9 @@ describe("backup .zip", () => {
     const saida = path.join(pasta, "extraido");
     expect(await lerZip(destino, saida)).toBe(texto);
     expect(readdirSync(saida).sort()).toEqual(["id-aaaa-0001.stl", "id-bbbb-0002.3mf"]);
-    expect(new Uint8Array(readFileSync(path.join(saida, "id-aaaa-0001.stl")))).toEqual(stl);
-    expect(new Uint8Array(readFileSync(path.join(saida, "id-bbbb-0002.3mf")))).toEqual(tresmf);
+    // Buffer.equals: comparar 3 MB com toEqual é lento demais
+    expect(readFileSync(path.join(saida, "id-aaaa-0001.stl")).equals(Buffer.from(stl))).toBe(true);
+    expect(readFileSync(path.join(saida, "id-bbbb-0002.3mf")).equals(Buffer.from(tresmf))).toBe(true);
   });
 
   it("ignora entradas estranhas (sem escrever fora da pasta)", async () => {

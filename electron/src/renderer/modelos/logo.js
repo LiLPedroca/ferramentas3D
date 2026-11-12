@@ -1,6 +1,6 @@
-// Chaveiro de logo: a imagem vetorizada por cores vira relevo sobre uma base com argola.
-// Cada cor é uma parte separada no 3MF (impressão multicor). Geometria com o Manifold: cores sem
-// sobreposição, base de contorno (com pontes), círculo ou retangular, argola em qualquer ponto da borda.
+// Criador de logos (antes "Chaveiro de logo"): a imagem vetorizada por cores vira relevo sobre uma base,
+// com ou sem argola. Cada cor é uma parte separada no 3MF (impressão multicor). Geometria com o Manifold:
+// cores sem sobreposição, base de contorno (com pontes), círculo ou retangular, argola em qualquer ponto da borda.
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { simplificarContorno } from "./geometria.js";
@@ -17,7 +17,8 @@ export const PADRAO_LOGO = {
   parede: 2,
   estilo: "contorno",
   argola: null, // posição na borda (0 a 1); null = em cima, no meio
-  corBase: "#ffffff",
+  comArgola: true, // false = só o logo (para colar, aplique)
+  corBase: "#f4f4f4",
 };
 
 export const LIMITES_LOGO = { largura: [20, 150], borda: [0, 8], base: [1.2, 8], relevo: [0.4, 5], furo: [3, 8], parede: [1.6, 5] };
@@ -36,7 +37,7 @@ export function validarOpcoesLogo(entrada = {}) {
   if (!ESTILOS_LOGO.includes(o.estilo)) throw new Error("Estilo de base inválido.");
   const argola = o.argola === null || o.argola === undefined || o.argola === "" ? null : Number(o.argola);
   if (argola !== null && !(argola >= 0 && argola <= 1)) throw new Error("Posição da argola inválida.");
-  const opcoes = { estilo: o.estilo, argola, corBase: /^#[0-9a-f]{6}$/i.test(o.corBase) ? o.corBase.toLowerCase() : PADRAO_LOGO.corBase };
+  const opcoes = { estilo: o.estilo, argola, comArgola: o.comArgola !== false, corBase: /^#[0-9a-f]{6}$/i.test(o.corBase) ? o.corBase.toLowerCase() : PADRAO_LOGO.corBase };
   for (const chave of Object.keys(LIMITES_LOGO)) opcoes[chave] = numero(o[chave], chave);
   return opcoes;
 }
@@ -147,7 +148,7 @@ export function gerarLogo(M, svgOuCores, entrada) {
         const miolo = guardar(guardar(C.square([cx.max[0] - cx.min[0], cx.max[1] - cx.min[1]])).translate(cx.min));
         base = guardar(miolo.offset(o.borda, "Round", 2, 80));
       }
-      const presa = prenderArgola(M, guardar, base, arte, o, o.argola, [meio[0], 1e4]);
+      const presa = o.comArgola ? prenderArgola(M, guardar, base, arte, o, o.argola, [meio[0], 1e4]) : { base, perimetro: null, argola: null };
       base = presa.base;
 
       const cb = base.bounds();
@@ -160,12 +161,12 @@ export function gerarLogo(M, svgOuCores, entrada) {
       };
     };
 
-    const chute = Math.max(5, o.largura - 2 * o.borda - 2 * (o.furo / 2 + o.parede));
+    const chute = Math.max(5, o.largura - 2 * o.borda - (o.comArgola ? 2 * (o.furo / 2 + o.parede) : 0));
     const r = resolverLargura(o.largura, chute, gerarCom);
     const avisos = [];
     if (o.base < 1.6 || (o.borda > 0 && o.borda < 1.6) || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
     const malhas = [
-      { nome: "Base e argola", cor: o.corBase, ...malhaDoSolido(guardar(r.base.extrude(o.base)), "base") },
+      { nome: o.comArgola ? "Base e argola" : "Base", cor: o.corBase, ...malhaDoSolido(guardar(r.base.extrude(o.base)), "base") },
       ...r.partes.map((p, i) => ({
         nome: `Cor ${i + 1}`,
         cor: p.cor,

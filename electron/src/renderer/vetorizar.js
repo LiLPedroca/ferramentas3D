@@ -47,7 +47,7 @@ function desfocar(data, w, h) {
 }
 
 // Cor mais comum na borda da imagem (provável fundo).
-function corDoFundo(data, w, h) {
+export function corDoFundo(data, w, h) {
   const contagem = new Map();
   const somar = (x, y) => {
     const i = (y * w + x) * 4;
@@ -555,7 +555,7 @@ function foraDaReta(p, a, b) {
 }
 
 // Curvas em "d" do SVG. Trechos retos viram "L"; trechos de tamanho zero saem.
-function caminhoSvg(curvas) {
+export function caminhoSvg(curvas) {
   if (!curvas.length) return "";
   let d = `M${num(curvas[0][0][0])} ${num(curvas[0][0][1])}`;
   for (const c of curvas) {

@@ -4,7 +4,7 @@
 
 const { ErroValidacao, ID, dataValida, texto } = require("./validacao.cjs");
 
-const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Chaveiro de logo", palavras: "Palavras decorativas", caneca: "Caneca de chopp" };
+const TIPOS = { chaveiro: "Chaveiro de nome", logo: "Criador de logos", palavras: "Palavras decorativas", caneca: "Caneca de chopp" };
 const LIMITES = { nome: 80, projetos: 2000, opcoes: 20_000, miniatura: 300_000, imagem: 2_000_000 };
 const IMAGEM = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
 

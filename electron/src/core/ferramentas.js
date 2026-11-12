@@ -84,8 +84,8 @@ export const FERRAMENTAS = [
   {
     id: "logo",
     grupo: "modelos",
-    titulo: "Chaveiro de logo",
-    descricao: "Sua arte em uma peça multicor.",
+    titulo: "Criador de logos",
+    descricao: "Sua logo recortada, em cores, pronta para imprimir.",
     categoria: "Modelos personalizados",
     disponivel: true,
     tela: "logo",
