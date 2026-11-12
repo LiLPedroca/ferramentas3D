@@ -2,6 +2,7 @@
 import { mostrarAviso } from "./shell.js";
 import { ligarZonaArquivos, ROTULO_TAMANHO } from "./util-tela.js";
 import { vetorizar } from "./vetorizar.js";
+import { arquivoLegivel } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 const LADO_MAXIMO = 1000; // reduz imagens grandes antes de vetorizar (mais rápido, sem perder forma)
@@ -87,8 +88,9 @@ function agendarConversao() {
   temporizador = setTimeout(converter, 250);
 }
 
-async function carregar([arquivo]) {
+async function carregar([escolhido]) {
   try {
+    const arquivo = await arquivoLegivel(escolhido);
     const bitmap = await createImageBitmap(arquivo);
     const escala = Math.min(1, LADO_MAXIMO / Math.max(bitmap.width, bitmap.height));
     const largura = Math.max(1, Math.round(bitmap.width * escala));
@@ -97,16 +99,16 @@ async function carregar([arquivo]) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(bitmap, 0, 0, largura, altura);
     const dados = ctx.getImageData(0, 0, largura, altura);
-    imagem = { width: largura, height: altura, data: dados.data, nome: arquivo.name };
+    imagem = { width: largura, height: altura, data: dados.data, nome: escolhido.name };
 
     if (urlOriginal) URL.revokeObjectURL(urlOriginal);
     urlOriginal = URL.createObjectURL(arquivo);
     $("svg-original").src = urlOriginal;
     $("svg-trabalho").hidden = false;
-    $("svg-nome").textContent = `${arquivo.name} · ${bitmap.width} × ${bitmap.height} px`;
+    $("svg-nome").textContent = `${escolhido.name} · ${bitmap.width} × ${bitmap.height} px`;
     converter();
   } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG ou WebP.");
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP ou HEIC.");
   }
 }
 

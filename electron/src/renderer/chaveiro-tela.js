@@ -14,6 +14,7 @@ import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
+import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -180,7 +181,7 @@ function mostrarSimbolo() {
 
 async function carregarSimbolo(arquivo, salvo = null) {
   try {
-    const bitmap = await createImageBitmap(arquivo);
+    const bitmap = await abrirImagem(arquivo);
     const escala = Math.min(1, LADO_SIMBOLO / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * escala));
     const h = Math.max(1, Math.round(bitmap.height * escala));
@@ -194,7 +195,7 @@ async function carregarSimbolo(arquivo, salvo = null) {
       mudar({ simbolo: { lado: "esquerda", dx: 0, dy: 0, tamanho: 100, relevo: [] }, simboloCores: 2, simboloFundo: true, argola: null });
     }
   } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG ou WebP.");
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP ou HEIC.");
   }
 }
 

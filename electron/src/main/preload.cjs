@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld("stl", {
   miniatura: (url) => ipcRenderer.invoke("stl:miniatura", url),
 });
 
+contextBridge.exposeInMainWorld("imagens", {
+  heicParaRgba: (bytes) => ipcRenderer.invoke("imagens:heic", bytes),
+});
+
 contextBridge.exposeInMainWorld("modelos", {
   lerCopo: (id, original = false) => ipcRenderer.invoke("copos:ler", id, original),
   lerCopoMultipartes: id => ipcRenderer.invoke("copos:multipartes", id),

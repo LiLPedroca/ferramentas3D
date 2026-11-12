@@ -169,7 +169,7 @@ function detalheC2pa(info) {
 // ---------- Detector ----------
 export function detectarIA(bytes) {
   const formato = detectarFormato(bytes);
-  if (!formato) throw new Error("Formato não suportado. Use JPEG, PNG ou WebP.");
+  if (!formato) throw new Error("Formato não suportado. Use JPEG, PNG, WebP ou HEIC.");
 
   const analise = analisarImagem(bytes);
   const bruto = textoDoArquivo(bytes);

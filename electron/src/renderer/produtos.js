@@ -5,6 +5,7 @@ import { formatarReais } from "../core/calculadora.js";
 import { normalizar } from "../core/inicio.js";
 import { icone } from "./icones.js";
 import { confirmar, estado, salvarConfig } from "./shell.js";
+import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -311,7 +312,7 @@ async function salvar(ev) {
 
 // Reduz a imagem para no máximo 640 px e converte em JPEG, para o arquivo de dados ficar leve.
 async function prepararFoto(arquivo) {
-  const imagem = await createImageBitmap(arquivo);
+  const imagem = await abrirImagem(arquivo);
   for (const [lado, qualidade] of [[FOTO_LADO_MAX, 0.85], [FOTO_LADO_MAX, 0.7], [480, 0.7], [360, 0.65]]) {
     const escala = Math.min(1, lado / Math.max(imagem.width, imagem.height));
     const canvas = document.createElement("canvas");

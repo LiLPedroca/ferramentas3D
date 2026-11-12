@@ -383,7 +383,7 @@
             <div class="foto-botoes">
               <button type="button" class="botao-secundario" id="escolher-foto">Escolher foto</button>
               <button type="button" class="botao-texto" id="remover-foto" hidden>Remover foto</button>
-              <input type="file" id="arquivo-foto" accept="image/png,image/jpeg,image/webp" hidden />
+              <input type="file" id="arquivo-foto" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
             </div>
           </div>
 
@@ -680,7 +680,7 @@
                   <button type="button" class="botao-pequeno" id="im-foto-escolher">Escolher foto</button>
                   <button type="button" class="botao-pequeno" id="im-foto-remover" hidden>Remover foto</button>
                 </div>
-                <input type="file" id="im-foto-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+                <input type="file" id="im-foto-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
               </div>
             </div>
           </div>
@@ -1209,8 +1209,8 @@
         <p class="ajuda md-intro">Mostra o que cada imagem carrega: indícios de IA (credenciais de conteúdo C2PA, a marcação de mídia gerada por IA, nomes de geradores e parâmetros de geração), local (GPS), câmera, data e programa. Diz onde cada indício foi achado e salva cópias sem metadados. Os pixels não são analisados, a imagem não sai do seu computador e os arquivos originais nunca são alterados.</p>
         <div class="zona-arquivo" id="ia-zona" tabindex="0" role="button" aria-label="Escolher imagens">
           <p><strong>Arraste imagens aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · JPEG, PNG ou WebP</p>
-          <input type="file" id="ia-entrada" accept="image/jpeg,image/png,image/webp" multiple hidden />
+          <p class="ajuda">ou clique para escolher · JPEG, PNG, WebP ou HEIC</p>
+          <input type="file" id="ia-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" multiple hidden />
         </div>
 
         <div class="md-acoes" id="ia-acoes" hidden>
@@ -1241,8 +1241,8 @@
         <p class="ajuda md-intro">Transforma uma imagem (logotipo, desenho, silhueta) em vetor SVG, que pode ser ampliado sem perder qualidade e usado em cortes, gravações e modelos 3D.</p>
         <div class="zona-arquivo" id="svg-zona" tabindex="0" role="button" aria-label="Escolher imagem">
           <p><strong>Arraste uma imagem aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · PNG, JPEG ou WebP</p>
-          <input type="file" id="svg-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+          <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP ou HEIC</p>
+          <input type="file" id="svg-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
         </div>
 
         <div class="svg-trabalho" id="svg-trabalho" hidden>
@@ -1418,7 +1418,7 @@
                   <button type="button" class="botao-texto perigo" id="ch-simbolo-remover" hidden>Remover</button>
                 </div>
                 <p class="cliente-sub" id="ch-simbolo-nome"></p>
-                <input type="file" id="ch-simbolo-arquivo" accept="image/png,image/jpeg,image/webp" hidden />
+                <input type="file" id="ch-simbolo-arquivo" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
                 <div id="ch-simbolo-opcoes" hidden>
                   <span class="ch-rotulo">Posição</span>
                   <div class="ch-estilos ch-lados" role="group" aria-label="Posição do símbolo">
@@ -1675,8 +1675,8 @@
       <div class="pagina-conteudo largo">
         <div class="zona-arquivo" id="lg-zona" tabindex="0" role="button" aria-label="Escolher imagem do logo">
           <p><strong>Arraste o logo aqui</strong></p>
-          <p class="ajuda">ou clique para escolher · PNG, JPEG ou WebP. Funciona melhor com poucas cores e fundo liso.</p>
-          <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+          <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP ou HEIC. Funciona melhor com poucas cores e fundo liso.</p>
+          <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
         </div>
         <div class="modelo-trabalho" id="lg-trabalho" hidden>
           <aside class="painel modelo-opcoes ch-painel">
@@ -1890,7 +1890,7 @@
                     <button type="button" class="botao-secundario" id="cn-escolher">Escolher imagem…</button>
                     <button type="button" class="botao-texto" id="cn-exemplo">Usar exemplo</button>
                     <button type="button" class="botao-texto" id="cn-sem-emblema">Sem emblema</button>
-                    <input type="file" id="cn-entrada" accept="image/png,image/jpeg,image/webp" hidden />
+                    <input type="file" id="cn-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
                   </div>
                 </div>
                 <p class="ajuda">Em duas cores: a parte escura vira a 2ª cor e a clara fica na cor da base. PNG com fundo transparente dá o contorno exato.</p>
@@ -2067,13 +2067,13 @@
                 <label class="campo"><span>Endereço</span><div class="entrada"><input id="c-emp-endereco" maxlength="200" autocomplete="off" /></div></label>
                 <label class="campo"><span>Site ou Instagram</span><div class="entrada"><input id="c-emp-site" maxlength="120" autocomplete="off" placeholder="Ex.: @minhaloja3d" /></div></label>
               </div>
-              <span class="rotulo-campo">Logo (PNG ou JPG, até 2 MB)</span>
+              <span class="rotulo-campo">Logo (PNG, JPG ou HEIC)</span>
               <div class="logo-campo">
                 <div class="logo-previa" id="c-logo-previa"></div>
                 <div class="logo-botoes">
                   <button type="button" class="botao-secundario" id="c-logo-escolher">Selecionar imagem</button>
                   <button type="button" class="botao-texto perigo" id="c-logo-remover" hidden>Remover logo</button>
-                  <input type="file" id="c-logo-arquivo" accept="image/png,image/jpeg" hidden />
+                  <input type="file" id="c-logo-arquivo" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" hidden />
                 </div>
               </div>
 

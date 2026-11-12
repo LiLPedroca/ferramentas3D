@@ -91,6 +91,17 @@ export const NOVIDADES = [
     itens: ["Símbolo à esquerda, à direita, acima ou abaixo, arrastável na prévia", "Um nome por linha: todos no mesmo 3MF, arrumados na mesa", "Peso de cada um e o total, para o orçamento"],
     botao: "Experimentar",
   },
+  // Fotos HEIC (iPhone): um aviso em cada ferramenta que recebe imagem.
+  ...["produtos", "impressoes", "svg", "logo", "chaveiro", "caneca", "detector", "configuracoes"].map((tela) => ({
+    id: `heic-${tela}`,
+    versao: "0.48.0",
+    tela,
+    icone: tela,
+    titulo: "Fotos HEIC do iPhone",
+    texto: "Agora dá para usar fotos HEIC direto, sem converter antes.",
+    itens: ["Escolha ou arraste a foto como qualquer imagem", "JPEG, PNG e WebP continuam valendo"],
+    botao: "Entendi",
+  })),
 ];
 
 // "0.41.0" < "0.42.0"

@@ -12,6 +12,7 @@ import { criarPrevia } from "./modelos/previa3d.js";
 import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
+import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 const LADO = 400; // resolução do emblema (px no lado maior)
@@ -146,7 +147,7 @@ function usarCanvas(canvas, nome) {
 
 // imagem (File/Blob ou ImageBitmap) → canvas reduzido
 async function canvasDaImagem(origem) {
-  const bitmap = origem instanceof ImageBitmap ? origem : await createImageBitmap(origem);
+  const bitmap = origem instanceof ImageBitmap ? origem : await abrirImagem(origem);
   const escala = Math.min(1, LADO / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(bitmap.width * escala));
@@ -188,7 +189,7 @@ async function carregarArquivo(arquivo) {
   try {
     usarCanvas(await canvasDaImagem(arquivo), arquivo.name);
   } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG ou WebP.");
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP ou HEIC.");
   }
 }
 

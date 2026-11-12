@@ -498,3 +498,18 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
   `--arrange 0` para conferir as posições. Conferido: 45 nomes → placa 1 com 27 e placa 2 com 18, M600 a 2,6 mm nas
   duas; 5 nomes salvos pela tela → 5 objetos, M600 a 2,6 mm, 9,7 g, 32 min.
 - Não conferido: abrir o 3MF de várias placas pela JANELA do fatiador (se ela rearruma ou mantém as posições).
+
+## Trabalho do Claude Code (12/11/2026) — fotos HEIC (v0.48.0)
+
+- O Chromium não abre HEIC. O processo principal decodifica com `heic-decode` (libheif em WASM, dependência nova)
+  em `main/heic.cjs`, canal `imagens:heic`, `window.imagens.heicParaRgba` no preload. Devolve RGBA.
+- Tela: `renderer/imagem-arquivo.js` (`abrirImagem` → ImageBitmap, `arquivoLegivel` → HEIC vira PNG,
+  `jpegDoHeic`). Reconhece HEIC pelos bytes (`ehHeic` em `core/metadados.js`), porque no Windows o arquivo às
+  vezes chega sem tipo. AVIF fica de fora (o Chromium já abre).
+- Aceitam HEIC: foto de Produtos, foto de Minhas Impressões, Conversor SVG, Chaveiro de logo, símbolo do Chaveiro
+  de nome, emblema da Caneca, logo da empresa em Configurações (HEIC até 20 MB, sai PNG) e Detector.
+- Detector: lê EXIF/XMP/C2PA do HEIC (itens `Exif`/`mime` via `iinf` + `iloc`). A cópia sem metadados de um HEIC
+  sai em JPEG (`limparImagem` recusa HEIC de propósito).
+- Novidade "Fotos HEIC do iPhone" em cada uma dessas telas. Teste `tests/heic.test.js` com fotos geradas por
+  script (`tests/dados/foto-teste.heic`, câmera e GPS fictícios). Conferido no modo de captura e no programa
+  empacotado. Não conferido: foto HEIC real de iPhone (só as geradas pelo libheif).

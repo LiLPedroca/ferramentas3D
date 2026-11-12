@@ -4,6 +4,7 @@ import { detectarIA, RESUMOS } from "../core/detector-ia.js";
 import { analisarImagem, limparImagem } from "../core/metadados.js";
 import { mostrarAviso } from "./shell.js";
 import { el, ligarZonaArquivos, ROTULO_TAMANHO } from "./util-tela.js";
+import { arquivoLegivel, jpegDoHeic, nomeJpeg } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 const LIMITE = 100 * 1024 * 1024;
@@ -16,12 +17,12 @@ let ultimaPasta = "";
 async function adicionar(lista) {
   const cabem = lista.slice(0, MAXIMO_ARQUIVOS - arquivos.length);
   for (const arquivo of cabem) {
-    const registro = { nome: arquivo.name, tamanho: arquivo.size, bytes: null, url: "", r: null, erro: "", salvo: "" };
+    const registro = { nome: arquivo.name, tamanho: arquivo.size, bytes: null, url: "", r: null, erro: "", salvo: "", arquivo };
     try {
       if (arquivo.size > LIMITE) throw new Error("Arquivo maior que 100 MB.");
       registro.bytes = new Uint8Array(await arquivo.arrayBuffer());
       registro.r = detectarIA(registro.bytes);
-      registro.url = URL.createObjectURL(arquivo);
+      registro.url = URL.createObjectURL(registro.r.formato === "heic" ? await arquivoLegivel(arquivo) : arquivo);
     } catch (erro) {
       registro.erro = erro.message;
     }
@@ -134,13 +135,15 @@ async function salvarCopias(lista) {
   const manterCor = $("ia-manter-cor").checked;
   const copias = [];
   for (const a of lista) {
-    const limpo = limparImagem(a.bytes, { manterCor });
+    // HEIC: a cópia limpa sai em JPEG (os pixels são regravados, sem nenhum metadado)
+    const heic = a.r.formato === "heic";
+    const limpo = heic ? await jpegDoHeic(a.arquivo) : limparImagem(a.bytes, { manterCor });
     // confere: na cópia não pode ter sobrado nenhum metadado
     if (analisarImagem(limpo).itens.length > 0 || detectarIA(limpo).nivel !== "nenhum") {
       mostrarAviso(`Não foi possível limpar ${a.nome} por completo. Nada foi salvo.`);
       return;
     }
-    copias.push({ nome: nomeLimpo(a.nome), bytes: limpo });
+    copias.push({ nome: nomeLimpo(heic ? nomeJpeg(a.nome) : a.nome), bytes: limpo });
   }
   const resposta = await window.arquivos.salvarCopias(copias);
   if (!resposta.ok) {

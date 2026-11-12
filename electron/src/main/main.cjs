@@ -344,6 +344,8 @@ function registrarDados() {
       return new Uint8Array(await require("node:fs/promises").readFile(path.join(pastaFontes, `${nome}-Regular.ttf`)));
     }),
   );
+  // Fotos HEIC: o Chromium não abre; o main decodifica e devolve RGBA
+  ipcMain.handle("imagens:heic", comTela((_e, bytes) => require("./heic.cjs").heicParaRgba(bytes)));
   // Motor de geometria (Manifold, WASM): a tela não consegue baixar o .wasm pelo file://
   ipcMain.handle(
     "modelos:wasm",

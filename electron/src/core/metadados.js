@@ -1,5 +1,6 @@
 // Leitura e remoção de metadados de imagens JPEG, PNG e WebP, direto nos bytes.
 // A remoção copia só os blocos necessários para a imagem: os pixels não são recodificados.
+// HEIC (fotos do iPhone): só leitura. A cópia limpa sai em JPEG, feita pela tela.
 
 const LATIN1 = new TextDecoder("latin1");
 const ascii = (bytes, inicio, fim) => LATIN1.decode(bytes.subarray(inicio, fim));
@@ -9,7 +10,19 @@ export function detectarFormato(bytes) {
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
   if (bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => bytes[i] === b)) return "png";
   if (bytes.length >= 12 && comeca(bytes, "RIFF") && comeca(bytes, "WEBP", 8)) return "webp";
+  if (ehHeic(bytes)) return "heic";
   return null;
+}
+
+// HEIC/HEIF: caixa "ftyp" com uma marca HEVC (AVIF fica de fora: o Chromium já abre).
+const MARCAS_HEIC = new Set(["heic", "heix", "hevc", "hevx", "heim", "heis", "hevm", "hevs"]);
+export function ehHeic(bytes) {
+  if (!bytes || bytes.length < 16 || !comeca(bytes, "ftyp", 4)) return false;
+  const tamanho = Math.min(bytes.length, ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0);
+  const marcas = [ascii(bytes, 8, 12)];
+  for (let o = 16; o + 4 <= tamanho; o += 4) marcas.push(ascii(bytes, o, o + 4));
+  if (MARCAS_HEIC.has(marcas[0])) return true;
+  return (marcas[0] === "mif1" || marcas[0] === "msf1") && marcas.some((m) => MARCAS_HEIC.has(m));
 }
 
 class ArquivoDanificado extends Error {
@@ -242,6 +255,119 @@ function classificarWebp(tipo, dados) {
   return { itens: [{ tipo: "outro", rotulo: nome, detalhe: "Dados extras." }], fontes: [fonteBruta(nome, dados)] };
 }
 
+// ---------- HEIC (ISOBMFF) ----------
+// Caixas de um trecho: [{ tipo, inicio (dos dados), fim }].
+function caixas(bytes, inicio, fim) {
+  const lista = [];
+  const visao = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let o = inicio;
+  while (o + 8 <= fim) {
+    let tamanho = visao.getUint32(o);
+    const tipo = ascii(bytes, o + 4, o + 8);
+    let cabecalho = 8;
+    if (tamanho === 1) {
+      if (o + 16 > fim) break;
+      tamanho = Number(visao.getBigUint64(o + 8));
+      cabecalho = 16;
+    } else if (tamanho === 0) {
+      tamanho = fim - o;
+    }
+    if (tamanho < cabecalho || o + tamanho > fim) throw new ArquivoDanificado("heic");
+    lista.push({ tipo, inicio: o + cabecalho, fim: o + tamanho });
+    o += tamanho;
+  }
+  return lista;
+}
+
+// Itens de metadados do HEIC: [{ tipo: "Exif" | "mime", conteudo, dados }].
+function itensHeif(bytes) {
+  const visao = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const meta = caixas(bytes, 0, bytes.length).find((c) => c.tipo === "meta");
+  if (!meta) return [];
+  const filhos = caixas(bytes, meta.inicio + 4, meta.fim); // meta é FullBox
+  const infos = new Map();
+  const iinf = filhos.find((c) => c.tipo === "iinf");
+  if (iinf) {
+    const versao = bytes[iinf.inicio];
+    const inicio = iinf.inicio + 4 + (versao === 0 ? 2 : 4);
+    for (const infe of caixas(bytes, inicio, iinf.fim)) {
+      if (infe.tipo !== "infe") continue;
+      const v = bytes[infe.inicio];
+      if (v < 2) continue;
+      let o = infe.inicio + 4;
+      const id = v === 2 ? visao.getUint16(o) : visao.getUint32(o);
+      o += (v === 2 ? 2 : 4) + 2; // + item_protection_index
+      const tipo = ascii(bytes, o, o + 4);
+      o += 4;
+      let conteudo = "";
+      if (tipo === "mime") {
+        o = bytes.indexOf(0, o) + 1; // item_name
+        const fimTexto = bytes.indexOf(0, o);
+        conteudo = ascii(bytes, o, fimTexto < 0 || fimTexto > infe.fim ? infe.fim : fimTexto);
+      }
+      infos.set(id, { tipo, conteudo });
+    }
+  }
+  const idat = filhos.find((c) => c.tipo === "idat");
+  const iloc = filhos.find((c) => c.tipo === "iloc");
+  if (!iloc) return [];
+  const versao = bytes[iloc.inicio];
+  let o = iloc.inicio + 4;
+  const tamOffset = bytes[o] >> 4;
+  const tamComprimento = bytes[o] & 15;
+  const tamBase = bytes[o + 1] >> 4;
+  const tamIndice = versao > 0 ? bytes[o + 1] & 15 : 0;
+  o += 2;
+  const ler = (n) => {
+    let v = 0;
+    for (let i = 0; i < n; i++) v = v * 256 + bytes[o + i];
+    o += n;
+    return v;
+  };
+  const quantidade = ler(versao < 2 ? 2 : 4);
+  const itens = [];
+  for (let i = 0; i < quantidade && o < iloc.fim; i++) {
+    const id = ler(versao < 2 ? 2 : 4);
+    const construcao = versao > 0 ? ler(2) & 15 : 0;
+    ler(2); // data_reference_index
+    const base = ler(tamBase);
+    const extensoes = ler(2);
+    const partes = [];
+    for (let e = 0; e < extensoes; e++) {
+      if (tamIndice) ler(tamIndice);
+      partes.push([ler(tamOffset), ler(tamComprimento)]);
+    }
+    const info = infos.get(id);
+    if (!info || (info.tipo !== "Exif" && info.tipo !== "mime")) continue;
+    const origem = construcao === 1 && idat ? idat.inicio : 0;
+    const pedacos = partes.map(([inicio, comprimento]) => {
+      const a = origem + base + inicio;
+      const b = comprimento ? a + comprimento : construcao === 1 && idat ? idat.fim : bytes.length;
+      if (b > bytes.length) throw new ArquivoDanificado("heic");
+      return bytes.subarray(a, b);
+    });
+    if (construcao > 1) continue;
+    itens.push({ ...info, dados: pedacos.length === 1 ? pedacos[0] : juntarPartes(pedacos) });
+  }
+  return itens;
+}
+
+function classificarHeif(item) {
+  if (item.tipo === "Exif" && item.dados.length > 4) {
+    const deslocamento = new DataView(item.dados.buffer, item.dados.byteOffset).getUint32(0);
+    const tiff = item.dados.subarray(4 + deslocamento);
+    return { itens: itensDoExif(tiff), fontes: fontesDoExif(tiff) };
+  }
+  if (item.tipo === "mime" && /xmp|rdf\+xml/i.test(item.conteudo)) {
+    const texto = ascii(item.dados, 0, item.dados.length);
+    return { itens: [{ tipo: "xmp", rotulo: "XMP", detalhe: "Dados de edição e descrição." }], texto, fontes: [{ onde: "XMP", texto }] };
+  }
+  if (item.tipo === "mime" && /c2pa/i.test(item.conteudo)) {
+    return { itens: [ITEM_C2PA], c2pa: item.dados, fontes: [fonteBruta("C2PA", item.dados)] };
+  }
+  return { itens: [] };
+}
+
 // ---------- API ----------
 // Lista o que a imagem carrega. Para o Detector de IA:
 // textos = XMP e textos PNG; fontes = [{ onde, texto }] de cada bloco; c2pa = bytes das credenciais.
@@ -267,6 +393,8 @@ export function analisarImagem(bytes) {
       if (b.tipo === "iCCP") resultado.temIcc = true;
       juntar(classificarPng(b.tipo, b.dados));
     });
+  } else if (formato === "heic") {
+    for (const item of itensHeif(bytes)) juntar(classificarHeif(item));
   } else {
     percorrerWebp(bytes, (b) => {
       if (b.tipo === "ICCP") resultado.temIcc = true;
@@ -291,6 +419,7 @@ function juntarPartes(partes) {
 export function limparImagem(bytes, { manterCor = true } = {}) {
   const formato = detectarFormato(bytes);
   if (!formato) throw new Error("Formato não suportado. Use JPEG, PNG ou WebP.");
+  if (formato === "heic") throw new Error("Para tirar os metadados de uma foto HEIC, salve uma cópia em JPEG.");
   const partes = [];
 
   if (formato === "jpeg") {

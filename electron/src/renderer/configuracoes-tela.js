@@ -3,6 +3,7 @@ import { formatarDocumento, formatarTelefone } from "../core/formatos.js";
 import { abrirSeletorFatiador } from "./fatiador-ui.js";
 import { aoMudarConfig, confirmar, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
+import { abrirImagem, arquivoEhHeic } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -196,16 +197,18 @@ async function salvarOrcamento(ev) {
 
 // Reduz a logo para no máximo 600 px (PNG mantém transparência).
 async function prepararLogo(arquivo) {
-  if (!/^image\/(png|jpeg)$/.test(arquivo.type)) throw new Error("Escolha uma imagem PNG ou JPG.");
-  if (arquivo.size > LOGO_ARQUIVO_MAX) throw new Error("A imagem passa de 2 MB. Escolha uma menor.");
-  const bitmap = await createImageBitmap(arquivo);
+  const heic = await arquivoEhHeic(arquivo);
+  if (!heic && !/^image\/(png|jpeg)$/.test(arquivo.type)) throw new Error("Escolha uma imagem PNG, JPG ou HEIC.");
+  // foto HEIC do celular: pode ser maior, porque é reduzida aqui mesmo
+  if (arquivo.size > (heic ? 20 * 1024 * 1024 : LOGO_ARQUIVO_MAX)) throw new Error(`A imagem passa de ${heic ? 20 : 2} MB. Escolha uma menor.`);
+  const bitmap = await abrirImagem(arquivo);
   const escala = Math.min(1, LOGO_LADO_MAX / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(bitmap.width * escala));
   canvas.height = Math.max(1, Math.round(bitmap.height * escala));
   canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close?.();
-  return canvas.toDataURL(arquivo.type === "image/png" ? "image/png" : "image/jpeg", 0.9);
+  return canvas.toDataURL(arquivo.type === "image/png" || heic ? "image/png" : "image/jpeg", 0.9);
 }
 
 async function aoEscolherLogo() {

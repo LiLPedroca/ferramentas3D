@@ -10,6 +10,7 @@ import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el, ligarZonaArquivos } from "./util-tela.js";
 import { vetorizar } from "./vetorizar.js";
+import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
 const LADO = 360; // logos não precisam de mais resolução para virar relevo
@@ -138,7 +139,7 @@ function mudarModo(novo) {
 // salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes }).
 async function carregar([arquivo], salvo = null) {
   try {
-    const bitmap = await createImageBitmap(arquivo);
+    const bitmap = await abrirImagem(arquivo);
     const escala = Math.min(1, LADO / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * escala));
     const h = Math.max(1, Math.round(bitmap.height * escala));
@@ -164,7 +165,7 @@ async function carregar([arquivo], salvo = null) {
     vetorizarImagem();
     gerar();
   } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG ou WebP.");
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP ou HEIC.");
   }
 }
 

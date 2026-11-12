@@ -11,6 +11,7 @@ import { abrirEditor as abrirEditorProduto } from "./produtos.js";
 import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { ROTULO_TAMANHO, el, ligarZonaArquivos } from "./util-tela.js";
 import { abrirArquivoNoVisualizador } from "./viewer3d.js";
+import { arquivoLegivel } from "./imagem-arquivo.js";
 
 const { EXTENSOES, extensaoDe, tempoTexto } = modelo;
 const $ = (id) => document.getElementById(id);
@@ -349,7 +350,8 @@ function criarProduto() {
 }
 
 // Foto: reduz para no máximo 900 px (JPEG), para caber no cadastro.
-function reduzirFoto(arquivo) {
+async function reduzirFoto(original) {
+  const arquivo = await arquivoLegivel(original);
   return new Promise((resolver, rejeitar) => {
     const url = URL.createObjectURL(arquivo);
     const img = new Image();
