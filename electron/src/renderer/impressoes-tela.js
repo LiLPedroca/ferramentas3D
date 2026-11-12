@@ -8,7 +8,7 @@ import { partesDoArquivo, dadosDo3mf } from "./impressoes-arquivo.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { densidadeDoMaterial } from "./modelos/estimativa.js";
 import { abrirEditor as abrirEditorProduto } from "./produtos.js";
-import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
+import { confirmar, estado, irPara, lembrarAoVoltar, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { ROTULO_TAMANHO, el, ligarZonaArquivos } from "./util-tela.js";
 import { abrirArquivoNoVisualizador } from "./viewer3d.js";
 import { arquivoLegivel } from "./imagem-arquivo.js";
@@ -43,6 +43,49 @@ function preencherFiltro() {
   $("im-filtro").value = categorias().includes(atualFiltro) ? atualFiltro : "";
 }
 
+// ---------- Material e cores (só escolha, sem digitar) ----------
+let coresEscolhidas = new Set();
+let corAntiga = ""; // texto de cor de impressões antigas que não bate com a paleta (fica guardado)
+
+function preencherMaterial(valor) {
+  const lista = [...modelo.MATERIAIS];
+  if (valor && !lista.includes(valor)) lista.push(valor); // valor antigo digitado: continua aparecendo
+  $("im-material").replaceChildren(new Option("Não informado", ""), ...lista.map((m) => new Option(m, m)));
+  $("im-material").value = valor ?? "";
+}
+
+function mostrarCores() {
+  $("im-cores").replaceChildren(
+    ...modelo.CORES.map((c) => {
+      const b = el("button", `im-cor${c.hex ? "" : " transparente"}`);
+      b.type = "button";
+      b.title = c.nome;
+      b.setAttribute("aria-label", c.nome);
+      b.setAttribute("aria-pressed", String(coresEscolhidas.has(c.id)));
+      if (c.hex) b.style.setProperty("--cor", c.hex);
+      b.addEventListener("click", () => {
+        if (coresEscolhidas.has(c.id)) coresEscolhidas.delete(c.id);
+        else coresEscolhidas.add(c.id);
+        b.setAttribute("aria-pressed", String(coresEscolhidas.has(c.id)));
+      });
+      return b;
+    }),
+  );
+}
+
+function bolinhasDeCor(i) {
+  const caixa = el("span", "im-cores-cartao");
+  for (const id of i.cores ?? []) {
+    const c = modelo.CORES.find((x) => x.id === id);
+    if (!c) continue;
+    const bola = el("span", `im-bolinha${c.hex ? "" : " transparente"}`);
+    bola.title = c.nome;
+    if (c.hex) bola.style.setProperty("--cor", c.hex);
+    caixa.append(bola);
+  }
+  return caixa;
+}
+
 function cartao(i) {
   const c = el("button", "cartao-produto cartao-impressao");
   c.type = "button";
@@ -63,7 +106,9 @@ function cartao(i) {
   if (i.categoria) cabeca.append(el("span", "chip", i.categoria));
   info.append(cabeca);
   const meta = [pesoTexto(i.pesoG), tempoTexto(i.tempoMin), i.material].filter(Boolean).join(" · ");
-  info.append(el("p", "produto-meta", meta || i.arquivo.extensao.toUpperCase()));
+  const linhaMeta = el("p", "produto-meta im-meta", meta || i.arquivo.extensao.toUpperCase());
+  if (i.cores?.length) linhaMeta.append(bolinhasDeCor(i));
+  info.append(linhaMeta);
   info.append(el("p", "produto-meta", i.vezesImpressa ? `Impressa ${i.vezesImpressa} ${i.vezesImpressa === 1 ? "vez" : "vezes"} · última em ${dataBr(i.ultimaImpressao)}` : "Ainda não marcada como impressa"));
   if (i.arquivoAusente) info.append(el("span", "chip chip-teste", "Arquivo não encontrado"));
   c.append(foto, info);
@@ -175,6 +220,16 @@ function mostrarFoto() {
   $("im-foto-remover").hidden = !imagem;
 }
 
+// Ao voltar para Minhas Impressões, reabre a janela desta impressão.
+function voltarParaDetalhe() {
+  const id = atual?.id;
+  if (!id) return;
+  lembrarAoVoltar(() => {
+    const i = impressoes.find((x) => x.id === id);
+    if (i) abrirDetalhe(i);
+  });
+}
+
 async function abrirDetalhe(i) {
   atual = i;
   partesAtuais = null;
@@ -188,13 +243,11 @@ async function abrirDetalhe(i) {
   const min = i.tempoMin ? Number(i.tempoMin) : null;
   $("im-horas").value = min === null ? "" : String(Math.floor(min / 60));
   $("im-minutos").value = min === null ? "" : String(min % 60);
-  $("im-material").value = i.material;
-  $("im-cor").value = i.cor;
-  $("im-camada").value = i.camadaMm ? i.camadaMm.replace(".", ",") : "";
-  $("im-preenchimento").value = i.preenchimentoPct;
-  $("im-suporte").value = i.suporte;
-  $("im-perfil").value = i.perfil;
-  $("im-obs").value = i.observacoes;
+  preencherMaterial(i.material);
+  // cores: as escolhidas; nas impressões antigas, tenta reconhecer o texto digitado antes
+  coresEscolhidas = new Set(i.cores ?? modelo.coresDoTexto(i.cor) ?? []);
+  corAntiga = i.cores || modelo.coresDoTexto(i.cor) ? "" : i.cor;
+  mostrarCores();
   $("im-vezes").textContent = i.vezesImpressa ? `Impressa ${i.vezesImpressa} ${i.vezesImpressa === 1 ? "vez" : "vezes"} · última em ${dataBr(i.ultimaImpressao)}` : "Ainda não marcada como impressa";
   $("im-erro-detalhe").textContent = "";
   mostrarFoto();
@@ -228,12 +281,8 @@ function valoresDoFormulario() {
     tempoH: $("im-horas").value,
     tempoM: $("im-minutos").value,
     material: $("im-material").value,
-    cor: $("im-cor").value,
-    camadaMm: $("im-camada").value,
-    preenchimentoPct: $("im-preenchimento").value,
-    suporte: $("im-suporte").value,
-    perfil: $("im-perfil").value,
-    observacoes: $("im-obs").value,
+    cores: [...coresEscolhidas],
+    cor: coresEscolhidas.size ? "" : corAntiga,
     foto: fotoNova ?? undefined,
     removerFoto,
   };
@@ -296,6 +345,7 @@ async function verNoVisualizador() {
     return;
   }
   $("dialogo-minha-impressao").close();
+  voltarParaDetalhe();
   irPara("visualizador");
   await abrirArquivoNoVisualizador(new File([r.dados.bytes], r.dados.nome));
 }
@@ -338,6 +388,7 @@ function calcularCusto() {
   const h = Number($("im-horas").value || 0);
   const m = Number($("im-minutos").value || 0);
   $("dialogo-minha-impressao").close();
+  voltarParaDetalhe();
   preencherDoModelo({ nome: $("im-nome").value || atual.nome, pesoG, detalhe, tempoMin: h * 60 + m || undefined });
 }
 
@@ -345,6 +396,7 @@ function criarProduto() {
   const nome = $("im-nome").value || atual.nome;
   const pesoG = $("im-peso").value;
   $("dialogo-minha-impressao").close();
+  voltarParaDetalhe();
   irPara("produtos");
   abrirEditorProduto(null, { nome, pesoG });
 }

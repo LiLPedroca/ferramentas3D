@@ -1,5 +1,5 @@
 // Tela inicial (cards dos grupos com foto e busca) e a página de cada grupo.
-import { FERRAMENTAS } from "../core/ferramentas.js";
+import { DESTAQUES, FERRAMENTAS } from "../core/ferramentas.js";
 import { boasVindas, filtrarFerramentas } from "../core/inicio.js";
 import { icone } from "./icones.js";
 import { aoMudarConfig, grupos, irPara, registrarAoAbrir } from "./shell.js";
@@ -29,6 +29,7 @@ export function cartaoFerramenta(f) {
   return cartao;
 }
 
+// g: grupo (abre a página do grupo) ou destaque (abre a ferramenta direto).
 function cartaoGrupo(g) {
   const cartao = el("button", "cartao-grupo");
   cartao.type = "button";
@@ -46,7 +47,7 @@ function cartaoGrupo(g) {
   painel.append(el("span", "grupo-nome", g.titulo), el("span", "grupo-desc", g.descricao), rodape);
 
   cartao.append(foto, painel);
-  cartao.addEventListener("click", () => irPara(`grupo:${g.id}`));
+  cartao.addEventListener("click", () => irPara(g.tela && !g.ferramentas ? g.tela : `grupo:${g.id}`));
   return cartao;
 }
 
@@ -58,7 +59,7 @@ function renderizar() {
   $("vazio").hidden = true;
 
   if (!buscando) {
-    const lista = grupos();
+    const lista = [...grupos(), ...DESTAQUES.filter((d) => FERRAMENTAS.some((f) => f.id === d.id && f.disponivel))];
     $("grupos").replaceChildren(...lista.map(cartaoGrupo));
     $("grupos").dataset.quantidade = String(lista.length);
     return;

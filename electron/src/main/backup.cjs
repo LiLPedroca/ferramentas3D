@@ -87,6 +87,7 @@ function criarServicoBackup(pasta, { colecoes, configuracoes, versaoApp }) {
     },
 
     lerArquivoBackup: async (caminho) => lerBackup(await fs.readFile(caminho, "utf8")),
+    lerTextoBackup: async (texto) => lerBackup(texto),
 
     lerAutomatico: async (nome) => {
       if (!/^[A-Za-z0-9-]+\.json$/.test(nome)) throw new Error("Nome de backup inválido.");

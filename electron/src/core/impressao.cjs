@@ -9,6 +9,42 @@ const { medidaDeTexto } = require("./produto.cjs");
 const LIMITES = { nome: 120, categoria: 60, curto: 80, arquivo: 200, observacoes: 1000, impressoes: 5_000, imagem: 400_000, bytes: 300 * 1024 * 1024 };
 const EXTENSOES = ["stl", "3mf", "obj", "ply"];
 const SUPORTE = ["", "sim", "nao"];
+// A tela só deixa escolher estes materiais e estas cores (valores antigos digitados continuam guardados).
+const MATERIAIS = ["PLA", "PLA Silk", "PETG", "ABS", "TPU"];
+const CORES = [
+  { id: "branco", nome: "Branco", hex: "#f4f4f4" },
+  { id: "preto", nome: "Preto", hex: "#1b1b1b" },
+  { id: "cinza", nome: "Cinza", hex: "#8a8a8a" },
+  { id: "prata", nome: "Prata", hex: "#c4c7cc" },
+  { id: "vermelho", nome: "Vermelho", hex: "#d6322f" },
+  { id: "laranja", nome: "Laranja", hex: "#f27a1a" },
+  { id: "amarelo", nome: "Amarelo", hex: "#f6c832" },
+  { id: "dourado", nome: "Dourado", hex: "#c9a23a" },
+  { id: "verde", nome: "Verde", hex: "#2e9d4f" },
+  { id: "azul", nome: "Azul", hex: "#2463d8" },
+  { id: "roxo", nome: "Roxo", hex: "#7c43c4" },
+  { id: "rosa", nome: "Rosa", hex: "#e8649f" },
+  { id: "marrom", nome: "Marrom", hex: "#7a4b2b" },
+  { id: "transparente", nome: "Transparente", hex: "" },
+];
+const IDS_CORES = new Set(CORES.map((c) => c.id));
+
+function coresValidas(lista) {
+  if (!Array.isArray(lista) || lista.length > CORES.length) throw new ErroValidacao("Cores inválidas.");
+  const unicas = [...new Set(lista)];
+  if (unicas.some((c) => !IDS_CORES.has(c))) throw new ErroValidacao("Cores inválidas.");
+  return CORES.map((c) => c.id).filter((c) => unicas.includes(c)); // sempre na ordem da paleta
+}
+
+const nomesDasCores = (ids) => ids.map((id) => CORES.find((c) => c.id === id).nome).join(", ");
+
+// Texto antigo de cor ("preto e branco", "Azul/Rosa") -> ids da paleta, se TODAS as partes forem reconhecidas.
+function coresDoTexto(textoCor) {
+  const sem = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const partes = String(textoCor ?? "").split(/,|\/|\+| e /i).map(sem).filter(Boolean);
+  const ids = partes.map((p) => CORES.find((c) => sem(c.nome) === p)?.id);
+  return partes.length && ids.every(Boolean) ? coresValidas(ids) : null;
+}
 const IMAGEM = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/;
 const HASH = /^[0-9a-f]{64}$/;
 const DIA = /^\d{4}-\d{2}-\d{2}$/;
@@ -79,6 +115,7 @@ function validarImpressao(i) {
     throw new ErroValidacao("Preenchimento inválido.");
   }
   for (const [k, n] of [["material", "Material"], ["cor", "Cor"], ["perfil", "Perfil"]]) texto(i[k], n, LIMITES.curto);
+  if (i.cores !== undefined) coresValidas(i.cores);
   if (!SUPORTE.includes(i.suporte)) throw new ErroValidacao("Suporte inválido.");
   textoLongo(i.observacoes, "Observações", LIMITES.observacoes);
   if (!Number.isInteger(i.vezesImpressa) || i.vezesImpressa < 0 || i.vezesImpressa > 1_000_000) throw new ErroValidacao("Contagem inválida.");
@@ -87,8 +124,9 @@ function validarImpressao(i) {
   return i;
 }
 
-// valores (da tela): { nome, categoria, pesoG, tempoH, tempoM, material, cor, camadaMm, preenchimentoPct, suporte,
-//   perfil, observacoes, foto, removerFoto, miniatura }
+// valores (da tela): { nome, categoria, pesoG, tempoH, tempoM, material, cores, cor, foto, removerFoto, miniatura }
+// camadaMm, preenchimentoPct, suporte, perfil e observacoes saíram da tela (v0.49): quando não vêm,
+// ficam os valores já guardados. cores: ids da paleta; cor = os nomes delas (ou o texto antigo, se não houver cores).
 // arquivo: só o processo principal informa (ao adicionar). Ao editar, vem do anterior.
 function montarImpressao(valores, { id, anterior, arquivo, agora = new Date().toISOString() }) {
   const v = valores ?? {};
@@ -100,17 +138,22 @@ function montarImpressao(valores, { id, anterior, arquivo, agora = new Date().to
     pesoG: medidaDeTexto(v.pesoG, "Peso"),
     tempoMin: tempoDeTexto(v.tempoH, v.tempoM),
     material: texto(v.material, "Material", LIMITES.curto),
-    cor: texto(v.cor, "Cor", LIMITES.curto),
-    camadaMm: medidaDeTexto(v.camadaMm, "Altura de camada"),
-    preenchimentoPct: inteiroDeTexto(v.preenchimentoPct, "Preenchimento", 100),
-    suporte: SUPORTE.includes(v.suporte) ? v.suporte : "",
-    perfil: texto(v.perfil, "Perfil", LIMITES.curto),
-    observacoes: textoLongo(v.observacoes, "Observações", LIMITES.observacoes),
+    cor: texto(v.cor ?? anterior?.cor, "Cor", LIMITES.curto),
+    camadaMm: v.camadaMm === undefined ? anterior?.camadaMm ?? "" : medidaDeTexto(v.camadaMm, "Altura de camada"),
+    preenchimentoPct: v.preenchimentoPct === undefined ? anterior?.preenchimentoPct ?? "" : inteiroDeTexto(v.preenchimentoPct, "Preenchimento", 100),
+    suporte: v.suporte === undefined ? anterior?.suporte ?? "" : SUPORTE.includes(v.suporte) ? v.suporte : "",
+    perfil: v.perfil === undefined ? anterior?.perfil ?? "" : texto(v.perfil, "Perfil", LIMITES.curto),
+    observacoes: v.observacoes === undefined ? anterior?.observacoes ?? "" : textoLongo(v.observacoes, "Observações", LIMITES.observacoes),
     vezesImpressa: anterior?.vezesImpressa ?? 0,
     ultimaImpressao: anterior?.ultimaImpressao ?? "",
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };
+  const cores = v.cores === undefined ? anterior?.cores : coresValidas(v.cores);
+  if (cores?.length) {
+    item.cores = cores;
+    item.cor = nomesDasCores(cores);
+  } else if (cores) item.cores = [];
   const miniatura = imagemOpcional(v.miniatura, "Miniatura") ?? anterior?.miniatura;
   if (miniatura) item.miniatura = miniatura;
   if (typeof v.foto === "string" && v.foto) item.foto = imagemOpcional(v.foto, "Foto");
@@ -133,4 +176,4 @@ function tempoTexto(min) {
   return h ? `${h}h${m ? String(m).padStart(2, "0") : ""}` : `${m} min`;
 }
 
-module.exports = { EXTENSOES, LIMITES, extensaoDe, marcarImpressa, montarImpressao, nomeDoArquivo, tempoDeTexto, tempoTexto, validarImpressao };
+module.exports = { CORES, MATERIAIS, coresDoTexto, EXTENSOES, LIMITES, extensaoDe, marcarImpressa, montarImpressao, nomeDoArquivo, tempoDeTexto, tempoTexto, validarImpressao };

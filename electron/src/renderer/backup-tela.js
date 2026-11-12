@@ -84,8 +84,8 @@ function mostrarPrevia(dados) {
   $("bk-previa").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-async function escolher() {
-  const resposta = await window.backup.escolher();
+async function escolher(arquivo) {
+  const resposta = await window.backup.escolher(arquivo);
   if (!resposta.ok) {
     mostrarAviso(resposta.erro);
     return;
@@ -120,7 +120,25 @@ async function restaurar() {
 
 export function iniciarBackup() {
   $("bk-exportar").addEventListener("click", exportar);
-  $("bk-escolher").addEventListener("click", escolher);
+  $("bk-escolher").addEventListener("click", () => escolher());
+  // Arrastar o .zip para a área de restaurar
+  const zona = $("bk-soltar");
+  zona.addEventListener("dragover", (ev) => {
+    ev.preventDefault();
+    zona.classList.add("sobre");
+  });
+  zona.addEventListener("dragleave", () => zona.classList.remove("sobre"));
+  zona.addEventListener("drop", (ev) => {
+    ev.preventDefault();
+    zona.classList.remove("sobre");
+    const arquivo = ev.dataTransfer.files[0];
+    if (!arquivo) return;
+    if (!/\.(zip|json)$/i.test(arquivo.name)) {
+      mostrarAviso("Arraste o arquivo .zip do backup.");
+      return;
+    }
+    escolher(arquivo);
+  });
   $("bk-restaurar").addEventListener("click", restaurar);
   $("bk-cancelar").addEventListener("click", () => {
     $("bk-previa").hidden = true;

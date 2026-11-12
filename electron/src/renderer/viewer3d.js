@@ -178,12 +178,12 @@ function desenharMesa() {
   const mesa = new THREE.Group();
   const placa = new THREE.Mesh(
     new THREE.PlaneGeometry(m.x, m.y),
-    new THREE.MeshStandardMaterial({ color: 0x1c2333, roughness: 0.9, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
+    new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.9, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
   );
   placa.rotation.x = -Math.PI / 2;
   placa.position.y = -0.05;
   mesa.add(placa);
-  const grade = new THREE.GridHelper(Math.max(m.x, m.y), Math.round(Math.max(m.x, m.y) / 10), 0x4a5570, 0x2a3142);
+  const grade = new THREE.GridHelper(Math.max(m.x, m.y), Math.round(Math.max(m.x, m.y) / 10), 0x4d4d4d, 0x2b2b2b);
   grade.scale.set(m.x / Math.max(m.x, m.y), 1, m.y / Math.max(m.x, m.y));
   grade.material.transparent = true;
   grade.material.opacity = 0.55;

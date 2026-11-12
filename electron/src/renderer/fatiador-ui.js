@@ -1,5 +1,5 @@
 // Meu fatiador: fatiadores cadastrados neste computador, um ativo, e abrir modelos nele.
-import { estado, mostrarAviso, salvarConfig } from "./shell.js";
+import { aoMudarConfig, estado, mostrarAviso, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -16,12 +16,36 @@ function erro(texto) {
   $("erro-fatiador").textContent = texto ?? "";
 }
 
-async function iconeDe(f, alvo) {
+async function urlDoIcone(f) {
   if (!icones.has(f.caminho)) {
     const r = await window.fatiador.icone(f.caminho);
     icones.set(f.caminho, r.ok ? r.dados : null);
   }
-  const url = icones.get(f.caminho);
+  return icones.get(f.caminho);
+}
+
+// Botão "Meu fatiador" do topo: mostra o ícone do fatiador ativo (sem fatiador, fica o cubo).
+let cuboDoTopo = null;
+async function atualizarBotaoTopo() {
+  const botao = $("meu-fatiador");
+  cuboDoTopo ??= botao.querySelector("svg");
+  const a = ativo();
+  const url = a ? await urlDoIcone(a) : null;
+  if (ativo()?.caminho !== a?.caminho) return; // mudou enquanto buscava o ícone
+  const atualIcone = botao.querySelector(".fatiador-topo-icone, svg");
+  if (url) {
+    const img = el("img", "fatiador-topo-icone");
+    img.src = url;
+    img.alt = "";
+    atualIcone.replaceWith(img);
+  } else if (atualIcone !== cuboDoTopo) {
+    atualIcone.replaceWith(cuboDoTopo);
+  }
+  botao.title = a ? `Meu fatiador: ${a.nome}` : "Abrir meu fatiador";
+}
+
+async function iconeDe(f, alvo) {
+  const url = await urlDoIcone(f);
   if (!url || !alvo.isConnected) return;
   const img = el("img");
   img.src = url;
@@ -142,6 +166,7 @@ export async function abrirNoFatiador(bytes, nome, extensao) {
 }
 
 export function iniciarFatiador() {
+  aoMudarConfig(() => atualizarBotaoTopo());
   $("meu-fatiador").addEventListener("click", () => abrirSeletorFatiador());
   $("fatiador-abrir").addEventListener("click", async () => {
     const r = await window.fatiador.abrir();

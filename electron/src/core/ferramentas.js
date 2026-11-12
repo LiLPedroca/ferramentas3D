@@ -24,6 +24,17 @@ export const GRUPOS = [
   },
 ];
 
+// Ferramentas com cartão próprio no Início e item solto no menu (fora dos grupos).
+export const DESTAQUES = [
+  {
+    id: "impressoes",
+    titulo: "Minhas Impressões",
+    descricao: "Organize e acompanhe suas impressões.",
+    foto: "assets/grupo-impressoes.jpg",
+    tela: "impressoes",
+  },
+];
+
 export const FERRAMENTAS = [
   {
     id: "calculadora",
@@ -110,7 +121,7 @@ export const FERRAMENTAS = [
     id: "impressoes",
     grupo: "ferramentas",
     titulo: "Minhas Impressões",
-    descricao: "Guarde seus arquivos de impressão com peso, tempo e o que deu certo.",
+    descricao: "Guarde seus arquivos de impressão com peso, tempo, material e cores.",
     categoria: "Ferramentas",
     disponivel: true,
     tela: "impressoes",
@@ -126,6 +137,7 @@ export const FERRAMENTAS = [
   },
   {
     id: "encaixes",
+    curto: "Encaixes",
     grupo: "ferramentas",
     titulo: "Encaixes e tolerâncias",
     descricao: "Folga certa entre pino e furo, e peça de teste para calibrar.",
@@ -144,6 +156,7 @@ export const FERRAMENTAS = [
   },
   {
     id: "detector",
+    curto: "Detector de IA",
     grupo: "ferramentas",
     titulo: "Detector de IA e metadados",
     descricao: "Veja sinais de IA, GPS e câmera das fotos e salve cópias limpas.",
@@ -153,6 +166,7 @@ export const FERRAMENTAS = [
   },
   {
     id: "backup",
+    curto: "Backup",
     grupo: "ferramentas",
     titulo: "Backup e armazenamento",
     descricao: "Salve e restaure todos os seus dados.",

@@ -19,7 +19,7 @@ export function criarPrevia(container, opcoes = {}) {
   luzFundo.visible = false;
   cena.add(luzFundo);
 
-  const grade = new THREE.GridHelper(300, 30, 0x4a5570, 0x2a3142);
+  const grade = new THREE.GridHelper(300, 30, 0x4d4d4d, 0x2b2b2b);
   grade.rotation.x = Math.PI / 2;
   grade.material.transparent = true;
   grade.material.opacity = opcoes.gradeSuave ? 0.18 : 0.45;

@@ -124,7 +124,16 @@ function criarServicoImpressoes(pasta) {
       });
     },
 
-    // Backup exportado: copia os arquivos para uma pasta ao lado do .json.
+    // Backup .zip: os arquivos que existem, com o nome da impressão.
+    async arquivosParaBackup() {
+      const lista = [];
+      for (const i of await servico.listar()) {
+        if (await existe(caminhoDe(i))) lista.push({ id: i.id, nome: i.nome, extensao: i.arquivo.extensao, caminho: caminhoDe(i) });
+      }
+      return lista;
+    },
+
+    // Backup exportado (formato antigo, .json): copia os arquivos para uma pasta ao lado do .json.
     async copiarArquivosPara(destino) {
       const itens = await servico.listar();
       let copiados = 0;

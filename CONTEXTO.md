@@ -513,3 +513,32 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - Novidade "Fotos HEIC do iPhone" em cada uma dessas telas. Teste `tests/heic.test.js` com fotos geradas por
   script (`tests/dados/foto-teste.heic`, câmera e GPS fictícios). Conferido no modo de captura e no programa
   empacotado. Não conferido: foto HEIC real de iPhone (só as geradas pelo libheif).
+
+## Trabalho do Claude Code (12/11/2026) — Início, menu, Produtos, Impressões, Voltar, backup .zip (v0.49.0)
+
+- **Modo escuro preto**: variáveis de `html[data-theme="escuro"]` em cinzas neutros (#0a0a0a/#141414/#1c1c1c,
+  borda #2b2b2b); mesa e grade do 3D (`viewer3d.js`, `previa3d.js`) também neutras. Acento azul mantido.
+- **Início**: 4 cartões (3 grupos + `DESTAQUES` em `core/ferramentas.js`, hoje só Minhas Impressões, que abre a
+  ferramenta direto). Fotos novas feitas pelo GPT a pedido do Pedro (`assets/grupo-*.jpg`, 900 px; originais em
+  `dev/fotos-inicio/`, fora do git). Painel do cartão começa a 52% da altura (todos alinhados).
+- **Menu**: só abre no ☰ (Pedro não quer menu fixo). Destaques soltos no topo; grupos recolhíveis
+  (`menu-secao`), ao abrir o menu fica aberto só o grupo da tela atual. Nomes curtos no menu (`curto` no catálogo).
+- **Voltar**: histórico em `shell.js` (`historico`, `lembrarAoVoltar(fn)`). Voltar refaz o caminho; sem histórico
+  usa o `pai`. Ir ao Início zera. Minhas Impressões usa `lembrarAoVoltar` para reabrir a janela da impressão ao
+  voltar de Criar produto / Calcular custo / Visualizador.
+- **Botão Meu fatiador**: mostra o ícone do fatiador ativo (`app.getFileIcon`), atualiza ao mudar a config.
+- **Produtos**: título "Seus produtos"; busca, categoria, ordenar (recentes/nome/preço/lucro) e grade/lista
+  (preferências em localStorage); cartão com Venda (azul) | Lucro (verde) e Custo; menu ⋯ Editar/Duplicar/Excluir;
+  rodapé "Mostrando X de Y". Classes `pv-venda`/`pv-lucro` (existe um `.lucro` global no CSS).
+- **Minhas Impressões**: janela só com Nome, Categoria, Peso, Tempo, Material (lista: PLA, PLA Silk, PETG, ABS,
+  TPU; valor antigo digitado continua como opção) e Cor (14 cores para tocar, várias: `cores` = ids, `cor` = nomes)
+  + foto. Camada, preenchimento, suporte, perfil e observações saíram da tela, mas `montarImpressao` mantém os
+  valores guardados quando não vêm. `coresDoTexto` reconhece texto antigo ("preto e branco").
+- **Backup em um .zip** (`main/backup-zip.cjs`, fflate em streaming, dependência direta agora): `dados.json` +
+  `impressoes/<nome> [<id>].<ext>`. Restaurar: escolher ou arrastar o .zip (preload usa `webUtils.getPathForFile`);
+  extrai para uma pasta temporária, apagada depois. `.json` antigo com a pasta "(arquivos)" continua aceito.
+  A cópia diária automática NÃO copia os 3MF/STL: eles nunca são reescritos e os excluídos vão para
+  `impressoes/excluidos`, de onde `recuperarArquivos` já os traz de volta.
+- Conferido: 356 testes; capturas de Início, menu, Produtos (grade/lista, Duplicar), Impressões (material/cores,
+  Voltar reabre a janela), backup .zip gerado e restaurado numa pasta de dados vazia, programa empacotado gerando o
+  .zip. Não conferido: arrastar o .zip de verdade com o mouse; restaurar em outro computador.

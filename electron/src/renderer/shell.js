@@ -1,6 +1,6 @@
 // Estrutura comum: navegação entre telas, cabeçalho, menu lateral, tema, avisos,
 // verificação de atualizações e a pergunta do nome na primeira abertura.
-import { FERRAMENTAS, GRUPOS } from "../core/ferramentas.js";
+import { DESTAQUES, FERRAMENTAS, GRUPOS } from "../core/ferramentas.js";
 import { gruposVisiveis } from "../core/inicio.js";
 import { novidadeDaTela } from "../core/novidades.js";
 import { icone } from "./icones.js";
@@ -46,8 +46,24 @@ export function grupos() {
   return gruposVisiveis(GRUPOS, FERRAMENTAS);
 }
 
+// Caminho percorrido: o Voltar refaz de trás para frente. aoVoltar reabre o que estava aberto (ex.: uma janela).
+const historico = []; // [{ tela, aoVoltar }]
+let aoVoltarPendente = null;
+
+// Chamar logo antes de irPara(...) quando, ao voltar, a tela de origem deve reabrir algo.
+export function lembrarAoVoltar(funcao) {
+  aoVoltarPendente = funcao;
+}
+
+function voltar() {
+  const entrada = historico.pop();
+  if (!entrada) return irPara($("voltar").dataset.destino || "inicio", { voltando: true });
+  irPara(entrada.tela, { voltando: true });
+  entrada.aoVoltar?.();
+}
+
 // destino: "inicio", "configuracoes", uma ferramenta ("calculadora") ou "grupo:<id>".
-export function irPara(destino) {
+export function irPara(destino, { voltando = false } = {}) {
   let info;
   let elemento;
   // Grupo com tela própria (Gestão financeira abre o painel).
@@ -55,20 +71,26 @@ export function irPara(destino) {
   if (comTela) destino = comTela;
   if (String(destino).startsWith("grupo:")) {
     const grupo = grupos().find((g) => `grupo:${g.id}` === destino);
-    if (!grupo) return irPara("inicio");
+    if (!grupo) return irPara("inicio", { voltando });
     info = { titulo: grupo.titulo, pai: "inicio" };
     elemento = "tela-grupo";
     aoAbrir.get("grupo")?.(grupo);
   } else {
     info = TELAS[destino];
-    if (!info || !info.titulo) return irPara("inicio");
+    if (!info || !info.titulo) return irPara("inicio", { voltando });
     elemento = info.elemento;
   }
 
+  if (destino === "inicio") historico.length = 0;
+  else if (!voltando && telaAtual !== destino) {
+    historico.push({ tela: telaAtual, aoVoltar: aoVoltarPendente });
+    if (historico.length > 40) historico.shift();
+  }
+  aoVoltarPendente = null;
   telaAtual = destino;
   for (const id of ELEMENTOS) $(id).classList.toggle("oculta", id !== elemento);
   $("titulo-tela").textContent = info.titulo;
-  $("voltar").hidden = !info.pai;
+  $("voltar").hidden = !info.pai && !historico.length;
   $("voltar").dataset.destino = info.pai ?? "";
   $(elemento).scrollTop = 0;
   marcarMenuAtivo();
@@ -122,14 +144,57 @@ function itemMenu(destino, texto, nomeIcone, classe = "") {
   return botao;
 }
 
-const ICONE_GRUPO = { financeiro: "orcamentos", ferramentas: "medidas", modelos: "chaveiro" };
+// Grupos recolhíveis: só o grupo da tela atual (ou o que a pessoa abriu) mostra as ferramentas.
+const gruposAbertos = new Set();
+const ehDestaque = (id) => DESTAQUES.some((d) => d.id === id);
+
+function grupoDoMenu(g) {
+  const caixa = document.createElement("div");
+  caixa.className = "menu-secao";
+  caixa.dataset.grupo = g.id;
+  const cabeca = document.createElement("button");
+  cabeca.type = "button";
+  cabeca.className = "menu-cabeca";
+  cabeca.setAttribute("aria-expanded", "false");
+  cabeca.append(document.createTextNode(g.titulo));
+  cabeca.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+  const filhos = document.createElement("div");
+  filhos.className = "menu-filhos";
+  // Grupo com tela própria (Gestão financeira): o painel é o primeiro item.
+  if (g.tela) filhos.append(itemMenu(g.tela, "Painel", "taxas", "menu-filho"));
+  for (const f of g.ferramentas) if (!ehDestaque(f.id)) filhos.append(itemMenu(f.tela, f.curto ?? f.titulo, f.id, "menu-filho"));
+  cabeca.addEventListener("click", () => {
+    if (gruposAbertos.has(g.id)) gruposAbertos.delete(g.id);
+    else gruposAbertos.add(g.id);
+    abrirGruposDoMenu();
+  });
+  caixa.append(cabeca, filhos);
+  return caixa;
+}
+
+function abrirGruposDoMenu() {
+  for (const caixa of document.querySelectorAll("#menu-itens .menu-secao")) {
+    const aberto = gruposAbertos.has(caixa.dataset.grupo);
+    caixa.classList.toggle("aberta", aberto);
+    caixa.querySelector(".menu-cabeca").setAttribute("aria-expanded", String(aberto));
+  }
+}
+
+// Ao abrir o menu: abre o grupo da tela atual.
+function grupoDaTelaAtual() {
+  const f = FERRAMENTAS.find((x) => x.tela === telaAtual);
+  if (f && !ehDestaque(f.id)) return f.grupo;
+  const g = GRUPOS.find((x) => x.tela === telaAtual || `grupo:${x.id}` === telaAtual);
+  return g?.id ?? null;
+}
 
 function montarMenu() {
   const itens = [itemMenu("inicio", "Início", "inicio")];
-  for (const g of grupos()) {
-    itens.push(itemMenu(g.tela ?? `grupo:${g.id}`, g.titulo, ICONE_GRUPO[g.id] ?? "visualizador", "menu-grupo"));
-    for (const f of g.ferramentas) itens.push(itemMenu(f.tela, f.titulo, f.id, "menu-filho"));
+  for (const d of DESTAQUES) {
+    const f = FERRAMENTAS.find((x) => x.id === d.id && x.disponivel);
+    if (f) itens.push(itemMenu(f.tela, f.titulo, f.id));
   }
+  for (const g of grupos()) itens.push(grupoDoMenu(g));
   $("menu-itens").replaceChildren(...itens);
 
   const config = $("menu-config");
@@ -149,6 +214,10 @@ function abrirMenu() {
   const menu = $("menu-lateral");
   menu.classList.add("aberto");
   menu.inert = false;
+  gruposAbertos.clear();
+  const atual = grupoDaTelaAtual();
+  if (atual) gruposAbertos.add(atual);
+  abrirGruposDoMenu();
   menu.setAttribute("aria-hidden", "false");
   $("menu-fundo").classList.add("visivel");
   $("abrir-menu").setAttribute("aria-expanded", "true");
@@ -342,7 +411,7 @@ export function iniciarShell() {
   $("abrir-menu").addEventListener("click", abrirMenu);
   $("fechar-menu").addEventListener("click", fecharMenu);
   $("menu-fundo").addEventListener("click", fecharMenu);
-  $("voltar").addEventListener("click", () => irPara($("voltar").dataset.destino || "inicio"));
+  $("voltar").addEventListener("click", voltar);
   $("alternar-tema").addEventListener("click", () => {
     aplicarTema(document.documentElement.dataset.theme === "escuro" ? "claro" : "escuro");
   });

@@ -12,6 +12,7 @@ const { criarServicoFilamentos } = require("./filamentos.cjs");
 const { Documento } = require("./armazenamento.cjs");
 const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
+const backupZip = require("./backup-zip.cjs");
 const { RODAPE_PDF, gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
 const { ErroValidacao } = require("../core/validacao.cjs");
 
@@ -46,7 +47,7 @@ function criarJanela() {
     minWidth: 900,
     minHeight: 620,
     title: "Programa Ferramentas 3D",
-    backgroundColor: "#0b0d12",
+    backgroundColor: "#0a0a0a",
     autoHideMenuBar: true,
     icon: path.join(__dirname, "..", "..", "build", "renderer", "assets", "icone.png"),
     webPreferences: {
@@ -227,39 +228,62 @@ function registrarDados() {
   ipcMain.handle(
     "backup:exportar",
     comTela(async (e) => {
-      const nome = nomeBackup("Backup-Ferramentas3D");
+      const nome = nomeBackup("Backup-Ferramentas3D").replace(/\.json$/, ".zip");
       let destino;
       if (process.env.FERRAMENTAS_SALVAR_DESTINO) destino = path.join(process.env.FERRAMENTAS_SALVAR_DESTINO, nome);
       else {
         const escolha = await dialog.showSaveDialog(janelaDe(e), {
           title: "Salvar backup",
           defaultPath: path.join(app.getPath("documents"), nome),
-          filters: [{ name: "Backup", extensions: ["json"] }],
+          filters: [{ name: "Backup", extensions: ["zip"] }],
         });
         if (escolha.canceled || !escolha.filePath) return null;
         destino = escolha.filePath;
       }
-      await require("node:fs/promises").writeFile(destino, await backup.gerarTexto(), "utf8");
-      // Arquivos de Minhas Impressões: numa pasta ao lado do .json.
-      await impressoes.copiarArquivosPara(pastaArquivosDoBackup(destino));
+      // Um arquivo só: dados + arquivos de Minhas Impressões.
+      await backupZip.gravarZip(destino, await backup.gerarTexto(), await impressoes.arquivosParaBackup());
       return destino;
     }),
   );
+  // Pasta temporária com os arquivos extraídos de um backup .zip (apagada depois de restaurar ou ao trocar).
+  let pastaTemporariaZip = null;
+  const limparTemporariaZip = () => {
+    if (pastaTemporariaZip) require("node:fs").rmSync(pastaTemporariaZip, { recursive: true, force: true });
+    pastaTemporariaZip = null;
+  };
   ipcMain.handle(
     "backup:escolher",
-    comTela(async (e) => {
+    // arrastado: caminho de um arquivo solto na tela (pelo preload); sem ele, abre a janela de escolha.
+    comTela(async (e, arrastado) => {
       let caminho = process.env.FERRAMENTAS_BACKUP_ARQUIVO;
+      if (typeof arrastado === "string" && arrastado) {
+        if (!path.isAbsolute(arrastado) || !/\.(zip|json)$/i.test(arrastado)) throw new ErroValidacao("Escolha o arquivo .zip do backup.");
+        caminho = arrastado;
+      }
       if (!caminho) {
         const escolha = await dialog.showOpenDialog(janelaDe(e), {
           title: "Escolher backup para restaurar",
           properties: ["openFile"],
-          filters: [{ name: "Backup", extensions: ["json"] }],
+          filters: [{ name: "Backup", extensions: ["zip", "json"] }],
         });
         if (escolha.canceled || !escolha.filePaths[0]) return null;
         caminho = escolha.filePaths[0];
       }
-      backupEscolhido = await backup.lerArquivoBackup(caminho);
-      pastaArquivosEscolhida = pastaArquivosDoBackup(caminho);
+      limparTemporariaZip();
+      if (/\.zip$/i.test(caminho)) {
+        pastaTemporariaZip = path.join(app.getPath("temp"), `ferramentas3d-restaurar-${process.pid}-${Date.now()}`);
+        try {
+          backupEscolhido = await backup.lerTextoBackup(await backupZip.lerZip(caminho, pastaTemporariaZip));
+        } catch (erro) {
+          limparTemporariaZip();
+          throw erro;
+        }
+        pastaArquivosEscolhida = pastaTemporariaZip;
+      } else {
+        // formato antigo: .json com a pasta "(arquivos)" ao lado
+        backupEscolhido = await backup.lerArquivoBackup(caminho);
+        pastaArquivosEscolhida = pastaArquivosDoBackup(caminho);
+      }
       return { resumo: backupEscolhido.resumo, descartados: backupEscolhido.descartados, nome: path.basename(caminho) };
     }),
   );
@@ -279,6 +303,7 @@ function registrarDados() {
       backupEscolhido = null;
       await impressoes.recuperarArquivos(pastaArquivosEscolhida);
       pastaArquivosEscolhida = null;
+      limparTemporariaZip();
       return resultado;
     }),
   );

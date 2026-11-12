@@ -1,5 +1,5 @@
 // Ponte entre a tela e o processo principal. A tela só enxerga estas funções.
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("atualizacao", {
   verificar: () => ipcRenderer.invoke("atualizacao:verificar"),
@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld("fatiador", {
 contextBridge.exposeInMainWorld("backup", {
   resumo: () => ipcRenderer.invoke("backup:resumo"),
   exportar: () => ipcRenderer.invoke("backup:exportar"),
-  escolher: () => ipcRenderer.invoke("backup:escolher"),
+  escolher: (arquivo) => ipcRenderer.invoke("backup:escolher", arquivo ? webUtils.getPathForFile(arquivo) : undefined),
   escolherAutomatico: (nome) => ipcRenderer.invoke("backup:escolher-automatico", nome),
   restaurar: () => ipcRenderer.invoke("backup:restaurar"),
 });

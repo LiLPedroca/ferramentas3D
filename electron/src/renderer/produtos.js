@@ -26,14 +26,6 @@ let irPara = () => {};
 const reais = (centavos) => formatarReais(new Racional(BigInt(centavos), 100n));
 const medida = (texto) => (texto ? texto.replace(".", ",") : "");
 
-function textoMedidas(p) {
-  const partes = [];
-  if (p.pesoG) partes.push(`${medida(p.pesoG)} g`);
-  const dims = [p.alturaMm, p.larguraMm, p.comprimentoMm];
-  if (dims.some(Boolean)) partes.push(`${dims.map((d) => medida(d) || "—").join(" × ")} mm`);
-  return partes.join(" · ");
-}
-
 function el(tag, classe, texto) {
   const e = document.createElement(tag);
   if (classe) e.className = classe;
@@ -157,9 +149,105 @@ async function removerCategoria(c) {
 }
 
 // ---------- Lista ----------
+const lucroDe = (p) => (p.custo ? BigInt(p.precoCentavos) - BigInt(p.custo.custoUnitarioCentavos) : null);
+
+// Preferências da tela (só deste computador).
+function lerPreferencia(chave, padrao) {
+  try {
+    return localStorage.getItem(chave) ?? padrao;
+  } catch {
+    return padrao;
+  }
+}
+function gravarPreferencia(chave, valor) {
+  try {
+    localStorage.setItem(chave, valor);
+  } catch {
+    // sem armazenamento: vale só nesta abertura
+  }
+}
+
+// Menu "⋯" do cartão: um só, reaproveitado.
+let menuAberto = null;
+function fecharMenuProduto() {
+  menuAberto?.remove();
+  menuAberto = null;
+}
+
+function abrirMenuProduto(p, botao) {
+  const mesmo = menuAberto?.dataset.id === p.id;
+  fecharMenuProduto();
+  if (mesmo) return;
+  const menu = el("div", "menu-produto");
+  menu.dataset.id = p.id;
+  menu.setAttribute("role", "menu");
+  for (const [texto, acao, classe] of [
+    ["Editar", () => abrirEditor(p), ""],
+    ["Duplicar", () => duplicar(p), ""],
+    ["Excluir", () => excluirDaLista(p), "perigo"],
+  ]) {
+    const b = el("button", classe, texto);
+    b.type = "button";
+    b.setAttribute("role", "menuitem");
+    b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      fecharMenuProduto();
+      acao();
+    });
+    menu.append(b);
+  }
+  botao.after(menu);
+  menuAberto = menu;
+  menu.querySelector("button").focus();
+}
+
+async function duplicar(p) {
+  const valores = {
+    nome: `${p.nome} (cópia)`.slice(0, 120),
+    categoria: p.categoria ?? "",
+    preco: reais(p.precoCentavos).replace("R$", "").trim(),
+    pesoG: medida(p.pesoG),
+    alturaMm: medida(p.alturaMm),
+    larguraMm: medida(p.larguraMm),
+    comprimentoMm: medida(p.comprimentoMm),
+    observacoes: p.observacoes ?? "",
+  };
+  if (p.foto) valores.foto = p.foto;
+  if (p.custo) valores.custo = p.custo;
+  const resposta = await window.dados.produtos.salvar(valores);
+  if (!resposta.ok) {
+    $("erro-produtos").textContent = resposta.erro;
+    return;
+  }
+  avisar(`"${valores.nome}" criado.`);
+  await carregarProdutos();
+}
+
+async function excluirDaLista(p) {
+  const ok = await confirmar({
+    titulo: "Excluir produto?",
+    texto: `"${p.nome}" será excluído. Essa ação não pode ser desfeita.`,
+    botao: "Excluir",
+  });
+  if (!ok) return;
+  const resposta = await window.dados.produtos.excluir(p.id);
+  if (!resposta.ok) {
+    $("erro-produtos").textContent = resposta.erro;
+    return;
+  }
+  avisar("Produto excluído.");
+  await carregarProdutos();
+}
+
+function valorCartao(rotulo, valor, classe) {
+  const caixa = el("div", `produto-valor ${classe}`);
+  caixa.append(el("span", "", rotulo), el("strong", "", valor));
+  return caixa;
+}
+
 function cartaoProduto(p) {
-  const cartao = el("button", "cartao-produto");
-  cartao.type = "button";
+  const cartao = el("article", "cartao-produto");
+  cartao.tabIndex = 0;
   cartao.setAttribute("aria-label", `Editar ${p.nome}`);
 
   const foto = el("div", "produto-foto");
@@ -174,22 +262,62 @@ function cartaoProduto(p) {
 
   const info = el("div", "produto-info");
   const cabeca = el("div", "produto-cabeca");
-  cabeca.append(el("h3", "", p.nome));
-  if (p.categoria) cabeca.append(el("span", "chip", p.categoria));
-  if (p.teste) cabeca.append(el("span", "chip chip-teste", "Teste"));
-  info.append(cabeca, el("strong", "produto-preco", reais(p.precoCentavos)));
-
-  const meta = textoMedidas(p);
-  if (meta) info.append(el("p", "produto-meta", meta));
-  if (p.custo) {
-    const lucro = BigInt(p.precoCentavos) - BigInt(p.custo.custoUnitarioCentavos);
-    const classe = lucro >= 0n ? "produto-margem" : "produto-margem negativo";
-    info.append(el("p", classe, `Custo ${reais(p.custo.custoUnitarioCentavos)} · lucro ${reais(lucro.toString())}`));
+  const nome = el("div", "produto-nome");
+  nome.append(el("h3", "", p.nome));
+  const etiquetas = el("div", "produto-etiquetas");
+  if (p.categoria) {
+    const cat = el("span", "produto-categoria");
+    cat.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12Z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg>';
+    cat.append(p.categoria);
+    etiquetas.append(cat);
   }
+  if (p.teste) etiquetas.append(el("span", "chip chip-teste", "Teste"));
+  if (etiquetas.childElementCount) nome.append(etiquetas);
+  const mais = el("button", "produto-mais");
+  mais.type = "button";
+  mais.setAttribute("aria-label", `Opções de ${p.nome}`);
+  mais.setAttribute("aria-haspopup", "menu");
+  mais.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+  mais.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    abrirMenuProduto(p, mais);
+  });
+  cabeca.append(nome, mais);
+
+  const valores = el("div", "produto-valores");
+  valores.append(valorCartao("Venda", reais(p.precoCentavos), "pv-venda"));
+  const lucro = lucroDe(p);
+  if (lucro !== null) valores.append(valorCartao("Lucro", reais(lucro.toString()), lucro >= 0n ? "pv-lucro" : "pv-lucro negativo"));
+  info.append(cabeca, valores);
+  info.append(el("p", "produto-custo", p.custo ? `Custo ${reais(p.custo.custoUnitarioCentavos)}` : "Custo não calculado"));
 
   cartao.append(foto, info);
   cartao.addEventListener("click", () => abrirEditor(p));
+  cartao.addEventListener("keydown", (ev) => {
+    if (ev.target === cartao && (ev.key === "Enter" || ev.key === " ")) {
+      ev.preventDefault();
+      abrirEditor(p);
+    }
+  });
   return cartao;
+}
+
+const ORDENS = {
+  recentes: (a, b) => String(b.atualizadoEm ?? "").localeCompare(String(a.atualizadoEm ?? "")),
+  nome: (a, b) => a.nome.localeCompare(b.nome, "pt-BR"),
+  preco: (a, b) => Number(BigInt(b.precoCentavos) - BigInt(a.precoCentavos)),
+  lucro: (a, b) => {
+    const la = lucroDe(a);
+    const lb = lucroDe(b);
+    if (la === null || lb === null) return (la === null) - (lb === null);
+    return lb > la ? 1 : lb < la ? -1 : 0;
+  },
+};
+
+function mudarVista(vista) {
+  gravarPreferencia("produtos-vista", vista);
+  $("grade-produtos").classList.toggle("lista", vista === "lista");
+  for (const b of document.querySelectorAll(".vista-botao")) b.setAttribute("aria-pressed", String(b.dataset.vista === vista));
 }
 
 function renderizar() {
@@ -203,11 +331,15 @@ function renderizar() {
     return palavras.every((w) => texto.includes(w));
   });
 
+  filtrados.sort(ORDENS[$("ordem-produtos").value] ?? ORDENS.recentes);
+  fecharMenuProduto();
   $("grade-produtos").replaceChildren(...filtrados.map(cartaoProduto));
   $("vazio-produtos").hidden = produtos.length > 0;
   $("sem-resultado-produtos").hidden = produtos.length === 0 || filtrados.length > 0;
   $("produtos-resumo").textContent =
     produtos.length === 1 ? "1 produto cadastrado" : `${produtos.length} produtos cadastrados`;
+  $("produtos-mostrando").hidden = produtos.length === 0;
+  $("produtos-mostrando").textContent = `Mostrando ${filtrados.length} de ${produtos.length} ${produtos.length === 1 ? "produto" : "produtos"}`;
 }
 
 export async function carregarProdutos() {
@@ -377,6 +509,20 @@ export function iniciarProdutos(opcoes) {
   $("vazio-calcular").addEventListener("click", () => irPara("calculadora"));
   $("busca-produtos").addEventListener("input", renderizar);
   $("filtro-categoria").addEventListener("change", renderizar);
+  $("ordem-produtos").value = lerPreferencia("produtos-ordem", "recentes");
+  if (!$("ordem-produtos").value) $("ordem-produtos").value = "recentes";
+  $("ordem-produtos").addEventListener("change", () => {
+    gravarPreferencia("produtos-ordem", $("ordem-produtos").value);
+    renderizar();
+  });
+  mudarVista(lerPreferencia("produtos-vista", "grade") === "lista" ? "lista" : "grade");
+  for (const b of document.querySelectorAll(".vista-botao")) b.addEventListener("click", () => mudarVista(b.dataset.vista));
+  document.addEventListener("click", (ev) => {
+    if (menuAberto && !menuAberto.contains(ev.target)) fecharMenuProduto();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && menuAberto) fecharMenuProduto();
+  });
   $("gerenciar-categorias").addEventListener("click", () => abrirCategorias());
   $("form-categoria").addEventListener("submit", criarCategoria);
   $("fechar-categorias").addEventListener("click", fecharCategorias);

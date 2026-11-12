@@ -96,3 +96,43 @@ describe("serviço de Minhas Impressões", () => {
     expect(backupCore.lerBackup(JSON.stringify(antigo)).ausentes).toContain("impressoes");
   });
 });
+
+describe("Minhas Impressões: material, cores e campos que saíram da tela (v0.49)", () => {
+  const arquivo = { nome: "a.3mf", extensao: "3mf", tamanho: 10, hash: "a".repeat(64) };
+  const antiga = modelo.montarImpressao(
+    { nome: "Antiga", material: "PLA+", cor: "preto e branco", camadaMm: "0,2", preenchimentoPct: "15", suporte: "sim", perfil: "Fino", observacoes: "deitado" },
+    { id: "imp-0000-0001", arquivo },
+  );
+
+  it("mantém os campos escondidos ao salvar pela tela nova", () => {
+    const nova = modelo.montarImpressao({ nome: "Antiga", material: "PETG", cores: ["azul"] }, { id: antiga.id, anterior: antiga });
+    expect([nova.camadaMm, nova.preenchimentoPct, nova.suporte, nova.perfil, nova.observacoes]).toEqual(["0.2", "15", "sim", "Fino", "deitado"]);
+    expect(nova.material).toBe("PETG");
+    expect(nova.cores).toEqual(["azul"]);
+    expect(nova.cor).toBe("Azul");
+  });
+
+  it("várias cores ficam na ordem da paleta, sem repetir", () => {
+    const i = modelo.montarImpressao({ nome: "x", cores: ["rosa", "preto", "rosa", "transparente"] }, { id: antiga.id, anterior: antiga });
+    expect(i.cores).toEqual(["preto", "rosa", "transparente"]);
+    expect(i.cor).toBe("Preto, Rosa, Transparente");
+    expect(() => modelo.montarImpressao({ nome: "x", cores: ["neon"] }, { id: antiga.id, anterior: antiga })).toThrow(/Cores/);
+  });
+
+  it("sem cores escolhidas, guarda o texto antigo que a tela mandar (ou nada)", () => {
+    const manteve = modelo.montarImpressao({ nome: "x", cores: [], cor: "Furta-cor" }, { id: antiga.id, anterior: antiga });
+    expect(manteve.cor).toBe("Furta-cor");
+    expect(manteve.cores).toEqual([]);
+    const limpou = modelo.montarImpressao({ nome: "x", cores: [], cor: "" }, { id: antiga.id, anterior: antiga });
+    expect(limpou.cor).toBe("");
+  });
+
+  it("reconhece o texto de cor antigo quando todas as partes são da paleta", () => {
+    expect(modelo.coresDoTexto("preto e branco")).toEqual(["branco", "preto"]);
+    expect(modelo.coresDoTexto("Azul/Rosa")).toEqual(["azul", "rosa"]);
+    expect(modelo.coresDoTexto("Vermelho, Furta-cor")).toBeNull();
+    expect(modelo.coresDoTexto("")).toBeNull();
+    expect(modelo.MATERIAIS).toEqual(["PLA", "PLA Silk", "PETG", "ABS", "TPU"]);
+    expect(modelo.CORES).toHaveLength(14);
+  });
+});
