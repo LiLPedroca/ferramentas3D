@@ -181,6 +181,16 @@ export const NOVIDADES = [
     itens: ["Logo com ponta fina em cima não some mais da prévia", "Se não couber em lugar nenhum, a peça aparece sem argola e o aviso diz o que fazer"],
     botao: "Entendi",
   },
+  {
+    id: "logo-borracha-furo",
+    versao: "0.51.2",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Borracha que fura de verdade",
+    texto: "No Criador de logos, o que você apaga dentro do logo agora vira furo na peça, em vez de ficar tapado pela base.",
+    itens: ["Vale também para \"Remover áreas internas\"", "Restaurar ou Desfazer devolvem o que foi apagado"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

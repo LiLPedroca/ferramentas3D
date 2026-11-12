@@ -11,7 +11,7 @@ import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg, gerarLogo, LIMITES_LOGO, PADRAO_LOGO } from "./modelos/logo.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
-  mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
+  mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
 } from "./modelos/mapa-logo.js";
 import { familiaCss } from "./modelos/fontes.js";
 import { motorDaTela } from "./modelos/manifold.js";
@@ -306,7 +306,7 @@ async function gerar() {
   try {
     conferirMedidas(MEDIDAS, LIMITES_LOGO);
     const refs = Object.fromEntries(alvos.map((a) => [a.cor, a.ref]));
-    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual } }), { juntar: false, tolerancia: 0.1 });
+    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual }, furos: mascaraDeFuros(mapa, vazio, manual) }), { juntar: false, tolerancia: 0.1 });
     const M = await motorDaTela();
     if (minha !== geracao) return;
     const { argola, corBase, ...medidas } = opcoes;

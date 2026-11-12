@@ -3,7 +3,7 @@
 // pixel e o caminho até o 3D.
 import { beforeAll, describe, expect, it } from "vitest";
 import {
-  CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, corMaisProxima, coresAutomaticas, coresUsadas, encher, juntarManual,
+  CORES_LOGO, VAZIO, alvoDaCor, mascaraDeFuros, aplicarCorrecoes, corMaisProxima, coresAutomaticas, coresUsadas, encher, juntarManual,
   limparSerrilhado, mapaPorAlvos, mapaVazio, mascaraDoFundo, pintarDisco, pintarTraco, recorteAutomatico, rgbaDasCorrecoes, svgDoMapa,
 } from "../src/renderer/modelos/mapa-logo.js";
 import { coresDoSvg, gerarLogo } from "../src/renderer/modelos/logo.js";
@@ -190,6 +190,29 @@ describe("criador de logos: qualidade da borda", () => {
 });
 
 describe("criador de logos: peça", () => {
+  it("o que foi apagado dentro do logo vira furo na base (não fica tapado pela base)", () => {
+    const img = imagemTeste();
+    const { mapa: auto, vazio } = recorteAutomatico(img);
+    const mapa = { ...auto, idx: auto.idx.slice() };
+    const manual = new Uint8Array(mapa.idx.length);
+    pintarDisco(mapa, 50, 50, 8, VAZIO, auto, manual); // apaga o miolo branco do losango
+    const furos = mascaraDeFuros(mapa, vazio, manual);
+    expect(furos[50 * 120 + 50]).toBe(1);
+    expect(furos[2 * 120 + 2]).toBe(0); // fundo de fora não é furo
+    const cores = coresDoSvg(svgDoMapa(mapa, { furos }), { juntar: false });
+    const peca = gerarLogo(M, cores, { largura: 50, comArgola: false });
+    expect(peca.cores).not.toContain("#ff00ff");
+    expect(peca.malhas).toHaveLength(1 + peca.cores.length);
+    // a base ganhou um furo: um laço a mais que a peça sem o furo
+    const sem = gerarLogo(M, coresDoSvg(svgDoMapa(mapa), { juntar: false }), { largura: 50, comArgola: false });
+    expect(peca.camadas[0].lacos.length).toBe(sem.camadas[0].lacos.length + 1);
+    // sem nada apagado e sem áreas internas, não há furos
+    expect(mascaraDeFuros(auto, vazio, new Uint8Array(mapa.idx.length))).toBeNull();
+    // "Remover áreas internas": o miolo branco vira furo
+    const internas = recorteAutomatico(img, { areasInternas: true });
+    expect(mascaraDeFuros(internas.mapa, internas.vazio, null)[50 * 120 + 50]).toBe(1);
+  });
+
   it("argola automática: se o topo é uma ponta fina, procura outro ponto da borda", () => {
     // quadrado com uma ponta fina saindo do meio de cima (onde a argola iria)
     const quadrado = [[0, 0], [100, 0], [100, 100], [52, 100], [50, 140], [48, 100], [0, 100]];

@@ -61,10 +61,6 @@ export function mascaraDoFundo(imagem, { tirarFundo = true, areasInternas = fals
     const d2 = data[i + 2] - f2;
     return d0 * d0 + d1 * d1 + d2 * d2 < limite;
   };
-  if (areasInternas) {
-    for (let p = 0; p < n; p++) if (pareceFundo(p)) vazio[p] = 1;
-    return { vazio, fundo };
-  }
   // só o fundo ligado à borda da imagem (ou a áreas transparentes ligadas a ela)
   const visto = new Uint8Array(n);
   const pilha = [];
@@ -92,8 +88,29 @@ export function mascaraDoFundo(imagem, { tirarFundo = true, areasInternas = fals
     if (p >= w) tentar(p - w);
     if (p < n - w) tentar(p + w);
   }
+  // áreas internas: o fundo preso dentro do logo também sai, marcado com 2 (vira furo na base)
+  if (areasInternas) for (let p = 0; p < n; p++) if (!vazio[p] && pareceFundo(p)) vazio[p] = 2;
   return { vazio, fundo };
 }
+
+// Furos que atravessam a peça: o que foi apagado à mão e as áreas internas removidas (vazio = 2).
+// Sem isso, a base (estilo Contorno) tapa os vãos de dentro e o apagado continua aparecendo na cor dela.
+export function mascaraDeFuros(mapa, vazio, manual) {
+  const n = mapa.idx.length;
+  const furos = new Uint8Array(n);
+  let algum = false;
+  for (let p = 0; p < n; p++) {
+    if (mapa.idx[p] !== VAZIO) continue;
+    if ((manual && manual[p]) || (vazio && vazio[p] === 2 && !(manual && manual[p]))) {
+      furos[p] = 1;
+      algum = true;
+    }
+  }
+  return algum ? furos : null;
+}
+
+// Cor que marca os furos no SVG (não é cor pronta).
+export const COR_FURO = "#ff00ff";
 
 // ---------- Cores-alvo ----------
 // Distância do ponto c ao segmento a-b, e onde ele cai (t de 0 a 1).
@@ -516,7 +533,7 @@ function suavizarDegraus(campo, exato, borda, w, h) {
 // Camadas empilhadas como no vetorizador: as cores com mais área embaixo, e cada camada cobre também
 // as de cima (sem frestas entre cores).
 // suave (opcional): { imagem, refs: { [cor]: [r, g, b] }, fundo, manual } para a borda com fração de pixel.
-export function svgDoMapa(mapa, { mancha = 6, tolerancia = 0.3, suave = null } = {}) {
+export function svgDoMapa(mapa, { mancha = 6, tolerancia = 0.3, suave = null, furos = null } = {}) {
   const { largura: w, altura: h, idx } = mapa;
   const n = w * h;
   const area = new Int32Array(130); // índice = cor + 1
@@ -540,6 +557,15 @@ export function svgDoMapa(mapa, { mancha = 6, tolerancia = 0.3, suave = null } =
     if (!lacos.length) continue;
     const d = lacos.map((l) => caminhoSvg(curvasDoLaco(l, tolerancia))).join("");
     caminhos.push(`<path fill="${CORES_LOGO[ordem[k]].hex}" fill-rule="evenodd" d="${d}"/>`);
+  }
+  if (furos) {
+    const borda = bordaDaCamada(furos, w, h);
+    if (borda.length) {
+      const campo = new Float32Array(n);
+      for (let p = 0; p < n; p++) campo[p] = furos[p];
+      const lacos = contornos(suavizarDegraus(campo, null, borda, w, h), w, h).filter((l) => Math.abs(areaDoLaco(l)) >= mancha);
+      if (lacos.length) caminhos.push(`<path fill="${COR_FURO}" fill-rule="evenodd" d="${lacos.map((l) => caminhoSvg(curvasDoLaco(l, tolerancia))).join("")}"/>`);
+    }
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${caminhos.join("")}</svg>`;
 }

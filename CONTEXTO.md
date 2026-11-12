@@ -612,3 +612,7 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
   com posição automática tenta pontos vizinhos da borda (passos de 1,5% do perímetro, até 24 de cada lado) antes de
   desistir (vale também para o Chaveiro de nome). Se não couber em lugar nenhum, a tela mostra a peça sem argola,
   com o aviso, e não deixa exportar. Zoom do 3D mostrava "100000000%" sem peça: corrigido.
+- **v0.51.2** (Pedro: "a borracha não remove"): o apagado à mão dentro do logo virava vazio no mapa, mas a base
+  Contorno tapa os vãos de dentro (na cor da base). Agora `mascaraDeFuros` (apagado à mão + áreas internas
+  removidas, `vazio = 2` em `mascaraDoFundo`) vai no SVG como camada `#ff00ff`, e `gerarLogo` tira esses furos da
+  base e das cores do logo.

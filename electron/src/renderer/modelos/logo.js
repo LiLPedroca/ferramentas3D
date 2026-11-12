@@ -158,18 +158,23 @@ export function juntarCoresParecidas(lista, distancia = 48) {
 // svgOuCores: texto SVG ou o resultado de coresDoSvg (para não reler o SVG a cada mudança).
 // larguraArteAnterior (opcional): largura da arte da última peça; quando só o desenho mudou, a medida
 // certa costuma sair na primeira tentativa.
+// A cor COR_FURO (#ff00ff) não é parte do logo: são furos que atravessam também a base.
 export function gerarLogo(M, svgOuCores, entrada, larguraArteAnterior = null) {
   const o = validarOpcoesLogo(entrada);
-  const cores = typeof svgOuCores === "string" ? coresDoSvg(svgOuCores) : svgOuCores;
+  const todas = typeof svgOuCores === "string" ? coresDoSvg(svgOuCores) : svgOuCores;
+  const furosArte = todas.find((c) => c.cor === "#ff00ff")?.formas ?? [];
+  const cores = todas.filter((c) => c.cor !== "#ff00ff");
   const C = M.CrossSection;
   return comEscopo(M, (guardar) => {
     // cada cor como uma seção (arte com 100 de largura). Como no SVG, o que vem depois fica por
     // cima: a parte visível de uma cor é ela menos as cores seguintes (o vetorizador empilha camadas).
+    const furosSecao = furosArte.length ? guardar(C.union(furosArte.map((lacos) => guardar(new C(lacos, "EvenOdd"))))) : null;
     let acumulado = null;
     const secoes = [];
     for (const { cor, formas } of [...cores].reverse()) {
       if (!formas.length) continue;
       let secao = guardar(C.union(formas.map((lacos) => guardar(new C(lacos, "EvenOdd")))));
+      if (furosSecao) secao = guardar(secao.subtract(furosSecao)); // nada do logo em cima de um furo
       const inteira = secao;
       if (acumulado) secao = guardar(secao.subtract(acumulado));
       acumulado = acumulado ? guardar(acumulado.add(inteira)) : inteira;
@@ -208,6 +213,7 @@ export function gerarLogo(M, svgOuCores, entrada, larguraArteAnterior = null) {
         const miolo = guardar(guardar(C.square([cx.max[0] - cx.min[0], cx.max[1] - cx.min[1]])).translate(cx.min));
         base = guardar(miolo.offset(o.borda, "Round", 2, 80));
       }
+      if (furosSecao) base = guardar(base.subtract(guardar(furosSecao.scale([s, s]))));
       const presa = o.comArgola ? prenderArgola(M, guardar, base, arte, o, o.argola, [meio[0], 1e4]) : { base, perimetro: null, argola: null };
       base = presa.base;
 
