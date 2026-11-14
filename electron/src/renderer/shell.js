@@ -14,6 +14,7 @@ const TELAS = {
   calculadora: { elemento: "tela-calculadora" },
   visualizador: { elemento: "tela-visualizador" },
   impressoes: { elemento: "tela-impressoes" },
+  filamentos: { elemento: "tela-filamentos" },
   produtos: { elemento: "tela-produtos" },
   clientes: { elemento: "tela-clientes" },
   encaixes: { elemento: "tela-encaixes" },
@@ -258,12 +259,25 @@ function temaSalvo() {
 // ---------- Avisos ----------
 let temporizadorAviso = null;
 
-export function mostrarAviso(texto) {
+// opcoes: { duracao (ms), acao: { rotulo, aoClicar } } — a ação vira um botão no aviso (ex.: Desfazer).
+export function mostrarAviso(texto, { duracao = 2600, acao = null } = {}) {
   const aviso = $("aviso");
   aviso.textContent = texto;
+  aviso.classList.toggle("com-acao", Boolean(acao));
+  if (acao) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "aviso-acao";
+    b.textContent = acao.rotulo;
+    b.addEventListener("click", () => {
+      aviso.classList.remove("visivel");
+      acao.aoClicar();
+    });
+    aviso.append(b);
+  }
   aviso.classList.add("visivel");
   clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), 2600);
+  temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), duracao);
 }
 
 // ---------- Confirmação genérica ----------

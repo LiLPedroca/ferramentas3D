@@ -616,3 +616,29 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
   Contorno tapa os vãos de dentro (na cor da base). Agora `mascaraDeFuros` (apagado à mão + áreas internas
   removidas, `vazio = 2` em `mascaraDoFundo`) vai no SVG como camada `#ff00ff`, e `gerarLogo` tira esses furos da
   base e das cores do logo.
+
+## Trabalho do Claude Code (14/11/2026) — Estoque de filamentos de volta (v0.52.0, só no PC do Pedro)
+
+- Tela `filamentos` no grupo Ferramentas (catálogo, `TELAS`, `app.js`). Interface mínima pedida pelo Pedro:
+  cadastro com Marca (lista: Sunlu, Masterprint, Voolt3D, Bambu Lab, Elegoo, Soleyin, Multfila), Material (PLA,
+  PLA Silk, PETG, ABS, TPU), Peso do rolo, Preço do rolo e Cor (botões das 14 cores prontas).
+- `core/filamento.cjs` reescrito: `{ marca, material, cor (id), pesoTotalG, restanteG, precoCentavos (do rolo),
+  fechados, posicao (1 a 4 ou null) }`. `precoKgCentavos` = preço do rolo ÷ peso do rolo (500 g por R$ 60 =
+  R$ 120/kg). `pesar` (balança − carretel), `abrirRoloNovo`, `planejarDesconto` (rolo da impressora com a cor →
+  mesma cor e material → mesma cor), `corProntaDoHex`. O formato antigo (cor em texto, preço por kg) não é mais
+  aceito; no PC do Pedro não havia `filamentos.json`.
+- Serviço (`main/filamentos.cjs`): `descontarVarios` (tudo ou nada; negativo desfaz), `pesar`, `abrirRoloNovo`,
+  `posicionar` (quem estava na posição sai). Configurações: `estoque.posicoes` (1 = sem AMS, 4) e
+  `estoque.carretelG` por marca (guardado ao pesar).
+- Tela: resumo (rolos, kg, R$ em estoque), "Na impressora" com as posições, filtros por material, cartões com barra,
+  "Acabando" primeiro, menu ⋯ (Editar, Pesar na balança, Abrir rolo novo, Tenho mais um igual, Tirar um fechado,
+  Excluir).
+- Minhas Impressões: "Marquei que imprimi" desconta do estoque. 3MF fatiado: gasto de cada cor do
+  `slice_info.config` (`filamentosDo3mf`); sem isso, o peso na cor da impressão (uma cor) ou no rolo da posição 1.
+  Aviso com botão "Desfazer" (`mostrarAviso(texto, { duracao, acao })`).
+- Calculadora: "Rolo do estoque" voltou; escolher preenche o R$/kg do rolo; "Usar o preço de Configurações" volta ao padrão.
+- Abrir no fatiador (modelos): `faltaDeFilamento` avisa se alguma cor não tem rolo ou tem menos que a peça precisa
+  (só quando há rolos cadastrados).
+- Conferido: testes (`filamento.test.js`, `filamentos-3mf.test.js`), captura da tela, desconto multicor com Desfazer,
+  Calculadora com R$ 120/kg. Não conferido: desconto a partir de um 3MF real do Anycubic Slicer Next (o formato do
+  `slice_info` pode variar) e o aviso do fatiador na tela.

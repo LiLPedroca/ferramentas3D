@@ -191,6 +191,16 @@ export const NOVIDADES = [
     itens: ["Vale também para \"Remover áreas internas\"", "Restaurar ou Desfazer devolvem o que foi apagado"],
     botao: "Entendi",
   },
+  {
+    id: "estoque-filamentos",
+    versao: "0.52.0",
+    tela: "filamentos",
+    icone: "filamentos",
+    titulo: "Estoque de filamentos",
+    texto: "Seus rolos com marca, material, cor e preço, quanto resta e o que está na impressora.",
+    itens: ["Marcou \"Imprimi\" em Minhas Impressões: o filamento sai sozinho do rolo certo", "Pesar na balança e abrir rolo novo em um toque", "Na Calculadora, escolha o rolo e o preço por kg vem certo"],
+    botao: "Abrir o estoque",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -10,7 +10,7 @@ import {
 } from "../core/calculadora.js";
 import { Racional } from "../core/racional.js";
 import { abrirEditor } from "./produtos.js";
-import { carregarFilamentos, descontarDoRolo, listaDeRolos, nomeDoRolo, reaisDeCentavos } from "./filamentos-tela.js";
+import { carregarFilamentos, descontarDoRolo, listaDeRolos, nomeDoRolo, precoKgDoRolo } from "./filamentos-tela.js";
 import { adicionarItemDoCalculo } from "./orcamentos.js";
 import { aoMudarConfig, confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 
@@ -234,6 +234,8 @@ function adicionarAoOrcamento() {
 function novoCalculo() {
   for (const [id, valor] of Object.entries(padroes())) $(id).value = valor;
   $("calc-nome").value = "";
+  $("rolo-calc").value = "";
+  $("descontar-rolo").hidden = true;
   $("origem-calculo").hidden = true;
   nomeDoModelo = "";
   usuarioMexeu = false;
@@ -242,14 +244,15 @@ function novoCalculo() {
 }
 
 // ---------- Rolo do estoque ----------
-// Lista os rolos cadastrados; escolher um preenche o preço por kg e libera "Descontar do rolo".
+// Lista os rolos cadastrados; escolher um preenche o preço por kg (preço do rolo ÷ peso do rolo) e
+// libera "Descontar do rolo". Sem rolo escolhido vale o preço de Configurações.
 async function atualizarRolos() {
   const rolos = await carregarFilamentos();
   const atual = $("rolo-calc").value;
   $("campo-rolo").hidden = rolos.length === 0;
   $("rolo-calc").replaceChildren(
-    new Option("Digitar o preço", ""),
-    ...rolos.map((f) => new Option(`${nomeDoRolo(f)} · ${reaisDeCentavos(f.precoKgCentavos)}/kg · restam ${Math.round(f.restanteG)} g`, f.id)),
+    new Option("Usar o preço de Configurações", ""),
+    ...rolos.map((f) => new Option(`${nomeDoRolo(f)} · ${precoKgDoRolo(f).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/kg · restam ${Math.round(f.restanteG)} g`, f.id)),
   );
   if (rolos.some((f) => f.id === atual)) $("rolo-calc").value = atual;
   mostrarBotaoDescontar();
@@ -262,15 +265,14 @@ function roloEscolhido() {
 function mostrarBotaoDescontar() {
   const f = roloEscolhido();
   $("descontar-rolo").hidden = !f;
-  if (f) $("descontar-rolo").textContent = `Descontar ${$("peso").value || 0} g do rolo ${f.material} ${f.cor}`;
+  if (f) $("descontar-rolo").textContent = `Descontar ${$("peso").value || 0} g do rolo ${nomeDoRolo(f)}`;
 }
 
 function escolherRolo() {
   const f = roloEscolhido();
-  if (f) {
-    $("preco-kg").value = (Number(f.precoKgCentavos) / 100).toFixed(2).replace(".", ",");
-    atualizarResultado();
-  }
+  if (f) $("preco-kg").value = precoKgDoRolo(f).toFixed(2).replace(".", ",");
+  else $("preco-kg").value = Number(estado.config.calculadora?.precoKg ?? 100).toFixed(2).replace(".", ",");
+  atualizarResultado();
   mostrarBotaoDescontar();
 }
 
@@ -329,7 +331,8 @@ export function iniciarCalculadora() {
   $("rolo-calc").addEventListener("change", escolherRolo);
   $("peso").addEventListener("input", mostrarBotaoDescontar);
   $("descontar-rolo").addEventListener("click", descontarDoLote);
-  // Estoque de filamentos saiu da interface na v0.45.0: a escolha de rolo fica escondida.
+  registrarAoAbrir("calculadora", atualizarRolos);
+  atualizarRolos();
 
   novoCalculo();
 }

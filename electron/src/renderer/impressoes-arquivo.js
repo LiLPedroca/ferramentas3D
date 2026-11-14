@@ -68,3 +68,28 @@ export function dadosDo3mf(bytes) {
   }
   return r;
 }
+
+// Filamento gasto por cor num 3MF fatiado (slice_info.config: <filament ... type color used_g/>).
+// Devolve [{ hex, tipo, gramas }] somando as placas, ou [] se o arquivo não foi fatiado.
+export function filamentosDo3mf(bytes) {
+  let zip;
+  try {
+    zip = unzipSync(bytes, { filter: (f) => /^Metadata\/slice_info\.config$/i.test(f.name) });
+  } catch {
+    return [];
+  }
+  const nome = Object.keys(zip)[0];
+  if (!nome) return [];
+  const texto = strFromU8(zip[nome]);
+  const porFilamento = new Map();
+  for (const m of texto.matchAll(/<filament\b([^>]*)\/?>/g)) {
+    const a = Object.fromEntries([...m[1].matchAll(/([\w-]+)="([^"]*)"/g)].map((x) => [x[1], x[2]]));
+    const g = Number(a.used_g);
+    if (!(g > 0) || !/^#?[0-9a-f]{6}/i.test(a.color ?? "")) continue;
+    const chave = `${a.id ?? ""}|${a.color.toLowerCase()}`;
+    const atual = porFilamento.get(chave) ?? { hex: a.color.startsWith("#") ? a.color : `#${a.color}`, tipo: a.type ?? "", gramas: 0 };
+    atual.gramas += g;
+    porFilamento.set(chave, atual);
+  }
+  return [...porFilamento.values()].map((f) => ({ ...f, gramas: Math.round(f.gramas * 100) / 100 }));
+}

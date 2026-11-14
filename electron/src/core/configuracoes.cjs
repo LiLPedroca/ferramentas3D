@@ -35,7 +35,7 @@ const CALCULADORA_PADRAO = { precoKg: "100", potenciaW: "200", tarifaKwh: "0.9",
 const LOGO = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+=*$/;
 const LIMITE_LOGO = 900_000;
 
-const PADRAO = { nome: "", nomePerguntado: false, empresa: EMPRESA_VAZIA, orcamento: ORCAMENTO_PADRAO, calculadora: CALCULADORA_PADRAO };
+const PADRAO = { nome: "", nomePerguntado: false, empresa: EMPRESA_VAZIA, orcamento: ORCAMENTO_PADRAO, calculadora: CALCULADORA_PADRAO, estoque: { posicoes: 4, carretelG: {} } };
 
 // Tenta validar; se falhar, usa o valor de reserva (para leitura tolerante do que está gravado).
 function ou(funcao, reserva) {
@@ -193,6 +193,29 @@ function fatiadoresDe(lista, ativo, estrito) {
   return resultado;
 }
 
+// Estoque de filamentos: quantas posições a impressora tem (1 sem AMS, 4 com AMS/ACE) e o peso do
+// carretel vazio de cada marca (para "Pesar na balança").
+const MARCAS_ESTOQUE = ["Sunlu", "Masterprint", "Voolt3D", "Bambu Lab", "Elegoo", "Soleyin", "Multfila"];
+
+function estoqueDe(e, estrito) {
+  const v = e && typeof e === "object" ? e : {};
+  const posicoes = v.posicoes === undefined ? 4 : Number(v.posicoes);
+  if (![1, 4].includes(posicoes)) {
+    if (estrito) throw new ConfiguracaoInvalida("Posições da impressora: use 1 ou 4.");
+  }
+  const carretelG = {};
+  const entrada = v.carretelG && typeof v.carretelG === "object" ? v.carretelG : {};
+  for (const [marca, g] of Object.entries(entrada)) {
+    const n = Number(g);
+    if (!MARCAS_ESTOQUE.includes(marca) || !Number.isFinite(n) || n < 0 || n > 2000) {
+      if (estrito) throw new ConfiguracaoInvalida("Carretel vazio: use de 0 a 2000 g.");
+      continue;
+    }
+    carretelG[marca] = Math.round(n * 10) / 10;
+  }
+  return { posicoes: [1, 4].includes(posicoes) ? posicoes : 4, carretelG };
+}
+
 // ---------- Paquímetro: calibração "real × modelo" e medidas guardadas por arquivo ----------
 const LIMITE_CALIBRACOES = 300;
 const LIMITE_ARQUIVOS_MEDIDOS = 100;
@@ -318,6 +341,7 @@ function normalizarGravado(dados) {
     dadosTesteCriados: d.dadosTesteCriados === true,
     calibracoes: calibracoesDe(d.calibracoes, false),
     medidasSalvas: medidasSalvasDe(d.medidasSalvas, false),
+    estoque: estoqueDe(d.estoque, false),
   };
 }
 
@@ -342,6 +366,11 @@ function aplicarAlteracao(atual, alteracao) {
   if ("dadosTesteCriados" in a) novo.dadosTesteCriados = a.dadosTesteCriados === true;
   if ("calibracoes" in a) novo.calibracoes = calibracoesDe(a.calibracoes, true);
   if ("medidasSalvas" in a) novo.medidasSalvas = medidasSalvasDe(a.medidasSalvas, true);
+  // Alteração parcial: { posicoes } e/ou { carretelG: { marca: g } } (só a marca enviada muda)
+  if ("estoque" in a) {
+    const e = a.estoque ?? {};
+    novo.estoque = estoqueDe({ posicoes: e.posicoes ?? base.estoque.posicoes, carretelG: { ...base.estoque.carretelG, ...(e.carretelG ?? {}) } }, true);
+  }
   return novo;
 }
 

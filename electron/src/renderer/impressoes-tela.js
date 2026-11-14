@@ -4,7 +4,9 @@ import modelo from "../core/impressao.cjs";
 import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirSeletorFatiador } from "./fatiador-ui.js";
 import { icone } from "./icones.js";
-import { partesDoArquivo, dadosDo3mf } from "./impressoes-arquivo.js";
+import { partesDoArquivo, dadosDo3mf, filamentosDo3mf } from "./impressoes-arquivo.js";
+import { descontarImpressao } from "./filamentos-tela.js";
+import modeloFilamento from "../core/filamento.cjs";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { densidadeDoMaterial } from "./modelos/estimativa.js";
 import { abrirEditor as abrirEditorProduto } from "./produtos.js";
@@ -336,6 +338,31 @@ async function marcarImpressa() {
   $("im-vezes").textContent = `Impressa ${atual.vezesImpressa} ${atual.vezesImpressa === 1 ? "vez" : "vezes"} · última em ${dataBr(atual.ultimaImpressao)}`;
   mostrarAviso(`Impressão registrada (${atual.vezesImpressa}ª vez).`);
   await carregar();
+  await descontarDoEstoque(atual);
+}
+
+// O filamento que a impressão gastou sai do estoque. 3MF fatiado: o gasto de cada cor (do fatiador).
+// Sem isso: o peso da impressão na cor dela (uma cor) ou no rolo da posição 1 da impressora.
+async function descontarDoEstoque(imp) {
+  const material = modelo.MATERIAIS.includes(imp.material) ? imp.material : undefined;
+  let usos = [];
+  if (imp.arquivo?.extensao === "3mf" && !imp.arquivoAusente) {
+    const r = await window.dados.impressoes.ler(imp.id);
+    if (r.ok) {
+      usos = filamentosDo3mf(new Uint8Array(r.dados.bytes)).map((f) => ({
+        cor: modeloFilamento.corProntaDoHex(f.hex),
+        material: modelo.MATERIAIS.includes(f.tipo) ? f.tipo : material,
+        gramas: f.gramas,
+      }));
+    }
+  }
+  if (!usos.length) {
+    const peso = Number(String(imp.pesoG ?? "").replace(",", "."));
+    if (!(peso > 0)) return;
+    const cores = imp.cores ?? [];
+    usos = cores.length === 1 ? [{ cor: cores[0], material, gramas: peso }] : [{ posicao: 1, gramas: peso }];
+  }
+  await descontarImpressao(usos);
 }
 
 async function verNoVisualizador() {

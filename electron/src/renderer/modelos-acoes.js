@@ -1,8 +1,10 @@
 // Ações compartilhadas pelas telas de modelos. As regras de cor e pausas ficam em cada modelo.
 import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
-import { listaDeRolos } from "./filamentos-tela.js";
-import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso } from "./modelos/estimativa.js";
+import modeloFilamento from "../core/filamento.cjs";
+import modeloImpressao from "../core/impressao.cjs";
+import { estoquePorCor, listaDeRolos } from "./filamentos-tela.js";
+import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso, volumeDaGeometria } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { mostrarAviso } from "./shell.js";
@@ -68,7 +70,28 @@ export async function enviarModeloAoFatiador(partes, nome, montar3mf) {
   const arquivo = await (montar3mf ? montar3mf() : { bytes: gerar3mf(partes, { titulo: nome }) });
   if (!arquivo) return;
   await abrirNoFatiador(arquivo.bytes, nome, "3mf");
-  if (arquivo.aviso) mostrarAviso(arquivo.aviso.trim());
+  const falta = await faltaDeFilamento(partes);
+  const aviso = [arquivo.aviso?.trim(), falta].filter(Boolean).join(" ");
+  if (aviso) mostrarAviso(aviso, { duracao: falta ? 8000 : 2600 });
+}
+
+// Confere o estoque (se houver rolos cadastrados): cada cor da peça tem filamento suficiente?
+// Devolve o aviso ("" se está tudo certo ou se o estoque está vazio).
+export async function faltaDeFilamento(partes, densidade = densidadeDoModelo()) {
+  const estoque = await estoquePorCor();
+  if (!estoque) return "";
+  const precisa = new Map();
+  for (const p of partes) {
+    const cor = modeloFilamento.corProntaDoHex(p.cor);
+    if (!cor || !p.geometria) continue;
+    precisa.set(cor, (precisa.get(cor) ?? 0) + (volumeDaGeometria(p.geometria) / 1000) * densidade);
+  }
+  const nome = (id) => modeloImpressao.CORES.find((c) => c.id === id)?.nome ?? id;
+  const g = (n) => `${Math.ceil(n).toLocaleString("pt-BR")} g`;
+  const faltas = [...precisa]
+    .filter(([cor, gramas]) => (estoque.get(cor) ?? 0) < gramas)
+    .map(([cor, gramas]) => (estoque.has(cor) ? `${nome(cor)} tem ${g(estoque.get(cor))} e a peça precisa de ≈ ${g(gramas)}` : `não há rolo ${nome(cor)} no estoque`));
+  return faltas.length ? `Atenção ao filamento: ${faltas.join("; ")}.` : "";
 }
 
 export function calcularCustoModelo(modelo, nome, densidade = densidadeDoModelo()) {

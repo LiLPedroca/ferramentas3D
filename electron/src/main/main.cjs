@@ -562,6 +562,16 @@ function registrarDados() {
   ipcMain.handle("filamentos:descontar", (e, id, gramas) =>
     daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
   );
+  ipcMain.handle("filamentos:descontarVarios", (e, lista) =>
+    daTela(e) && Array.isArray(lista) ? responder(filamentos.descontarVarios(lista.map((u) => ({ id: String(u?.id), gramas: Number(u?.gramas) })))) : negado,
+  );
+  ipcMain.handle("filamentos:pesar", (e, id, balancaG, carretelG) =>
+    daTela(e) && typeof id === "string" ? responder(filamentos.pesar(id, String(balancaG), String(carretelG))) : negado,
+  );
+  ipcMain.handle("filamentos:abrirRoloNovo", (e, id) => (daTela(e) && typeof id === "string" ? responder(filamentos.abrirRoloNovo(id)) : negado));
+  ipcMain.handle("filamentos:posicionar", (e, id, posicao) =>
+    daTela(e) && (typeof id === "string" || id === null) ? responder(filamentos.posicionar(id, posicao ?? null)) : negado,
+  );
   for (const [nome, servico] of Object.entries(cadastros)) {
     // Espera a criação dos dados de teste na primeira abertura, para a lista já vir com eles.
     ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(prontoTeste.then(() => servico.listar())) : negado));

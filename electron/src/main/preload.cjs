@@ -54,7 +54,14 @@ contextBridge.exposeInMainWorld("dados", {
   favoritos: cadastro("favoritos"),
   projetos: cadastro("projetos"),
   etiquetas: (pedido) => ipcRenderer.invoke("etiquetas:pdf", pedido),
-  filamentos: { ...cadastro("filamentos"), descontar: (id, gramas) => ipcRenderer.invoke("filamentos:descontar", id, gramas) },
+  filamentos: {
+    ...cadastro("filamentos"),
+    descontar: (id, gramas) => ipcRenderer.invoke("filamentos:descontar", id, gramas),
+    descontarVarios: (lista) => ipcRenderer.invoke("filamentos:descontarVarios", lista),
+    pesar: (id, balancaG, carretelG) => ipcRenderer.invoke("filamentos:pesar", id, balancaG, carretelG),
+    abrirRoloNovo: (id) => ipcRenderer.invoke("filamentos:abrirRoloNovo", id),
+    posicionar: (id, posicao) => ipcRenderer.invoke("filamentos:posicionar", id, posicao),
+  },
   orcamentos: {
     ...cadastro("orcamentos"),
     pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id),

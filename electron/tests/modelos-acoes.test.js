@@ -47,7 +47,7 @@ describe("ações comuns dos modelos", () => {
 
   it("peso enviado à calculadora usa o material do rolo selecionado", async () => {
     document.body.innerHTML = readFileSync(join(__dirname, "../src/renderer/index.html"), "utf8").match(/<body[^>]*>([\s\S]*)<\/body>/)[1].replace(/<script[\s\S]*?<\/script>/g, "");
-    window.dados = { filamentos: { listar: async () => ({ ok: true, dados: [{ id: "rolo", material: "ABS", cor: "Preto", corHex: "#000000", marca: "", observacoes: "", pesoTotalG: 1000, restanteG: 500, precoKgCentavos: "10000" }] }) } };
+    window.dados = { filamentos: { listar: async () => ({ ok: true, dados: [{ id: "rolo", marca: "Sunlu", material: "ABS", cor: "preto", pesoTotalG: 1000, restanteG: 500, precoCentavos: "10000", fechados: 0, posicao: null }] }) } };
     await carregarFilamentos();
     const campo = document.getElementById("rolo-calc");
     campo.innerHTML = '<option value="">Digitar o preço</option><option value="rolo">ABS</option>';

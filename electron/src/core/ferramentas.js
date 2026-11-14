@@ -127,6 +127,16 @@ export const FERRAMENTAS = [
     tela: "impressoes",
   },
   {
+    id: "filamentos",
+    grupo: "ferramentas",
+    titulo: "Estoque de filamentos",
+    descricao: "Seus rolos, quanto resta e o que está na impressora.",
+    categoria: "Ferramentas",
+    disponivel: true,
+    tela: "filamentos",
+    curto: "Filamentos",
+  },
+  {
     id: "svg",
     grupo: "ferramentas",
     titulo: "Conversor SVG",

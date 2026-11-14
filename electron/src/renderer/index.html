@@ -1848,6 +1848,84 @@
       </div>
     </main>
 
+    <!-- Tela: estoque de filamentos -->
+
+    <main class="tela oculta pagina" id="tela-filamentos">
+      <div class="pagina-conteudo largo">
+        <div class="fe-topo">
+          <div>
+            <h1 class="titulo-pagina">Estoque de filamentos</h1>
+            <p class="ajuda" id="fe-resumo"></p>
+          </div>
+          <button type="button" class="botao-primario" id="fe-novo">Novo rolo</button>
+        </div>
+
+        <section class="fe-impressora">
+          <div class="fe-impressora-topo">
+            <h2>Na impressora</h2>
+            <div class="fe-segmento" role="group" aria-label="Posições da impressora">
+              <button type="button" data-fe-posicoes="1">Sem AMS</button>
+              <button type="button" data-fe-posicoes="4">AMS (4)</button>
+            </div>
+          </div>
+          <div class="fe-posicoes" id="fe-posicoes"></div>
+        </section>
+
+        <div class="fe-filtros" id="fe-filtros" role="group" aria-label="Filtrar por material" hidden></div>
+        <p class="ajuda fe-vazio" id="fe-vazio" hidden>Nenhum rolo ainda. Toque em <strong>Novo rolo</strong>.</p>
+        <div class="fe-grade" id="fe-grade"></div>
+        <p class="erro" id="fe-erro" role="alert"></p>
+      </div>
+    </main>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-fe-rolo" aria-labelledby="titulo-fe-rolo">
+      <h2 id="titulo-fe-rolo">Novo rolo</h2>
+      <div class="linha">
+        <label class="campo"><span>Marca</span><select id="fe-marca" class="seletor largo-total"></select></label>
+        <label class="campo"><span>Material</span><select id="fe-material" class="seletor largo-total"></select></label>
+      </div>
+      <div class="linha">
+        <label class="campo"><span>Peso do rolo</span><div class="entrada"><input id="fe-peso" inputmode="decimal" autocomplete="off" /><em>g</em></div></label>
+        <label class="campo"><span>Preço do rolo</span><div class="entrada"><em>R$</em><input id="fe-preco-rolo" inputmode="decimal" autocomplete="off" placeholder="0,00" /></div></label>
+      </div>
+      <span class="rotulo-campo">Cor <strong class="fe-cor-nome" id="fe-cor-nome"></strong></span>
+      <div class="im-cores fe-cores" id="fe-cores" role="group" aria-label="Cor do rolo"></div>
+      <p class="erro" id="erro-fe-rolo" role="alert"></p>
+      <div class="dialogo-rodape">
+        <button type="button" class="botao-texto perigo" id="fe-excluir" hidden>Excluir</button>
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fe-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="fe-salvar">Salvar</button>
+      </div>
+    </dialog>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-fe-pesar" aria-labelledby="titulo-fe-pesar">
+      <h2 id="titulo-fe-pesar">Pesar na balança</h2>
+      <p class="ajuda">Ponha o rolo na balança, com o carretel.</p>
+      <div class="linha">
+        <label class="campo"><span>A balança mostra</span><div class="entrada"><input id="fe-balanca" inputmode="decimal" autocomplete="off" /><em>g</em></div></label>
+        <label class="campo"><span>Carretel vazio</span><div class="entrada"><input id="fe-carretel" inputmode="decimal" autocomplete="off" /><em>g</em></div></label>
+      </div>
+      <p class="fe-pesar-resultado" id="fe-pesar-resultado"></p>
+      <p class="erro" id="erro-fe-pesar" role="alert"></p>
+      <div class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fe-pesar-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="fe-pesar-salvar">Salvar</button>
+      </div>
+    </dialog>
+
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-fe-posicao" aria-labelledby="titulo-fe-posicao">
+      <h2 id="titulo-fe-posicao">Rolo da posição</h2>
+      <div class="fe-opcoes" id="fe-posicao-lista"></div>
+      <p class="ajuda" id="fe-posicao-vazio" hidden>Cadastre um rolo primeiro.</p>
+      <div class="dialogo-rodape">
+        <button type="button" class="botao-texto" id="fe-posicao-tirar" hidden>Deixar vazia</button>
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="fe-posicao-fechar">Fechar</button>
+      </div>
+    </dialog>
+
     <!-- Tela: projetos -->
 
     <main class="tela oculta pagina" id="tela-projetos">
