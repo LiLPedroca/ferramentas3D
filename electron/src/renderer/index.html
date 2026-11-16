@@ -98,10 +98,6 @@
           <span>Nome da peça ou produto</span>
           <div class="entrada"><input id="calc-nome" maxlength="120" autocomplete="off" placeholder="Ex.: Suporte para celular" /></div>
         </label>
-        <label class="campo" id="campo-conj-produto" hidden>
-          <span>Meus produtos</span>
-          <select id="conj-produto" class="seletor largo-total" aria-label="Adicionar produto de Meus produtos"></select>
-        </label>
 
         <fieldset class="grupo">
           <legend>Material e impressão</legend>
@@ -135,7 +131,7 @@
           </div>
           <div class="conjunto">
             <div class="conjunto-lista" id="conjunto-lista" hidden>
-              <p class="conjunto-titulo">Peças do conjunto <span class="ajuda">(valor sem a mão de obra)</span></p>
+              <p class="conjunto-titulo">Peças do conjunto</p>
               <div class="conj-linha conj-principal">
                 <span class="conj-nome" id="conj-nome-principal">Peça de cima</span>
                 <span class="conj-valor" id="conj-valor-principal"></span>
@@ -1631,6 +1627,27 @@
     </dialog>
 
     <!-- Diálogo: impressao -->
+
+    <!-- Diálogo: produtos para o conjunto da calculadora -->
+    <dialog class="dialogo dialogo-medio" id="dialogo-conj-produtos" aria-labelledby="titulo-conj-produtos">
+      <header class="dialogo-topo">
+        <h2 id="titulo-conj-produtos">Adicionar produtos</h2>
+        <button type="button" class="fechar" id="conj-fechar" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <label class="busca conj-busca">
+          <input id="conj-busca" type="search" placeholder="Buscar produto…" aria-label="Buscar produto" autocomplete="off" />
+        </label>
+        <div class="conj-produtos" id="conj-produtos" role="group" aria-label="Seus produtos"></div>
+        <p class="ajuda" id="conj-vazio" hidden>Nenhum produto encontrado.</p>
+      </div>
+      <footer class="dialogo-rodape">
+        <button type="button" class="botao-texto" id="conj-sem-cadastro">Peça sem cadastro</button>
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="conj-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="conj-confirmar" disabled>Adicionar</button>
+      </footer>
+    </dialog>
 
     <dialog class="dialogo dialogo-medio" id="dialogo-impressao" aria-labelledby="titulo-dialogo-impressao">
       <header class="dialogo-topo">

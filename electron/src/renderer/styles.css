@@ -611,6 +611,62 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Calculadora: janela "Adicionar produtos" */
+.conj-busca {
+  display: flex;
+  max-width: none;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.conj-busca input {
+  width: 100%;
+}
+
+.conj-produtos {
+  display: grid;
+  gap: 6px;
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.conj-produto {
+  display: grid;
+  grid-template-columns: auto 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.conj-produto:has(input:checked) {
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 10%, transparent);
+}
+
+.conj-produto .conj-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--superficie-2);
+}
+
+.conj-produto strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conj-produto .conj-dados {
+  color: var(--texto-suave);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 /* Valor da peça: custo sem a mão de obra, em destaque */
 .metricas .metrica-valor strong {
   color: var(--acento-forte);

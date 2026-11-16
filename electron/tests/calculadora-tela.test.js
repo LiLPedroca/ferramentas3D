@@ -44,10 +44,14 @@ describe("Calculadora: mão de obra e conta do preço", () => {
     expect(texto("valor-unitario")).toBe("R$ 5,00");
   });
 
-  it("conjunto: soma o custo das peças; a mão de obra entra uma vez", () => {
+  it("conjunto: soma o custo das peças; a mão de obra entra uma vez", async () => {
     // peça de cima: 50 g a R$ 100/kg = R$ 5; outra peça: 30 g = R$ 3; mão de obra R$ 15
     expect($("conjunto-lista").hidden).toBe(true);
     $("conj-adicionar").click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect($("dialogo-conj-produtos").open).toBe(true);
+    $("conj-sem-cadastro").click();
+    expect($("dialogo-conj-produtos").open).toBe(false);
     const linha = document.querySelector("#conjunto-pecas .conj-linha");
     const [nome, peso] = linha.querySelectorAll("input");
     nome.value = "Suporte";
@@ -62,5 +66,25 @@ describe("Calculadora: mão de obra e conta do preço", () => {
     linha.querySelector("button").click();
     expect($("conjunto-lista").hidden).toBe(true);
     expect(texto("custo-unitario")).toBe("R$ 20,00");
+  });
+
+  it("a janela de produtos adiciona os marcados, com peso e tempo de cada um", async () => {
+    window.dados.produtos = { listar: async () => ({ ok: true, dados: [
+      { id: "a1", nome: "Suporte", pesoG: "30", custo: { calculo: { horas: "2", quantidade: 1 } } },
+      { id: "b2", nome: "Vaso", pesoG: "10" },
+    ] }) };
+    $("conj-adicionar").click();
+    await new Promise((r) => setTimeout(r, 0));
+    const caixas = document.querySelectorAll("#conj-produtos input");
+    expect(caixas).toHaveLength(2);
+    expect($("conj-confirmar").disabled).toBe(true);
+    caixas[0].checked = true;
+    caixas[0].dispatchEvent(new Event("change"));
+    $("conj-confirmar").click();
+    const linhas = document.querySelectorAll("#conjunto-pecas .conj-linha");
+    expect(linhas).toHaveLength(1);
+    const [nome, peso, horas] = linhas[0].querySelectorAll("input");
+    expect([nome.value, peso.value, horas.value]).toEqual(["Suporte", "30", "2"]);
+    linhas[0].querySelector("button").click();
   });
 });

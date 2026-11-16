@@ -150,28 +150,82 @@ function lerPecasDoConjunto() {
   });
 }
 
-// Meus produtos na lista "ou escolher de Meus produtos…": peso por peça e o tempo do cálculo guardado.
+// ---------- Janela "Adicionar produtos": escolhe um ou vários de Meus produtos ----------
+// Cada produto entra com o peso por peça e o tempo do cálculo guardado (por peça).
 let produtosDoConjunto = [];
-async function atualizarProdutosDoConjunto() {
-  const r = await window.dados?.produtos?.listar?.();
-  produtosDoConjunto = r?.ok ? r.dados : [];
-  const sel = $("conj-produto");
-  $("campo-conj-produto").hidden = produtosDoConjunto.length === 0;
-  sel.replaceChildren(new Option("ou escolher de Meus produtos…", ""), ...produtosDoConjunto.map((p) => new Option(p.nome, p.id)));
+const minutosDoProduto = (p) => {
+  const c = p.custo?.calculo;
+  return c ? Math.round((Number(c.horas) * 60) / Math.max(1, c.quantidade)) : 0;
+};
+const semAcento = (t) => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function listarProdutosDaJanela() {
+  const termo = semAcento($("conj-busca").value.trim());
+  const marcados = new Set([...document.querySelectorAll("#conj-produtos input:checked")].map((i) => i.value));
+  const lista = produtosDoConjunto.filter((p) => !termo || semAcento(p.nome).includes(termo));
+  $("conj-produtos").replaceChildren(
+    ...lista.map((p) => {
+      const linha = document.createElement("label");
+      linha.className = "conj-produto";
+      const marca = document.createElement("input");
+      marca.type = "checkbox";
+      marca.value = p.id;
+      marca.checked = marcados.has(p.id);
+      marca.addEventListener("change", () => {
+        $("conj-confirmar").disabled = !document.querySelector("#conj-produtos input:checked");
+      });
+      const foto = document.createElement(p.foto ? "img" : "span");
+      foto.className = "conj-foto";
+      if (p.foto) {
+        foto.src = p.foto;
+        foto.alt = "";
+      }
+      const nome = document.createElement("span");
+      const forte = document.createElement("strong");
+      forte.textContent = p.nome;
+      nome.append(forte);
+      const min = minutosDoProduto(p);
+      const dados = document.createElement("span");
+      dados.className = "conj-dados";
+      const peso = p.pesoG ? `${String(p.pesoG).replace(".", ",")} g` : "sem peso";
+      dados.textContent = min ? `${peso} · ${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}` : peso;
+      linha.append(marca, foto, nome, dados);
+      return linha;
+    }),
+  );
+  $("conj-vazio").hidden = lista.length > 0;
+  $("conj-vazio").textContent = produtosDoConjunto.length ? "Nenhum produto encontrado." : "Você ainda não tem produtos salvos. Use \u201cPeça sem cadastro\u201d.";
 }
 
-function adicionarProdutoAoConjunto() {
-  const p = produtosDoConjunto.find((x) => x.id === $("conj-produto").value);
-  $("conj-produto").value = "";
-  if (!p) return;
-  const c = p.custo?.calculo;
-  const minutos = c ? Math.round((Number(c.horas) * 60) / Math.max(1, c.quantidade)) : 0;
-  adicionarPecaAoConjunto({
-    nome: p.nome,
-    peso: String(p.pesoG ?? "").replace(".", ","),
-    horas: minutos ? String(Math.floor(minutos / 60)) : "",
-    minutos: minutos ? String(minutos % 60) : "",
-  });
+async function abrirJanelaDeProdutos() {
+  const r = await window.dados?.produtos?.listar?.();
+  produtosDoConjunto = r?.ok ? r.dados : [];
+  $("conj-busca").value = "";
+  $("conj-produtos").replaceChildren();
+  $("conj-confirmar").disabled = true;
+  listarProdutosDaJanela();
+  $("dialogo-conj-produtos").showModal();
+  if (produtosDoConjunto.length) $("conj-busca").focus();
+}
+
+function fecharJanelaDeProdutos() {
+  if ($("dialogo-conj-produtos").open) $("dialogo-conj-produtos").close();
+}
+
+function adicionarProdutosMarcados() {
+  const ids = [...document.querySelectorAll("#conj-produtos input:checked")].map((i) => i.value);
+  fecharJanelaDeProdutos();
+  for (const id of ids) {
+    const p = produtosDoConjunto.find((x) => x.id === id);
+    if (!p) continue;
+    const min = minutosDoProduto(p);
+    adicionarPecaAoConjunto({
+      nome: p.nome,
+      peso: String(p.pesoG ?? "").replace(".", ","),
+      horas: min ? String(Math.floor(min / 60)) : "",
+      minutos: min ? String(min % 60) : "",
+    });
+  }
 }
 
 function lerEntrada() {
@@ -472,10 +526,15 @@ export function iniciarCalculadora() {
   $("rolo-calc").addEventListener("change", escolherRolo);
   $("peso").addEventListener("input", mostrarBotaoDescontar);
   $("descontar-rolo").addEventListener("click", descontarDoLote);
-  $("conj-adicionar").addEventListener("click", () => adicionarPecaAoConjunto().nome.focus());
-  $("conj-produto").addEventListener("change", adicionarProdutoAoConjunto);
-  registrarAoAbrir("calculadora", atualizarProdutosDoConjunto);
-  atualizarProdutosDoConjunto();
+  $("conj-adicionar").addEventListener("click", abrirJanelaDeProdutos);
+  $("conj-busca").addEventListener("input", listarProdutosDaJanela);
+  $("conj-confirmar").addEventListener("click", adicionarProdutosMarcados);
+  $("conj-cancelar").addEventListener("click", fecharJanelaDeProdutos);
+  $("conj-fechar").addEventListener("click", fecharJanelaDeProdutos);
+  $("conj-sem-cadastro").addEventListener("click", () => {
+    fecharJanelaDeProdutos();
+    adicionarPecaAoConjunto().nome.focus();
+  });
   registrarAoAbrir("calculadora", atualizarRolos);
   atualizarRolos();
 
