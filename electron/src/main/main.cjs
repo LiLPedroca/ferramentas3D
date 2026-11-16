@@ -603,6 +603,64 @@ function registrarDados() {
   ipcMain.handle("produtos:excluir", (e, id) =>
     daTela(e) && typeof id === "string" ? responder(produtos.excluir(id)) : negado,
   );
+
+  // Levar produtos para outro PC: exportar todos num arquivo; importar juntando (nunca apaga).
+  const transporte = require("../core/produtos-transporte.cjs");
+  ipcMain.handle(
+    "produtos:exportar",
+    comTela(async (e) => {
+      const lista = await produtos.listar();
+      if (!lista.some((p) => p.teste !== true)) throw new ErroValidacao("Ainda não há produtos para exportar.");
+      const nome = `Produtos Ferramentas 3D ${new Date().toISOString().slice(0, 10)}.json`;
+      let destino;
+      if (process.env.FERRAMENTAS_SALVAR_DESTINO) destino = path.join(process.env.FERRAMENTAS_SALVAR_DESTINO, nome);
+      else {
+        const escolha = await dialog.showSaveDialog(janelaDe(e), {
+          title: "Exportar produtos",
+          defaultPath: path.join(app.getPath("documents"), nome),
+          filters: [{ name: "Produtos", extensions: ["json"] }],
+        });
+        if (escolha.canceled || !escolha.filePath) return null;
+        destino = escolha.filePath;
+      }
+      const pacote = transporte.montarPacoteProdutos(lista);
+      await require("node:fs/promises").writeFile(destino, JSON.stringify(pacote, null, 2), "utf8");
+      return { destino, quantidade: pacote.produtos.length };
+    }),
+  );
+  let importacao = null; // produtos lidos do arquivo, à espera da resposta sobre os de mesmo nome
+  ipcMain.handle(
+    "produtos:importar-abrir",
+    comTela(async (e) => {
+      let caminho = process.env.FERRAMENTAS_IMPORTAR_ARQUIVO;
+      if (!caminho) {
+        const escolha = await dialog.showOpenDialog(janelaDe(e), {
+          title: "Importar produtos",
+          properties: ["openFile"],
+          filters: [{ name: "Produtos", extensions: ["json"] }],
+        });
+        if (escolha.canceled || !escolha.filePaths[0]) return null;
+        caminho = escolha.filePaths[0];
+      }
+      const lido = transporte.lerPacoteProdutos(await require("node:fs/promises").readFile(caminho, "utf8"));
+      importacao = lido;
+      const plano = transporte.planejarImportacao(await produtos.listar(), lido.produtos);
+      return { novos: plano.novos.length, atualizar: plano.atualizar.length, mesmoNome: plano.mesmoNome.map((m) => m.atual.nome), invalidos: lido.invalidos };
+    }),
+  );
+  ipcMain.handle(
+    "produtos:importar-aplicar",
+    comTela(async (_e, escolha) => {
+      if (!importacao) throw new ErroValidacao("Escolha o arquivo de produtos de novo.");
+      const vindos = importacao.produtos;
+      importacao = null;
+      // o plano é refeito sobre o que está gravado agora (algo pode ter mudado enquanto a pergunta estava aberta)
+      return produtos.colecao.alterar(async (itens) => {
+        const r = transporte.aplicarImportacao(itens, transporte.planejarImportacao(itens, vindos), escolha === "atualizar" ? "atualizar" : "manter");
+        return { itens: r.produtos, resultado: { novos: r.novos, atualizados: r.atualizados } };
+      });
+    }),
+  );
 }
 
 // 3D: se a placa de vídeo não puder ser usada (driver antigo, acesso remoto, máquina virtual), o Chromium

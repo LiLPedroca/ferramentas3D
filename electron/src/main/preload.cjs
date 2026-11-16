@@ -104,5 +104,8 @@ contextBridge.exposeInMainWorld("dados", {
     listar: () => ipcRenderer.invoke("produtos:listar"),
     salvar: (valores, id) => ipcRenderer.invoke("produtos:salvar", valores, id ?? null),
     excluir: (id) => ipcRenderer.invoke("produtos:excluir", id),
+    exportar: () => ipcRenderer.invoke("produtos:exportar"),
+    importarAbrir: () => ipcRenderer.invoke("produtos:importar-abrir"),
+    importarAplicar: (escolha) => ipcRenderer.invoke("produtos:importar-aplicar", escolha),
   },
 });

@@ -498,6 +498,39 @@ async function excluir() {
   await carregarProdutos();
 }
 
+// ---------- Levar produtos para outro PC ----------
+async function exportarProdutos() {
+  const r = await window.dados.produtos.exportar();
+  if (!r.ok) return avisar(r.erro);
+  if (!r.dados) return;
+  avisar(`${r.dados.quantidade} ${r.dados.quantidade === 1 ? "produto exportado" : "produtos exportados"}. Leve o arquivo para o outro PC e use Importar.`);
+}
+
+async function importarProdutos() {
+  const r = await window.dados.produtos.importarAbrir();
+  if (!r.ok) return avisar(r.erro);
+  if (!r.dados) return;
+  let escolha = "manter";
+  const nomes = r.dados.mesmoNome;
+  if (nomes.length) {
+    const lista = nomes.slice(0, 8).join(", ") + (nomes.length > 8 ? ` e mais ${nomes.length - 8}` : "");
+    const atualizar = await confirmar({
+      titulo: nomes.length === 1 ? "1 produto já existe com o mesmo nome" : `${nomes.length} produtos já existem com o mesmo nome`,
+      texto: `${lista}.`,
+      botao: "Atualizar com os importados",
+      botaoNao: "Manter os dois",
+    });
+    escolha = atualizar ? "atualizar" : "manter";
+  }
+  const feito = await window.dados.produtos.importarAplicar(escolha);
+  if (!feito.ok) return avisar(feito.erro);
+  const { novos, atualizados } = feito.dados;
+  const partes = [`${novos} ${novos === 1 ? "novo" : "novos"}`, `${atualizados} ${atualizados === 1 ? "atualizado" : "atualizados"}`];
+  const pulados = r.dados.invalidos ? ` (${r.dados.invalidos} com problema ficaram de fora)` : "";
+  avisar(`Produtos importados: ${partes.join(", ")}${pulados}.`);
+  await carregarProdutos();
+}
+
 // ---------- Inicialização ----------
 export function iniciarProdutos(opcoes) {
   avisar = opcoes.avisar;
@@ -505,6 +538,8 @@ export function iniciarProdutos(opcoes) {
 
   $("vazio-icone").innerHTML = icone("produtos", 40);
   $("novo-produto").addEventListener("click", () => abrirEditor());
+  $("exportar-produtos").addEventListener("click", exportarProdutos);
+  $("importar-produtos").addEventListener("click", importarProdutos);
   $("vazio-novo").addEventListener("click", () => abrirEditor());
   $("vazio-calcular").addEventListener("click", () => irPara("calculadora"));
   $("busca-produtos").addEventListener("input", renderizar);

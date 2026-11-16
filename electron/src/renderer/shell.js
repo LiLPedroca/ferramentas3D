@@ -282,7 +282,8 @@ export function mostrarAviso(texto, { duracao = 2600, acao = null } = {}) {
 
 // ---------- Confirmação genérica ----------
 // Abre a janela de confirmação e devolve true (confirmou) ou false (cancelou).
-export function confirmar({ titulo, texto, botao = "Confirmar" }) {
+// botaoNao: texto do outro botão (padrão "Cancelar"); fechar com Esc também conta como ele.
+export function confirmar({ titulo, texto, botao = "Confirmar", botaoNao = "Cancelar" }) {
   return new Promise((resolve) => {
     const dialogo = $("dialogo-confirmar");
     const sim = $("confirmar-sim");
@@ -290,6 +291,7 @@ export function confirmar({ titulo, texto, botao = "Confirmar" }) {
     $("confirmar-titulo").textContent = titulo;
     $("confirmar-texto").textContent = texto;
     sim.textContent = botao;
+    nao.textContent = botaoNao;
 
     const terminar = (resultado) => {
       sim.removeEventListener("click", aoSim);
