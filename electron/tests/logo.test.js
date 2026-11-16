@@ -121,3 +121,23 @@ describe("cores do logo", () => {
     expect(r[0].formas).toHaveLength(3);
   });
 });
+
+describe("coresDoSvg: passo das curvas", () => {
+  // círculo de raio 50 em 4 arcos cúbicos: arte de 100 de largura = 100 mm com passo 0,05
+  const k = 0.5522847498 * 50;
+  const svgCirculo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="#111111" d="M100 50 C100 ${50 + k} ${50 + k} 100 50 100 C${50 - k} 100 0 ${50 + k} 0 50 C0 ${50 - k} ${50 - k} 0 50 0 C${50 + k} 0 100 ${50 - k} 100 50 Z"/></svg>`;
+  it("círculo de 100 mm: nenhum segmento maior que 0,05 mm e desvio < 0,03 mm", () => {
+    const c = coresDoSvg(svgCirculo, { juntar: false, passo: 0.05 });
+    const laco = c[0].formas[0][0];
+    let maiorSegmento = 0;
+    let maiorDesvio = 0;
+    laco.forEach((p, i) => {
+      const q = laco[(i + 1) % laco.length];
+      maiorSegmento = Math.max(maiorSegmento, Math.hypot(q[0] - p[0], q[1] - p[1]));
+      maiorDesvio = Math.max(maiorDesvio, Math.abs(Math.hypot(p[0] - 50, p[1] - 50) - 50));
+    });
+    expect(maiorSegmento).toBeLessThanOrEqual(0.05 + 1e-6);
+    expect(maiorDesvio).toBeLessThan(0.03); // aproximação cúbica do círculo erra ~0,0135
+  });
+});
+

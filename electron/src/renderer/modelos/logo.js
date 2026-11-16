@@ -46,7 +46,9 @@ export function validarOpcoesLogo(entrada = {}) {
 // Devolve [{ cor, formas: [[externo, ...furos]] }], com .quadro = { minX, maxY, escala } (para voltar
 // de um ponto da peça ao ponto do SVG). juntar: une tons quase iguais (o mapa de cores prontas não precisa).
 // tolerancia: tira pontos que desviam menos que isso (em unidades do SVG) da reta entre os vizinhos.
-export function coresDoSvg(svg, { juntar = true, tolerancia = 0 } = {}) {
+// passo (opcional): corda máxima em unidades da arte (100 de largura); cada curva é amostrada pelo
+// comprimento, e não por um número fixo de divisões (curva grande não fica facetada).
+export function coresDoSvg(svg, { juntar = true, tolerancia = 0, passo = 0 } = {}) {
   const dados = new SVGLoader().parse(svg);
   const grupos = new Map();
   for (const caminho of dados.paths) {
@@ -79,15 +81,35 @@ export function coresDoSvg(svg, { juntar = true, tolerancia = 0 } = {}) {
     if (tolerancia > 0) lista = reduzirLaco(lista, tolerancia);
     return lista.map((p) => [(p.x - minX) * escala, (maxY - p.y) * escala]);
   };
+  const passoSvg = passo > 0 ? passo / escala : 0;
+  const pontos = (caminho) => (passoSvg ? pontosPorPasso(caminho, passoSvg) : caminho.getPoints(8));
   const lista = [...grupos].map(([cor, formas]) => ({
     cor,
     formas: formas
-      .map((f) => [converter(f.getPoints(8)), ...f.holes.map((h) => converter(h.getPoints(8)))].filter((l) => l.length >= 3))
+      .map((f) => [converter(pontos(f)), ...f.holes.map((h) => converter(pontos(h)))].filter((l) => l.length >= 3))
       .filter((lacos) => lacos.length && lacos[0].length >= 3),
   }));
   const saida = juntar ? juntarCoresParecidas(lista) : lista;
   saida.quadro = { minX, maxY, escala };
   return saida;
+}
+
+// Pontos de um caminho do SVGLoader com corda de no máximo "passo" (unidades do SVG).
+function pontosPorPasso(caminho, passo) {
+  const pts = [];
+  for (const curva of caminho.curves) {
+    if (curva.isLineCurve) {
+      const n = Math.max(1, Math.ceil(curva.v1.distanceTo(curva.v2) / passo));
+      for (let i = 0; i < n; i++) pts.push(curva.getPoint(i / n));
+      continue;
+    }
+    // getPointAt: posição pelo comprimento (a Bézier não anda em passos iguais com o parâmetro)
+    curva.arcLengthDivisions = Math.max(200, Math.ceil(curva.getLength() / passo) * 4);
+    curva.updateArcLengths();
+    const n = Math.max(2, Math.ceil(curva.getLength() / passo) + 1);
+    for (let i = 0; i < n; i++) pts.push(curva.getPointAt(i / n));
+  }
+  return pts;
 }
 
 // Douglas-Peucker num laço fechado: mantém o formato com desvio menor que "tolerancia".

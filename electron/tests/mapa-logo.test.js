@@ -175,6 +175,34 @@ describe("criador de logos: qualidade da borda", () => {
     expect(comMeioTom).toBeLessThan(semMeioTom / 3);
   });
 
+  it("curvas seguem a borda de perto: desvio máximo ao longo das curvas < 0,2 px", () => {
+    const cx = 60.37;
+    const cy = 60.21;
+    const raio = 40.3;
+    const img = circulo(120, raio, cx, cy);
+    const { mapa, alvos, fundo } = recorteAutomatico(img);
+    const refs = Object.fromEntries(alvos.map((a) => [a.cor, a.ref]));
+    const svg = svgDoMapa(mapa, { suave: { imagem: img, refs, fundo, manual: null } });
+    // pontos no meio de cada curva cúbica (o erro do ajuste aparece ali)
+    let atual = null;
+    let maior = 0;
+    for (const m of svg.matchAll(/M([\d.-]+) ([\d.-]+)|L([\d.-]+) ([\d.-]+)|C([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+)/g)) {
+      if (m[1]) atual = [+m[1], +m[2]];
+      else if (m[3]) atual = [+m[3], +m[4]];
+      else {
+        const [x1, y1, x2, y2, x3, y3] = m.slice(5, 11).map(Number);
+        for (const t of [0.25, 0.5, 0.75]) {
+          const u = 1 - t;
+          const x = u * u * u * atual[0] + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3;
+          const y = u * u * u * atual[1] + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3;
+          maior = Math.max(maior, Math.abs(Math.hypot(x - cx, y - cy) - raio));
+        }
+        atual = [x3, y3];
+      }
+    }
+    expect(maior).toBeLessThan(0.2);
+  });
+
   it("contorno de 1 pixel de outra cor some; manchas de verdade ficam", () => {
     const w = 20;
     const h = 20;

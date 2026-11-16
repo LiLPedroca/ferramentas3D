@@ -22,7 +22,8 @@ import { el, ligarZonaArquivos } from "./util-tela.js";
 import { abrirImagem } from "./imagem-arquivo.js";
 
 const $ = (id) => document.getElementById(id);
-const LADO = 800; // resolução do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
+const LADO = 2000; // resolução máxima do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
+const AMPLIAR = 4; // imagem pequena é ampliada até 4 vezes (mais que isso só gasta memória)
 const PEQUENA = 600; // imagem menor que isso (lado maior): avisa que as bordas podem sair menos lisas
 const MEDIDAS = { "lg-largura": "largura", "lg-borda": "borda", "lg-base": "base", "lg-relevo": "relevo", "lg-furo": "furo", "lg-parede": "parede" };
 const LIMITE_HISTORICO = 30;
@@ -665,9 +666,10 @@ async function carregar([arquivo], salvo = null) {
     return;
   }
   try {
-    // o lado maior vira LADO: imagem grande é reduzida e pequena é ampliada com suavização
+    // o lado maior vira até LADO: imagem grande é reduzida e pequena é ampliada com suavização
     // (o meio-tom ampliado ainda dá a borda com fração de pixel)
-    const escala = LADO / Math.max(aberta.w, aberta.h);
+    const maior = Math.max(aberta.w, aberta.h);
+    const escala = aberta.svg ? LADO / maior : Math.min(LADO, AMPLIAR * maior) / maior;
     const w = Math.max(1, Math.round(aberta.w * escala));
     const h = Math.max(1, Math.round(aberta.h * escala));
     const canvas = new OffscreenCanvas(w, h);

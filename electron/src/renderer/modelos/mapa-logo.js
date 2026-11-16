@@ -533,7 +533,8 @@ function suavizarDegraus(campo, exato, borda, w, h) {
 // Camadas empilhadas como no vetorizador: as cores com mais área embaixo, e cada camada cobre também
 // as de cima (sem frestas entre cores).
 // suave (opcional): { imagem, refs: { [cor]: [r, g, b] }, fundo, manual } para a borda com fração de pixel.
-export function svgDoMapa(mapa, { mancha = 6, tolerancia = 0.3, suave = null, furos = null } = {}) {
+// tolerancia: erro máximo do ajuste das curvas, em pixels do mapa.
+export function svgDoMapa(mapa, { mancha = 6, tolerancia = 0.15, suave = null, furos = null } = {}) {
   const { largura: w, altura: h, idx } = mapa;
   const n = w * h;
   const area = new Int32Array(130); // índice = cor + 1
