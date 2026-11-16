@@ -611,12 +611,6 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
-.conjunto-acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 /* Valor da peça: custo sem a mão de obra, em destaque */
 .metricas .metrica-valor strong {
   color: var(--acento-forte);
@@ -4597,6 +4591,18 @@ textarea:focus {
 
 .calc-topo h2 {
   margin: 0;
+}
+
+.calc-topo-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.calc-topo-acoes .calc-mais {
+  border-color: var(--acento);
+  color: var(--acento-forte);
 }
 
 .calc-acoes {

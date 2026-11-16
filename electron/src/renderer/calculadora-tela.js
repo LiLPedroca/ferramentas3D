@@ -156,7 +156,7 @@ async function atualizarProdutosDoConjunto() {
   const r = await window.dados?.produtos?.listar?.();
   produtosDoConjunto = r?.ok ? r.dados : [];
   const sel = $("conj-produto");
-  sel.hidden = produtosDoConjunto.length === 0;
+  $("campo-conj-produto").hidden = produtosDoConjunto.length === 0;
   sel.replaceChildren(new Option("ou escolher de Meus produtos…", ""), ...produtosDoConjunto.map((p) => new Option(p.nome, p.id)));
 }
 

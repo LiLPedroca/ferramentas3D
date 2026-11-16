@@ -278,7 +278,7 @@ export const NOVIDADES = [
     icone: "calculadora",
     titulo: "Valor da peça e conjuntos",
     texto: "Veja quanto a peça custa sem a mão de obra e calcule várias peças vendidas juntas.",
-    itens: ["Valor da peça: filamento, energia e impressora", "+ Adicionar peça ao conjunto: mão de obra e lucro uma vez só"],
+    itens: ["Valor da peça: filamento, energia e impressora", "+ Adicionar mais produtos: mão de obra e lucro uma vez só"],
     botao: "Ver",
   },
   {

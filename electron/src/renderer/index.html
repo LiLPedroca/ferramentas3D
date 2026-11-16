@@ -88,12 +88,19 @@
       <section class="painel formulario" aria-labelledby="titulo-form">
         <div class="calc-topo">
           <h2 id="titulo-form">Dados do lote</h2>
-          <button class="botao-secundario" id="novo-calculo" type="button">Novo cálculo</button>
+          <div class="calc-topo-acoes">
+            <button class="botao-secundario calc-mais" id="conj-adicionar" type="button">+ Adicionar mais produtos</button>
+            <button class="botao-secundario" id="novo-calculo" type="button">Novo cálculo</button>
+          </div>
         </div>
         <p class="ajuda origem-calculo" id="origem-calculo" hidden></p>
         <label class="campo">
           <span>Nome da peça ou produto</span>
           <div class="entrada"><input id="calc-nome" maxlength="120" autocomplete="off" placeholder="Ex.: Suporte para celular" /></div>
+        </label>
+        <label class="campo" id="campo-conj-produto" hidden>
+          <span>Meus produtos</span>
+          <select id="conj-produto" class="seletor largo-total" aria-label="Adicionar produto de Meus produtos"></select>
         </label>
 
         <fieldset class="grupo">
@@ -134,10 +141,6 @@
                 <span class="conj-valor" id="conj-valor-principal"></span>
               </div>
               <div id="conjunto-pecas"></div>
-            </div>
-            <div class="conjunto-acoes">
-              <button type="button" class="botao-secundario" id="conj-adicionar">+ Adicionar peça ao conjunto</button>
-              <select id="conj-produto" class="seletor" aria-label="Adicionar peça de Meus produtos" hidden></select>
             </div>
           </div>
         </fieldset>
