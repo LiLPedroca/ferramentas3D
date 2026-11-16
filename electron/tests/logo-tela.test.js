@@ -289,3 +289,20 @@ describe("2D para 3D: cor apagada sai de Cores", () => {
     expect(nomes().length).toBe(antes - 1);
   }, 40000);
 });
+
+describe("2D para 3D: chaveiro com cartões", () => {
+  it("cada opção é um cartão com desenho; tamanho do furo com − e +", () => {
+    const cartoes = [...document.querySelectorAll("#tela-logo .lg-chaveiro-cartao")];
+    expect(cartoes).toHaveLength(3);
+    for (const c of cartoes) expect(c.querySelector("svg")).not.toBeNull();
+    const argola = document.querySelector('input[name="lg-chaveiro"][value="argola"]');
+    argola.checked = true;
+    argola.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(argola.closest(".lg-chaveiro-cartao").classList.contains("ativo")).toBe(true);
+    const antes = Number($("lg-furo").value.replace(",", "."));
+    document.querySelector("#lg-furo-campo [data-furo='mais']").click();
+    expect(Number($("lg-furo").value.replace(",", "."))).toBeCloseTo(antes + 0.5, 6);
+    document.querySelector("#lg-furo-campo [data-furo='menos']").click();
+    expect(Number($("lg-furo").value.replace(",", "."))).toBeCloseTo(antes, 6);
+  });
+});

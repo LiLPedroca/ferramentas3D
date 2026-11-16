@@ -137,7 +137,10 @@ function terminarRenomear(aceitar) {
 // ---------- Campos ----------
 function preencherCampos() {
   for (const [id, chave] of Object.entries(MEDIDAS)) if (document.activeElement !== $(id)) $(id).value = formatar(opcoes[chave]);
-  for (const r of document.querySelectorAll('input[name="lg-chaveiro"]')) r.checked = r.value === (opcoes.chaveiro ?? "nenhum");
+  for (const r of document.querySelectorAll('input[name="lg-chaveiro"]')) {
+    r.checked = r.value === (opcoes.chaveiro ?? "nenhum");
+    r.closest(".lg-chaveiro-cartao")?.classList.toggle("ativo", r.checked);
+  }
   $("lg-furo-campo").hidden = (opcoes.chaveiro ?? "nenhum") === "nenhum";
 }
 
@@ -1166,6 +1169,16 @@ export function iniciarLogo() {
   $("lg-alto").addEventListener("change", () => mostrarDados());
 
   for (const r of document.querySelectorAll('input[name="lg-chaveiro"]')) r.addEventListener("change", () => r.checked && mudar({ chaveiro: r.value, comArgola: r.value === "argola", argola: null }));
+  // tamanho do furo: − e + de 0,5 em 0,5 mm (o campo também aceita digitar)
+  for (const b of document.querySelectorAll("#lg-furo-campo [data-furo]")) {
+    b.addEventListener("click", () => {
+      const [minimo, maximo] = LIMITES_RELEVO.furo;
+      const atual = Number(String($("lg-furo").value).replace(",", ".")) || opcoes.furo;
+      const novo = Math.min(maximo, Math.max(minimo, Math.round((atual + (b.dataset.furo === "mais" ? 0.5 : -0.5)) * 2) / 2));
+      $("lg-furo").value = formatar(novo);
+      $("lg-furo").dispatchEvent(new Event("input"));
+    });
+  }
 
   // prévia
   previa2d = criarPrevia2d($("lg-2d"), {

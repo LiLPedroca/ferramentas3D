@@ -241,6 +241,16 @@ export const NOVIDADES = [
     itens: ["Em Cores: Relevo [−] [+] em cada cor", "Chaveiro: argola ou furo, com o tamanho do furo", "Personalizar > Trazer de volta: igual à imagem original", "Detalhes pequenos não somem mais sozinhos"],
     botao: "Experimentar",
   },
+  {
+    id: "2d-para-3d-chaveiro-cartoes",
+    versao: "0.56.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Chaveiro mais fácil",
+    texto: "Escolha Nenhum, Argola ou Furo pelo desenho, e ajuste o furo no − e +.",
+    itens: ["Peças a partir de 1 mm de altura", "Cor apagada com a varinha sai da lista de cores"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

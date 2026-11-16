@@ -705,3 +705,13 @@ Desenho: `docs/superpowers/specs/2026-11-16-2d-para-3d-design.md`; plano: `docs/
 - Palmeiras (estrelas que sumiram) não foi testado com o arquivo dele: ele não chegou na pasta `dev/fotos-teste`.
 - Cores no fatiador: arquivo de teste `dev/teste-cores/Santos - teste de cores.3mf` (config completa de projeto,
   como os 3MF do Anycubic) esperando o Pedro abrir na janela do Anycubic.
+
+## Trabalho do Claude Code (16/11/2026) — Ajustes do 2D para 3D e PUBLICAÇÃO (v0.56.0)
+
+- Cor que não tem mais nenhum pixel (apagada com a varinha/borracha) some de Cores (`coresNoMapa`); volta se
+  "Trazer de volta" ou Desfazer devolverem os pixels.
+- Altura das partes a partir de 1 mm (`LIMITES_RELEVO.altura = [1, 10]`).
+- Chaveiro em três cartões com desenho (Nenhum / Argola para chaveiro / Furo para chaveiro) e "Tamanho do furo"
+  com − e + (0,5 mm).
+- Pedro aprovou publicar ("pode publicar a versão para todos"): v0.56.0 publicada no GitHub com todas as
+  versões locais desde a v0.50.0 (Criador de logos → 2D para 3D, estoque de filamentos, calculadora).

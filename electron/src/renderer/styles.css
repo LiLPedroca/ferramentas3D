@@ -6299,16 +6299,82 @@ textarea:focus {
 /* 2D para 3D: chaveiro (nenhum, argola ou furo) */
 .lg-chaveiro {
   display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.lg-chaveiro label {
+.lg-chaveiro-cartao {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  padding: 12px 6px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.lg-chaveiro-cartao:hover {
+  border-color: color-mix(in srgb, var(--acento) 50%, var(--borda));
+}
+
+.lg-chaveiro-cartao input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lg-chaveiro-cartao.ativo {
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 14%, var(--superficie-2));
+  color: var(--texto);
+}
+
+.lg-chaveiro-cartao:has(input:focus-visible) {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+.lg-furo-linha {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 13.5px;
-  cursor: pointer;
+}
+
+.lg-furo-linha[hidden] {
+  display: none;
+}
+
+.lg-furo-passo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-suave);
+}
+
+.lg-furo-passo em {
+  font-style: normal;
+}
+
+.lg-furo-passo input {
+  width: 44px;
+  padding: 4px 6px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  text-align: center;
 }
 
 /* 2D para 3D: cada cor numa linha, com o relevo ao lado */

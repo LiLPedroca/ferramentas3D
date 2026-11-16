@@ -16,7 +16,7 @@ beforeAll(() => {
   globalThis.Option = function (t, v) { const o = document.createElement("option"); o.textContent = t; o.value = v; return o; };
   window.dados = { filamentos: { listar: async () => ({ ok: true, dados: [] }) } };
   iniciarCalculadora();
-});
+}, 30000); // ler o index.html inteiro demora quando a suíte toda roda junto
 
 describe("Calculadora: mão de obra e conta do preço", () => {
   it("caixinha começa desligada: R$ 15 de mão de obra com 100% de lucro dá R$ 15", () => {

@@ -1754,14 +1754,19 @@
               </label>
               <h3 class="lg-sub">Chaveiro</h3>
               <div class="lg-chaveiro" role="radiogroup" aria-label="Chaveiro">
-                <label><input type="radio" name="lg-chaveiro" value="nenhum" checked /> Nenhum</label>
-                <label><input type="radio" name="lg-chaveiro" value="argola" /> Argola para chaveiro</label>
-                <label><input type="radio" name="lg-chaveiro" value="furo" /> Furo para chaveiro</label>
+                <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="nenhum" checked /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path d="M12 6h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z" fill="currentColor" opacity="0.85"/></svg><span>Nenhum</span></label>
+                <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="argola" /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path d="M12 8h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z" fill="currentColor" opacity="0.85"/><circle cx="24" cy="4" r="4" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><span>Argola para chaveiro</span></label>
+                <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="furo" /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path fill-rule="evenodd" d="M12 6h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z M24 11a3 3 0 1 0 0.01 0z" fill="currentColor" opacity="0.85"/></svg><span>Furo para chaveiro</span></label>
               </div>
-              <label class="campo" id="lg-furo-campo" hidden>
+              <div class="lg-furo-linha" id="lg-furo-campo" hidden>
                 <span>Tamanho do furo</span>
-                <div class="entrada"><input id="lg-furo" inputmode="decimal" /><em>mm</em></div>
-              </label>
+                <div class="lg-furo-passo">
+                  <button type="button" class="lg-relevo-botao" data-furo="menos" aria-label="Furo menor">−</button>
+                  <input id="lg-furo" inputmode="decimal" aria-label="Tamanho do furo em mm" />
+                  <em>mm</em>
+                  <button type="button" class="lg-relevo-botao" data-furo="mais" aria-label="Furo maior">+</button>
+                </div>
+              </div>
             </div>
             <div class="lg-rolagem lg-personalizar" data-lg-secao="personalizar" hidden>
               <p class="ajuda">Passe na peça para apagar ou para trazer de volta o que o programa tirou.</p>
