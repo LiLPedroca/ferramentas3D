@@ -6199,6 +6199,23 @@ textarea:focus {
   bottom: 12px;
 }
 
+/* 2D para 3D: medidas, partes e alturas, discreto no alto da prévia */
+.lg-info {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  z-index: 2;
+  max-width: calc(100% - 220px);
+  margin: 0;
+  overflow: hidden;
+  transform: translateX(-50%);
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
 .lg-zoom span {
   min-width: 48px;
   color: var(--texto-suave);

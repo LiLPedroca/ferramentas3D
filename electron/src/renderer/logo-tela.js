@@ -1,5 +1,5 @@
-// Tela do Criador de logos: imagem -> recorte e cores automáticos (nas cores prontas) -> correção à mão
-// direto na peça (2D ou 3D) -> relevo multicor sobre a base, com ou sem argola.
+// Tela do 2D para 3D (antes Criador de logos): imagem -> recorte e cores automáticos (nas cores prontas)
+// -> peça SEM BASE, uma parte por região de cor, lado a lado -> correção à mão direto na peça (2D ou 3D).
 //
 // As "cores do logo" são cores-alvo (mapa-logo.js): "×" tira uma (os pixels vão para a mais parecida),
 // "+ Cor" põe outra (pega os pixels mais perto dela). O que foi corrigido à mão fica guardado na máscara
@@ -8,12 +8,12 @@ import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloCo
 import { registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
-import { coresDoSvg, gerarLogo, LIMITES_LOGO, PADRAO_LOGO } from "./modelos/logo.js";
+import { coresDoSvg } from "./modelos/logo.js";
+import { gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO } from "./modelos/relevo.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
   mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
 } from "./modelos/mapa-logo.js";
-import { familiaCss } from "./modelos/fontes.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
 import { criarPrevia } from "./modelos/previa3d.js";
@@ -25,7 +25,8 @@ const $ = (id) => document.getElementById(id);
 const LADO = 2000; // resolução máxima do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
 const AMPLIAR = 4; // imagem pequena é ampliada até 4 vezes (mais que isso só gasta memória)
 const PEQUENA = 600; // imagem menor que isso (lado maior): avisa que as bordas podem sair menos lisas
-const MEDIDAS = { "lg-largura": "largura", "lg-borda": "borda", "lg-base": "base", "lg-relevo": "relevo", "lg-furo": "furo", "lg-parede": "parede" };
+const MEDIDAS = { "lg-largura": "largura", "lg-altura": "altura" };
+const LIMPEZA = { tirarFundo: true, areasInternas: false }; // só o fundo ligado à borda sai
 const LIMITE_HISTORICO = 30;
 
 const ICONES = {
@@ -46,7 +47,8 @@ let mapa = null; // mapa atual: automático + correções
 let manual = null; // Uint8Array: 1 = pixel corrigido à mão
 let historico = [];
 let refazer = [];
-let opcoes = { ...PADRAO_LOGO };
+let opcoes = { ...PADRAO_RELEVO };
+let escolhas = []; // [{ ponto: [x, y] em pixels do mapa, cor?, altura? }]: o que foi mudado em cada parte
 let modelo = null;
 let partes = null;
 let vinculo = null; // { k, minX, maxY, desloc } liga a peça mostrada ao mapa (mm <-> pixel)
@@ -59,7 +61,6 @@ let projetoAtual = null; // { id, nome } quando está em Meus modelos
 let nomeProjeto = "";
 let sujo = false;
 let painelCor = null; // null | "adicionar" | índice da cor sendo trocada
-let ultimaArte = null; // { chave, largura }: reaproveita a escala quando só o desenho mudou
 
 const formatar = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 const formatar1 = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
@@ -132,29 +133,18 @@ function terminarRenomear(aceitar) {
 // ---------- Campos ----------
 function preencherCampos() {
   for (const [id, chave] of Object.entries(MEDIDAS)) if (document.activeElement !== $(id)) $(id).value = formatar(opcoes[chave]);
-  for (const b of document.querySelectorAll("[data-lg-estilo]")) b.setAttribute("aria-pressed", String(b.dataset.lgEstilo === opcoes.estilo));
-  marcarCores($("lg-paleta-base"), opcoes.corBase);
-  $("lg-com-argola").checked = opcoes.comArgola !== false;
-  $("lg-argola-campos").hidden = opcoes.comArgola === false;
-  $("lg-largura-ajuda").textContent = `${opcoes.comArgola === false ? "Inclui a base" : "Inclui base e argola"}. O arquivo exportado sai com esta largura.`;
-  $("lg-fundo-dentro-linha").hidden = !$("lg-fundo").checked;
+  $("lg-com-argola").checked = opcoes.comArgola === true;
 }
 
 function mudar(mudancas) {
-  if ("estilo" in mudancas) mudancas.argola = null;
   opcoes = { ...opcoes, ...mudancas };
   preencherCampos();
   marcarSujo();
   gerar();
 }
 
-function mostrarAba(aba) {
-  for (const b of document.querySelectorAll("[data-lg-aba]")) b.setAttribute("aria-selected", String(b.dataset.lgAba === aba));
-  for (const s of document.querySelectorAll("[data-lg-secao]")) s.hidden = s.dataset.lgSecao !== aba;
-}
-
 // ---------- Mapa (recorte, cores-alvo e correções) ----------
-const limpeza = () => ({ tirarFundo: $("lg-fundo").checked, areasInternas: $("lg-fundo-dentro").checked });
+const limpeza = () => LIMPEZA;
 const copiaAlvos = (lista) => lista.map((a) => ({ cor: a.cor, ref: a.ref.slice() }));
 
 // Refaz o recorte automático. achar: acha as cores de novo (imagem nova ou limpeza mudou).
@@ -184,11 +174,7 @@ function voltarEdicao(de, para) {
   if (!de.length || !mapa) return;
   para.push({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() });
   const e = de.pop();
-  const mudouLimpeza = e.limpeza.tirarFundo !== $("lg-fundo").checked || e.limpeza.areasInternas !== $("lg-fundo-dentro").checked;
-  $("lg-fundo").checked = e.limpeza.tirarFundo;
-  $("lg-fundo-dentro").checked = e.limpeza.areasInternas;
   alvos = e.alvos;
-  if (mudouLimpeza) ({ vazio, fundo } = mascaraDoFundo(imagem, limpeza()));
   auto = mapaPorAlvos(imagem, vazio, alvos);
   mapa.idx = e.idx;
   manual = e.manual;
@@ -297,7 +283,7 @@ async function gerar() {
   if (mapaVazio(mapa)) {
     modelo = null;
     vinculo = null;
-    status("O logo ficou vazio. Desfaça a última correção ou desligue \"Remover fundo\".", "erro");
+    status("A peça ficou vazia. Desfaça a última correção.", "erro");
     mostrarDados();
     previa2d.mostrar(null);
     return;
@@ -305,22 +291,23 @@ async function gerar() {
   const minha = ++geracao;
   status("Atualizando a peça…", "trabalhando");
   try {
-    conferirMedidas(MEDIDAS, LIMITES_LOGO);
+    conferirMedidas(MEDIDAS, LIMITES_RELEVO);
     const refs = Object.fromEntries(alvos.map((a) => [a.cor, a.ref]));
-    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual }, furos: mascaraDeFuros(mapa, vazio, manual) }), { juntar: false, tolerancia: 0.1 });
+    // passo: corda de no máximo 0,05 mm na peça final (a arte tem 100 de largura)
+    const passo = (0.05 * 100) / opcoes.largura;
+    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual }, furos: mascaraDeFuros(mapa, vazio, manual) }), { juntar: false, passo });
+    const q = cores.quadro;
+    const naArte = escolhas.map((e) => ({ ...e, ponto: [(e.ponto[0] - q.minX) * q.escala, (q.maxY - e.ponto[1]) * q.escala] }));
     const M = await motorDaTela();
     if (minha !== geracao) return;
-    const { argola, corBase, ...medidas } = opcoes;
-    const chave = JSON.stringify(medidas);
     let novo;
     let semArgola = null; // a argola não coube em nenhum ponto: mostra a peça sem ela (sem exportar)
     try {
-      novo = gerarLogo(M, cores, opcoes, ultimaArte?.chave === chave ? ultimaArte.largura : null);
-      ultimaArte = { chave, largura: novo.escalaArte * 100 };
+      novo = gerarRelevo(M, cores, opcoes, naArte);
     } catch (erro) {
       if (!opcoes.comArgola || !/argola/i.test(erro.message)) throw erro;
-      novo = gerarLogo(M, cores, { ...opcoes, comArgola: false });
-      semArgola = opcoes.argola === null ? "A argola não coube em nenhum ponto da borda. Aumente a borda (Ajustes avançados) ou desligue a argola." : erro.message;
+      novo = gerarRelevo(M, cores, { ...opcoes, comArgola: false }, naArte);
+      semArgola = opcoes.argola === null ? "A argola não coube em nenhum ponto da borda. Desligue a argola ou mude o desenho." : erro.message;
     }
     const novasPartes = novo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
     // canto da peça antes de ir para a origem (o 3D é mostrado deslocado; o clique precisa voltar)
@@ -355,12 +342,24 @@ async function gerar() {
 }
 
 function mostrarDados() {
-  $("lg-dimensoes").textContent = modelo ? `${modelo.dimensoes.map(formatar1).join(" × ")} mm` : "—";
+  $("lg-info").textContent = modelo ? linhaDeInformacao(modelo) : "";
   $("lg-peso").textContent = modelo ? pesoCurto(modelo.malhas, densidadeDoModelo()) : "—";
-  const n = modelo ? modelo.cores.length + 1 : 0;
+  const n = modelo ? modelo.cores.length : 0;
   $("lg-partes").textContent = modelo ? `${n} ${n === 1 ? "cor" : "cores"}` : "—";
-  $("lg-partes").title = modelo ? "No 3MF, a base vai no filamento 1 e cada cor do logo no seguinte (2, 3…)." : "";
-  if (modelo && document.activeElement !== $("lg-altura")) $("lg-altura").value = formatar1(modelo.dimensoes[1]);
+  $("lg-partes").title = modelo ? "No 3MF, cada cor vai num filamento (1, 2, 3…)." : "";
+  if (modelo && document.activeElement !== $("lg-alto")) $("lg-alto").value = formatar1(modelo.dimensoes[1]);
+}
+
+const umaCasa = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// "100,0 × 120,5 mm · 52 partes · alturas 3 a 10 mm"
+export function linhaDeInformacao(m) {
+  const n = m.partes.length;
+  const alturas = m.partes.map((p) => p.altura);
+  const menor = Math.min(...alturas);
+  const maior = Math.max(...alturas);
+  const altura = menor === maior ? `altura ${formatar(menor)} mm` : `alturas ${formatar(menor)} a ${formatar(maior)} mm`;
+  return `${umaCasa(m.dimensoes[0])} × ${umaCasa(m.dimensoes[1])} mm · ${n} ${n === 1 ? "parte" : "partes"} · ${altura}`;
 }
 
 // Cancela pedidos antigos e impede exportar a peça anterior enquanto há alterações.
@@ -398,14 +397,13 @@ async function argolaSolta(t) {
 const pincel = (() => {
   let ligado = false;
   let ferramenta = "borracha";
-  let corPincel = CORES_LOGO.findIndex((c) => c.nome === "Preto");
   let ponteiro = null; // { x, y } em px (CSS) no palco
   let tracando = null; // último ponto do traço no mapa { x, y, raio }
   let marcas = []; // traço desenhado por cima até a peça ser refeita: [{ x, y, r }] em px (CSS)
 
   const palco = () => $("lg-palco");
   const camada = () => $("lg-camada");
-  const usaDisco = () => ["borracha", "restaurar", "pincel"].includes(ferramenta);
+  const usaDisco = () => ["borracha", "restaurar"].includes(ferramenta);
   const raioTela = () => Number($("lg-pincel").value) / 2;
 
   // evento -> { mapa: [x, y] (pixels do mapa), raio (pixels do mapa) } ou null (fora da peça)
@@ -427,10 +425,9 @@ const pincel = (() => {
     return { x: mm[0] / k + minX, y: maxY - mm[1] / k, raio: Math.max(0.5, (raioTela() * mmPorPx) / k) };
   }
 
-  const valor = () => (ferramenta === "borracha" || ferramenta === "varinha" ? VAZIO : ferramenta === "restaurar" ? "restaurar" : corPincel);
+  const valor = () => (ferramenta === "restaurar" ? "restaurar" : VAZIO);
 
   function corDoTraco() {
-    if (ferramenta === "pincel") return CORES_LOGO[corPincel].hex;
     if (ferramenta === "restaurar") return "rgba(91, 141, 239, 0.55)";
     return "rgba(255, 80, 80, 0.5)";
   }
@@ -445,6 +442,7 @@ const pincel = (() => {
       c.height = h;
     }
     const ctx = c.getContext("2d");
+    if (!ctx) return; // sem canvas (testes)
     ctx.clearRect(0, 0, c.width, c.height);
     if (!ligado) return;
     ctx.save();
@@ -479,7 +477,6 @@ const pincel = (() => {
     ferramenta = nova;
     for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.setAttribute("aria-pressed", String(b.dataset.ferramenta === nova));
     $("lg-tamanho-campo").hidden = !usaDisco();
-    $("lg-cores-pincel").hidden = !(nova === "pincel" || nova === "balde");
     palco().classList.toggle("mira", !usaDisco());
     desenhar();
   }
@@ -488,7 +485,7 @@ const pincel = (() => {
     ligado = sim;
     $("lg-ferramentas").hidden = !sim;
     $("lg-corrigir").setAttribute("aria-pressed", String(sim));
-    $("lg-corrigir").textContent = sim ? "Corrigindo na peça… (Concluir)" : "Corrigir imagem manualmente";
+    $("lg-corrigir").textContent = sim ? "Corrigindo na peça… (Concluir)" : "Corrigir na peça";
     palco().classList.toggle("corrigindo", sim);
     previa3d?.modoPintura?.(sim && modo === "3d");
     mostrarDica();
@@ -498,15 +495,6 @@ const pincel = (() => {
   }
 
   function iniciar() {
-    $("lg-cores-pincel").replaceChildren(
-      ...CORES_LOGO.map((cor, i) =>
-        botaoCor(cor, () => {
-          corPincel = i;
-          marcarCores($("lg-cores-pincel"), cor.hex);
-        }),
-      ),
-    );
-    marcarCores($("lg-cores-pincel"), CORES_LOGO[corPincel].hex);
     for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.addEventListener("click", () => escolher(b.dataset.ferramenta));
     escolher("borracha");
     $("lg-pincel").addEventListener("input", desenhar);
@@ -584,7 +572,7 @@ const pincel = (() => {
       ponteiro = null;
       desenhar();
     });
-    new ResizeObserver(desenhar).observe(camada());
+    if (typeof ResizeObserver === "function") new ResizeObserver(desenhar).observe(camada());
   }
 
   return {
@@ -676,13 +664,18 @@ async function carregar([arquivo], salvo = null) {
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(aberta.fonte, 0, 0, w, h);
-    imagem = { width: w, height: h, data: ctx.getImageData(0, 0, w, h).data, nome: arquivo.name };
-    tamanhoOriginal = { w: aberta.w, h: aberta.h, svg: aberta.svg };
     $("lg-miniatura").src = await imagemComoTexto(canvas);
+    await usarImagem({ width: w, height: h, data: ctx.getImageData(0, 0, w, h).data }, { nome: arquivo.name, w: aberta.w, h: aberta.h, svg: aberta.svg }, salvo);
   } finally {
     if (aberta.url) URL.revokeObjectURL(aberta.url);
   }
+}
 
+// Imagem já no tamanho do mapa ({ width, height, data }) -> recorte, cores e peça.
+// info: { nome, w, h, svg } da imagem original. salvo: modelo de Meus modelos (opcional).
+async function usarImagem(pixels, info, salvo = null) {
+  imagem = { ...pixels, nome: info.nome };
+  tamanhoOriginal = { w: info.w, h: info.h, svg: info.svg === true };
   $("lg-trabalho").hidden = false;
   $("lg-zona").hidden = true;
   painelCor = null;
@@ -691,8 +684,9 @@ async function carregar([arquivo], salvo = null) {
   mapa = null;
   manual = null;
   alvos = [];
+  escolhas = [];
   const o = salvo?.opcoes ?? {};
-  const nomeImagem = o.nomeImagem || arquivo.name;
+  const nomeImagem = o.nomeImagem || info.nome;
   $("lg-nome").textContent = nomeImagem;
   const pequena = !tamanhoOriginal.svg && Math.max(tamanhoOriginal.w, tamanhoOriginal.h) < PEQUENA;
   $("lg-tamanho-imagem").textContent = tamanhoOriginal.svg
@@ -701,12 +695,10 @@ async function carregar([arquivo], salvo = null) {
   $("lg-tamanho-imagem").classList.toggle("aviso", pequena);
 
   if (salvo) {
-    const { removerFundo, areasInternas, fundoDeDentro, alvos: alvosSalvos, versao, coresLogo, mapaPronto, nomeImagem: _n, ...resto } = o;
-    opcoes = { ...PADRAO_LOGO, ...resto };
-    $("lg-fundo").checked = removerFundo !== false;
-    // modelos antigos: "fundoDeDentro" era a mesma chave (o padrão era ligado)
-    $("lg-fundo-dentro").checked = versao === 2 ? areasInternas === true : mapaPronto ? false : fundoDeDentro !== false;
-    if (versao === 2 && Array.isArray(alvosSalvos)) {
+    opcoes = opcoesDoSalvo(o);
+    escolhas = Array.isArray(o.escolhas) ? o.escolhas.filter((e) => Array.isArray(e?.ponto) && e.ponto.length === 2 && e.ponto.every(Number.isFinite)) : [];
+    const alvosSalvos = o.alvos;
+    if ((o.versao === 2 || o.versao === 3) && Array.isArray(alvosSalvos)) {
       alvos = alvosSalvos
         .map((a) => ({ cor: CORES_LOGO.findIndex((c) => c.id === a.cor), ref: Array.isArray(a.ref) ? a.ref.slice(0, 3).map(Number) : null }))
         .filter((a) => a.cor >= 0 && a.ref?.length === 3 && a.ref.every(Number.isFinite));
@@ -714,7 +706,7 @@ async function carregar([arquivo], salvo = null) {
     projetoAtual = { id: salvo.id, nome: salvo.nome };
     nomeProjeto = salvo.nome;
   } else {
-    opcoes = { ...opcoes, argola: null };
+    opcoes = { ...PADRAO_RELEVO, largura: opcoes.largura, altura: opcoes.altura };
     projetoAtual = null;
     nomeProjeto = nomeImagem.replace(/\.[^.]+$/, "").slice(0, 80) || "Logo";
   }
@@ -736,7 +728,28 @@ async function carregar([arquivo], salvo = null) {
   agendar(0);
 }
 
-const nomeArquivo = () => nomeProjeto || "Logo";
+// Opções de um modelo salvo. Os do Criador de logos (versão 1 e 2) tinham base, borda e relevo: ficam
+// guardados no arquivo, mas a peça agora sai sem base. Largura e argola continuam valendo.
+export function opcoesDoSalvo(o = {}) {
+  const pega = (chave) => {
+    const n = Number(o[chave]);
+    const [minimo, maximo] = LIMITES_RELEVO[chave];
+    return Number.isFinite(n) && n >= minimo && n <= maximo ? n : PADRAO_RELEVO[chave];
+  };
+  const argola = o.argola === null || o.argola === undefined ? null : Number(o.argola);
+  return {
+    ...PADRAO_RELEVO,
+    largura: pega("largura"),
+    altura: o.versao === 3 ? pega("altura") : PADRAO_RELEVO.altura,
+    // antes de 3, a argola vinha ligada quando não dizia nada
+    comArgola: o.versao === 3 ? o.comArgola === true : o.comArgola !== false,
+    argola: argola >= 0 && argola <= 1 ? argola : null,
+    furo: pega("furo"),
+    parede: pega("parede"),
+  };
+}
+
+const nomeArquivo = () => nomeProjeto || "Peça";
 
 async function salvar(extensao) {
   fecharMenuExportar();
@@ -775,12 +788,11 @@ async function salvarProjeto() {
     const temCorrecao = manual.some((v) => v);
     const valores = {
       tipo: "logo",
-      nome: nomeProjeto || "Logo",
+      nome: nomeProjeto || "Peça",
       opcoes: {
         ...opcoes,
-        versao: 2,
-        removerFundo: $("lg-fundo").checked,
-        areasInternas: $("lg-fundo-dentro").checked,
+        versao: 3,
+        escolhas,
         alvos: alvos.map((a) => ({ cor: CORES_LOGO[a.cor].id, ref: a.ref.map(Math.round) })),
         nomeImagem: $("lg-nome").textContent,
       },
@@ -807,12 +819,10 @@ async function salvarProjeto() {
 export function iniciarLogo() {
   ligarZonaArquivos($("lg-zona"), $("lg-entrada"), carregar);
   $("lg-trocar").addEventListener("click", () => $("lg-entrada").click());
-  familiaCss("Lobster"); // ícone "Aa" do estilo Contorno
   $("lg-renomear").innerHTML = ICONES.lapis;
   $("lg-exportar-mais").innerHTML = ICONES.seta;
   $("lg-ajustar").innerHTML = ICONES.ajustar;
   document.querySelector("#tela-logo .lg-cadeado").innerHTML = ICONES.cadeado;
-  $("lg-paleta-base").replaceChildren(...CORES_LOGO.map((c) => botaoCor(c, () => mudar({ corBase: c.hex }))));
   preencherCampos();
   pincel.iniciar();
 
@@ -842,28 +852,12 @@ export function iniciarLogo() {
     if (!ev.target.closest?.(".lg-exportar")) fecharMenuExportar();
   });
 
-  // abas
-  for (const b of document.querySelectorAll("[data-lg-aba]")) b.addEventListener("click", () => mostrarAba(b.dataset.lgAba));
-
   // cores do logo
   $("lg-adicionar-fechar").addEventListener("click", () => {
     painelCor = null;
     mostrarCores();
   });
 
-  // limpeza: acha as cores de novo; correções à mão continuam
-  for (const id of ["lg-fundo", "lg-fundo-dentro"]) {
-    $(id).addEventListener("change", () => {
-      if (!imagem) return;
-      const marcado = $(id).checked;
-      $(id).checked = !marcado;
-      guardarParaDesfazer();
-      $(id).checked = marcado;
-      preencherCampos();
-      refazerAutomatico({ achar: true });
-      mapaMudou();
-    });
-  }
   $("lg-corrigir").addEventListener("click", () => pincel.ligar(!pincel.ligado()));
   $("lg-concluir").addEventListener("click", () => pincel.ligar(false));
 
@@ -893,9 +887,9 @@ export function iniciarLogo() {
     $(id).addEventListener("input", () => {
       const valor = Number(String($(id).value).replace(",", "."));
       invalidar();
-      const [minimo, maximo] = LIMITES_LOGO[chave];
+      const [minimo, maximo] = LIMITES_RELEVO[chave];
       if (!Number.isFinite(valor) || valor < minimo || valor > maximo) {
-        status(`${chave === "largura" ? "Largura" : "Medida"}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, "erro");
+        status(`${chave === "largura" ? "Largura" : "Altura das partes"}: use de ${formatar(minimo)} a ${formatar(maximo)} mm.`, "erro");
         habilitar(false);
         return;
       }
@@ -908,11 +902,11 @@ export function iniciarLogo() {
       gerar();
     });
   }
-  // altura: muda a largura na mesma proporção da peça atual
-  $("lg-altura").addEventListener("input", () => {
-    const altura = Number(String($("lg-altura").value).replace(",", "."));
+  // comprimento: muda a largura na mesma proporção da peça atual
+  $("lg-alto").addEventListener("input", () => {
+    const altura = Number(String($("lg-alto").value).replace(",", "."));
     if (!modelo || !(altura > 0)) return;
-    const [minimo, maximo] = LIMITES_LOGO.largura;
+    const [minimo, maximo] = LIMITES_RELEVO.largura;
     const largura = Math.round(((altura * modelo.dimensoes[0]) / modelo.dimensoes[1]) * 10) / 10;
     invalidar();
     if (largura < minimo || largura > maximo) {
@@ -924,11 +918,9 @@ export function iniciarLogo() {
     marcarSujo();
     agendar();
   });
-  $("lg-altura").addEventListener("change", () => mostrarDados());
+  $("lg-alto").addEventListener("change", () => mostrarDados());
 
-  for (const b of document.querySelectorAll("[data-lg-estilo]")) b.addEventListener("click", () => mudar({ estilo: b.dataset.lgEstilo }));
   $("lg-com-argola").addEventListener("change", () => mudar({ comArgola: $("lg-com-argola").checked, argola: null }));
-  $("lg-argola-auto").addEventListener("click", () => mudar({ argola: null }));
 
   // prévia
   previa2d = criarPrevia2d($("lg-2d"), {
@@ -953,7 +945,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, abrirSalvo };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {

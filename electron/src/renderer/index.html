@@ -1676,9 +1676,9 @@
     <!-- Tela: logo -->
 
     <main class="tela oculta lg-pagina" id="tela-logo">
-      <div class="zona-arquivo lg-zona" id="lg-zona" tabindex="0" role="button" aria-label="Escolher imagem do logo">
-        <p><strong>Arraste o logo aqui</strong></p>
-        <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP, HEIC ou SVG. O programa recorta o fundo e acha as cores; o que ele errar, você corrige na própria peça.</p>
+      <div class="zona-arquivo lg-zona" id="lg-zona" tabindex="0" role="button" aria-label="Escolher a imagem">
+        <p><strong>Arraste a imagem aqui</strong></p>
+        <p class="ajuda">ou clique para escolher · PNG, JPEG, WebP, HEIC ou SVG</p>
         <input type="file" id="lg-entrada" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/svg+xml,.heic,.heif,.svg" hidden />
       </div>
       <div class="lg-app" id="lg-trabalho" hidden>
@@ -1703,103 +1703,49 @@
 
         <div class="lg-corpo">
           <aside class="lg-painel">
-            <h2 class="lg-painel-titulo">Personalizar</h2>
-            <nav class="lg-abas" role="tablist" aria-label="Partes da peça">
-              <button type="button" role="tab" data-lg-aba="logo" aria-selected="true"><span>1</span>Logo</button>
-              <button type="button" role="tab" data-lg-aba="base" aria-selected="false"><span>2</span>Base</button>
-              <button type="button" role="tab" data-lg-aba="argola" aria-selected="false"><span>3</span>Argola</button>
-            </nav>
             <div class="lg-rolagem">
-              <section data-lg-secao="logo">
-                <div class="lg-imagem">
-                  <img id="lg-miniatura" alt="" />
-                  <div class="lg-imagem-info">
-                    <strong id="lg-nome"></strong>
-                    <span id="lg-tamanho-imagem"></span>
-                  </div>
-                  <button type="button" class="botao-secundario lg-trocar" id="lg-trocar">Trocar</button>
+              <div class="lg-imagem">
+                <img id="lg-miniatura" alt="" />
+                <div class="lg-imagem-info">
+                  <strong id="lg-nome"></strong>
+                  <span id="lg-tamanho-imagem"></span>
                 </div>
+                <button type="button" class="botao-secundario lg-trocar" id="lg-trocar">Trocar</button>
+              </div>
 
-                <h3 class="lg-sub">Cores do logo</h3>
-                <div class="lg-chips" id="lg-cores-lista"></div>
-                <div class="lg-adicionar" id="lg-adicionar-cor" hidden>
-                  <div class="lg-adicionar-topo">
-                    <span id="lg-adicionar-titulo">Adicionar cor</span>
-                    <button type="button" class="fechar" id="lg-adicionar-fechar" aria-label="Fechar">×</button>
-                  </div>
-                  <div class="lg-bolinhas" id="lg-cores-novas"></div>
+              <h3 class="lg-sub">Cores</h3>
+              <div class="lg-chips" id="lg-cores-lista"></div>
+              <div class="lg-adicionar" id="lg-adicionar-cor" hidden>
+                <div class="lg-adicionar-topo">
+                  <span id="lg-adicionar-titulo">Adicionar cor</span>
+                  <button type="button" class="fechar" id="lg-adicionar-fechar" aria-label="Fechar">×</button>
                 </div>
+                <div class="lg-bolinhas" id="lg-cores-novas"></div>
+              </div>
+              <button type="button" class="lg-link" id="lg-corrigir">Corrigir na peça</button>
 
-                <h3 class="lg-sub">Limpeza da imagem</h3>
-                <label class="chave-linha lg-chave"><span>Remover fundo</span><input type="checkbox" class="chave" role="switch" id="lg-fundo" checked /></label>
-                <label class="chave-linha lg-chave" id="lg-fundo-dentro-linha"><span>Remover áreas internas</span><input type="checkbox" class="chave" role="switch" id="lg-fundo-dentro" /></label>
-                <button type="button" class="lg-link" id="lg-corrigir">Corrigir imagem manualmente</button>
-
-                <h3 class="lg-sub">Tamanho</h3>
-                <div class="lg-tamanhos">
-                  <label class="campo">
-                    <span>Largura</span>
-                    <div class="entrada"><input id="lg-largura" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                  <span class="lg-cadeado" title="Proporção mantida" aria-hidden="true"></span>
-                  <label class="campo">
-                    <span>Altura</span>
-                    <div class="entrada"><input id="lg-altura" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                </div>
-                <p class="ajuda" id="lg-largura-ajuda"></p>
-
-                <details class="lg-avancados">
-                  <summary>Ajustes avançados</summary>
-                  <div class="linha">
-                    <label class="campo">
-                      <span>Borda em volta</span>
-                      <div class="entrada"><input id="lg-borda" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                    <label class="campo">
-                      <span>Base</span>
-                      <div class="entrada"><input id="lg-base" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                  </div>
-                  <label class="campo">
-                    <span>Relevo do logo</span>
-                    <div class="entrada"><input id="lg-relevo" inputmode="decimal" /><em>mm</em></div>
-                  </label>
-                </details>
-              </section>
-
-              <section data-lg-secao="base" hidden>
-                <h3 class="lg-sub">Estilo da base</h3>
-                <div class="ch-estilos" role="group" aria-label="Estilo da base">
-                  <button type="button" data-lg-estilo="contorno"><span class="ch-forma contorno">Aa</span>Contorno</button>
-                  <button type="button" data-lg-estilo="circulo"><span class="ch-forma circulo"></span>Círculo</button>
-                  <button type="button" data-lg-estilo="retangular"><span class="ch-forma retangular"></span>Retangular</button>
-                </div>
-                <h3 class="lg-sub">Cor da base</h3>
-                <div class="lg-bolinhas" id="lg-paleta-base"></div>
-              </section>
-
-              <section data-lg-secao="argola" hidden>
-                <label class="chave-linha lg-chave"><span>Com argola (chaveiro)</span><input type="checkbox" class="chave" role="switch" id="lg-com-argola" checked /></label>
-                <div id="lg-argola-campos">
-                  <p class="ajuda">Na prévia 2D, arraste o círculo tracejado para levar a argola a qualquer ponto da borda.</p>
-                  <div class="linha">
-                    <label class="campo">
-                      <span>Furo</span>
-                      <div class="entrada"><input id="lg-furo" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                    <label class="campo">
-                      <span>Parede</span>
-                      <div class="entrada"><input id="lg-parede" inputmode="decimal" /><em>mm</em></div>
-                    </label>
-                  </div>
-                  <button type="button" class="botao-texto" id="lg-argola-auto">Voltar a argola para cima</button>
-                </div>
-              </section>
+              <h3 class="lg-sub">Medidas</h3>
+              <div class="lg-tamanhos">
+                <label class="campo">
+                  <span>Largura</span>
+                  <div class="entrada"><input id="lg-largura" inputmode="decimal" /><em>mm</em></div>
+                </label>
+                <span class="lg-cadeado" title="Proporção mantida" aria-hidden="true"></span>
+                <label class="campo">
+                  <span>Comprimento</span>
+                  <div class="entrada"><input id="lg-alto" inputmode="decimal" /><em>mm</em></div>
+                </label>
+              </div>
+              <label class="campo">
+                <span>Altura das partes</span>
+                <div class="entrada"><input id="lg-altura" inputmode="decimal" /><em>mm</em></div>
+              </label>
+              <label class="chave-linha lg-chave"><span>Argola</span><input type="checkbox" class="chave" role="switch" id="lg-com-argola" /></label>
             </div>
           </aside>
 
           <section class="lg-area">
+            <p class="lg-info" id="lg-info"></p>
             <div class="lg-ver" role="group" aria-label="Tipo de prévia">
               <button type="button" id="lg-ver-2d" aria-pressed="true">2D</button>
               <button type="button" id="lg-ver-3d" aria-pressed="false">3D</button>
@@ -1809,11 +1755,8 @@
                 <button type="button" data-ferramenta="borracha" title="Apaga por onde passa (tira restos do fundo)">Borracha</button>
                 <button type="button" data-ferramenta="restaurar" title="Devolve o recorte automático por onde passa">Restaurar</button>
                 <button type="button" data-ferramenta="varinha" title="Um clique apaga a mancha inteira">Varinha</button>
-                <button type="button" data-ferramenta="pincel" title="Pinta por onde passa">Pincel</button>
-                <button type="button" data-ferramenta="balde" title="Um clique pinta a região inteira">Balde</button>
               </div>
               <label class="lg-tamanho-pincel" id="lg-tamanho-campo">Tamanho <input type="range" id="lg-pincel" min="4" max="80" value="18" /></label>
-              <div class="lg-bolinhas lg-cores-pincel" id="lg-cores-pincel" role="group" aria-label="Cor do pincel e do balde"></div>
               <div class="lg-grupo">
                 <button type="button" id="lg-desfazer" title="Desfazer (Ctrl+Z)" disabled>Desfazer</button>
                 <button type="button" id="lg-refazer" title="Refazer (Ctrl+Y)" disabled>Refazer</button>
@@ -1837,7 +1780,6 @@
 
         <footer class="lg-rodape">
           <p class="lg-estado" id="lg-status" role="status"></p>
-          <div class="lg-dado"><span>Dimensões</span><strong id="lg-dimensoes">—</strong></div>
           <div class="lg-dado"><span>Peso estimado</span><strong id="lg-peso">—</strong></div>
           <div class="lg-dado"><span>Impressão</span><strong id="lg-partes">—</strong></div>
           <div class="lg-rodape-acoes">

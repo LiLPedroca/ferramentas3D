@@ -201,6 +201,16 @@ export const NOVIDADES = [
     itens: ["Marcou \"Imprimi\" em Minhas Impressões: o filamento sai sozinho do rolo certo", "Pesar na balança e abrir rolo novo em um toque", "Na Calculadora, escolha o rolo e o preço por kg vem certo"],
     botao: "Abrir o estoque",
   },
+  {
+    id: "2d-para-3d",
+    versao: "0.53.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "2D para 3D",
+    texto: "O Criador de logos virou 2D para 3D: ponha uma imagem e a peça sai pronta, sem base.",
+    itens: ["Cada parte da imagem vira um volume, lado a lado", "Clique numa parte para trocar a cor ou a altura", "No 3D, a peça aparece na mesa com as medidas"],
+    botao: "Experimentar",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

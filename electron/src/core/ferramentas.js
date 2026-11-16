@@ -84,8 +84,8 @@ export const FERRAMENTAS = [
   {
     id: "logo",
     grupo: "modelos",
-    titulo: "Criador de logos",
-    descricao: "Sua logo recortada, em cores, pronta para imprimir.",
+    titulo: "2D para 3D",
+    descricao: "Sua imagem vira peça 3D, pronta para imprimir.",
     categoria: "Modelos personalizados",
     disponivel: true,
     tela: "logo",
