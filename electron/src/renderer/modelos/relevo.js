@@ -7,6 +7,7 @@ import { areaComSinal, comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolid
 export const PADRAO_RELEVO = { largura: 100, altura: 3, comArgola: false, argola: null, furo: 4, parede: 2 };
 export const LIMITES_RELEVO = { largura: [20, 250], altura: [2, 10], furo: [3, 8], parede: [1.6, 5] };
 const NOMES = { largura: "Largura", altura: "Altura das partes", furo: "Furo da argola", parede: "Parede da argola" };
+const TOPO = 0.6; // mm (3 camadas de 0,2): com AMS, as cores que não são a base ficam só nessa espessura de cima
 const ILHA_MINIMA = 1.5; // mm²: menor que isso não imprime direito; vira a parte vizinha (ou some)
 const COR_FURO = "#ff00ff";
 const virgula = (n) => String(n).replace(".", ",");
@@ -305,13 +306,28 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
         const solido = guardar(guardar(secao.extrude(f.ate - f.de)).translate([0, 0, f.de]));
         return { nome: `Cor ${k + 1}`, cor: f.cor, ...malhaDoSolido(solido, `cor ${k + 1}`) };
       });
-    } else
-      malhas = coresUsadas.map((cor, i) => {
-        const solidos = partes.filter((p) => p.cor === cor).map((p) => guardar(formaDa(p).extrude(p.altura)));
-        // partes da mesma cor nunca se sobrepõem: juntar sem conta booleana (bem mais rápido)
-        const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.compose(solidos));
-        return { nome: `Cor ${i + 1}`, cor, ...malhaDoSolido(solido, `cor ${i + 1}`) };
+    } else {
+      // com AMS: cor só no topo. A cor de maior área é a base: sobe por baixo de todas as partes (sem troca de
+      // filamento) e as outras cores ficam só nas últimas camadas (TOPO), lado a lado. A trás fica colada.
+      const area = new Map();
+      for (const p of partes) area.set(p.cor, (area.get(p.cor) ?? 0) + p.area);
+      const base = [...area].sort((a, b) => b[1] - a[1])[0][0];
+      coresUsadas = [base, ...coresUsadas.filter((c) => c !== base)];
+      const porAltura = new Map(); // altura -> seções da base com essa altura
+      for (const p of partes) {
+        const h = p.cor === base ? p.altura : p.altura - TOPO;
+        if (!porAltura.has(h)) porAltura.set(h, []);
+        porAltura.get(h).push(formaDa(p));
+      }
+      const blocos = [...porAltura].map(([h, secoes]) => guardar((secoes.length === 1 ? secoes[0] : guardar(C.union(secoes))).extrude(h)));
+      const solidoBase = blocos.length === 1 ? blocos[0] : guardar(M.Manifold.union(blocos));
+      malhas = [{ nome: "Cor 1", cor: base, ...malhaDoSolido(solidoBase, "cor 1") }];
+      coresUsadas.slice(1).forEach((cor, i) => {
+        const solidos = partes.filter((p) => p.cor === cor).map((p) => guardar(guardar(formaDa(p).extrude(TOPO)).translate([0, 0, p.altura - TOPO])));
+        const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.union(solidos));
+        malhas.push({ nome: `Cor ${i + 2}`, cor, ...malhaDoSolido(solido, `cor ${i + 2}`) });
       });
+    }
     const alturaMax = faixas ? faixas[faixas.length - 1].ate : Math.max(...partes.map((p) => p.altura));
     return {
       malhas,

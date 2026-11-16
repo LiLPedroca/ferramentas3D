@@ -87,13 +87,47 @@ describe("2D para 3D: peça sem base", () => {
     expect(areaDasIntersecoes(r)).toBeLessThan(0.01);
   });
 
-  it("cada malha é fechada e todas começam em z=0", () => {
+  it("cada malha é fechada; a cor de maior área é a base (de z=0) e as outras só no topo (0,6 mm)", () => {
     const r = gerarRelevo(M, cores, {});
     expect(r.malhas.length).toBe(new Set(r.partes.map((p) => p.cor)).size);
+    const area = new Map();
+    for (const p of r.partes) area.set(p.cor, (area.get(p.cor) ?? 0) + p.area);
+    const base = [...area].sort((a, b) => b[1] - a[1])[0][0];
+    expect(r.malhas[0].cor).toBe(base);
     for (const m of r.malhas) {
       expect(fechada(m), m.nome).toBe(true);
-      expect(zMin(m)).toBeCloseTo(0, 5);
+      expect(zMin(m), m.nome).toBeCloseTo(m.cor === base ? 0 : 3 - 0.6, 5);
     }
+  });
+
+  it("volume: a base sobe por baixo de todas as partes; as outras cores têm só 0,6 mm", () => {
+    const r = gerarRelevo(M, cores, {});
+    const volume = ({ vertices, triangulos }) => {
+      let v = 0;
+      for (let i = 0; i < triangulos.length; i += 3) {
+        const [p, q, s] = [0, 1, 2].map((k) => [0, 1, 2].map((e) => vertices[triangulos[i + k] * 3 + e]));
+        v += (p[0] * (q[1] * s[2] - q[2] * s[1]) + p[1] * (q[2] * s[0] - q[0] * s[2]) + p[2] * (q[0] * s[1] - q[1] * s[0])) / 6;
+      }
+      return v;
+    };
+    const base = r.malhas[0].cor;
+    const areaBase = r.partes.filter((p) => p.cor === base).reduce((s, p) => s + p.area, 0);
+    const areaOutras = r.partes.filter((p) => p.cor !== base).reduce((s, p) => s + p.area, 0);
+    expect(volume(r.malhas[0])).toBeCloseTo(areaBase * 3 + areaOutras * 2.4, 0);
+    const outras = r.malhas.slice(1).reduce((s, m) => s + volume(m), 0);
+    expect(outras).toBeCloseTo(areaOutras * 0.6, 0);
+  });
+
+  it("parte mais alta de outra cor: base até a altura dela − 0,6", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const base = r0.malhas[0].cor;
+    const outra = r0.partes.find((p) => p.cor !== base);
+    const r = gerarRelevo(M, cores, {}, [{ ponto: outra.ponto, altura: 6 }]);
+    const malha = r.malhas.find((m) => m.cor === outra.cor);
+    let zMax = -Infinity;
+    for (let i = 2; i < malha.vertices.length; i += 3) zMax = Math.max(zMax, malha.vertices[i]);
+    expect(zMax).toBeCloseTo(6, 5);
+    expect(fechada(r.malhas[0])).toBe(true);
   });
 
   it("altura padrão 3 mm; escolha muda só a parte do ponto", () => {
