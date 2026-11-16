@@ -162,6 +162,7 @@
             <input id="lucro-barra" type="range" min="0" max="100" step="1" aria-label="Lucro em porcentagem" />
           </div>
           <p class="ajuda">A barra vai até 100%. Para lucro acima disso, digite o percentual no campo.</p>
+          <label class="chave-linha"><span>Lucro também sobre a mão de obra</span><input type="checkbox" class="chave" role="switch" id="lucro-mao-obra" /></label>
         </fieldset>
 
         <p class="erro" id="erro" role="alert"></p>
@@ -188,6 +189,14 @@
         <div class="total">
           <span>Custo total do lote</span>
           <strong id="custo-lote">R$ 0,00</strong>
+        </div>
+        <div class="conta-lucro">
+          <span id="lucro-texto">Lucro</span>
+          <strong id="lucro-lote">+ R$ 0,00</strong>
+        </div>
+        <div class="total conta-preco">
+          <span>Preço do lote</span>
+          <strong id="preco-lote">R$ 0,00</strong>
         </div>
         <p class="ajuda pequeno">Valores exibidos arredondados a centavos. O preço usa o cálculo completo, sem arredondamento intermediário.</p>
         <div class="calc-acoes">

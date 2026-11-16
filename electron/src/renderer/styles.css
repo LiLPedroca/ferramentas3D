@@ -632,6 +632,29 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Calculadora: custo + lucro = preço, embaixo da composição */
+.conta-lucro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.conta-lucro strong {
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.total.conta-preco {
+  margin-top: 8px;
+}
+
+.total.conta-preco strong {
+  color: var(--acento, #5b8def);
+}
+
 /* Botão de alternar tema e foco visível */
 button:focus-visible,
 input:focus-visible,

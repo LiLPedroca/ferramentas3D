@@ -30,6 +30,8 @@ function validarCalculo(c) {
   }
   if (typeof c.data !== "string" || Number.isNaN(Date.parse(c.data))) throw new ErroValidacao("Cálculo guardado inválido.");
   r.data = c.data;
+  // falta em cálculos antigos: o lucro valia também sobre a mão de obra
+  if (typeof c.lucroNaMaoDeObra === "boolean") r.lucroNaMaoDeObra = c.lucroNaMaoDeObra;
   return r;
 }
 

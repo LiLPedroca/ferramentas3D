@@ -128,3 +128,33 @@ describe("leitura de campos", () => {
     expect(() => lerInteiro("-1", "Qtd")).toThrow(EntradaInvalida);
   });
 });
+
+describe("lucro sobre a mão de obra (opção)", () => {
+  // só mão de obra de R$ 15 e 100% de lucro: o exemplo do Pedro
+  const so15 = (extra) => entrada({ pesoG: R(0), horas: R(0), maoDeObra: R(15), lucroPct: R(100), ...extra });
+
+  it("ligada: o lucro vale sobre tudo (R$ 15 vira R$ 30)", () => {
+    const r = calcular(so15({ lucroNaMaoDeObra: true }));
+    iguais(r.precoLote, R(30));
+    iguais(r.baseDoLucro, R(15));
+    iguais(r.lucroLote, R(15));
+  });
+
+  it("desligada: a mão de obra entra sem lucro (R$ 15 continua R$ 15)", () => {
+    const r = calcular(so15({ lucroNaMaoDeObra: false }));
+    iguais(r.precoLote, R(15));
+    iguais(r.baseDoLucro, R(0));
+    iguais(r.lucroLote, R(0));
+    iguais(r.custoLote, R(15));
+  });
+
+  it("desligada com material: (10 de custos) × 2 + 15 = 35", () => {
+    // 100 g a R$ 100/kg = R$ 10; sem energia e impressora
+    const r = calcular(entrada({ horas: R(0), maoDeObra: R(15), lucroPct: R(100), lucroNaMaoDeObra: false }));
+    iguais(r.precoLote, R(35));
+  });
+
+  it("sem dizer nada continua como antes (ligada)", () => {
+    expect(criarEntrada({ pesoG: R(0), precoKg: R(0), potenciaW: R(0), horas: R(0), tarifaKwh: R(0), custoHoraImpressora: R(0), maoDeObra: R(15), lucroPct: R(100), quantidade: 1 }).lucroNaMaoDeObra).toBe(true);
+  });
+});

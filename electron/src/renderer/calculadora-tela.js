@@ -87,6 +87,7 @@ function lerEntrada() {
     custoHoraImpressora: lerNumero($("custo-hora").value, "Uso da impressora por hora (R$/h)"),
     maoDeObra: lerNumero($("mao-obra").value, "Mão de obra do lote (R$)"),
     lucroPct: lerNumero($("lucro").value, "Lucro sobre o custo (%)"),
+    lucroNaMaoDeObra: $("lucro-mao-obra").checked,
     quantidade,
   });
 }
@@ -147,6 +148,10 @@ function atualizarResultado() {
     $("lucro-unitario").textContent = formatarReais(resultado.lucroUnitario);
     $("pecas-pagar").textContent = pecas;
     $("custo-lote").textContent = formatarReais(resultado.custoLote);
+    const pct = comoNumero(entrada.lucroPct).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    $("lucro-texto").textContent = `Lucro (${pct}% sobre ${formatarReais(resultado.baseDoLucro)}${entrada.lucroNaMaoDeObra ? "" : ", sem a mão de obra"})`;
+    $("lucro-lote").textContent = `+ ${formatarReais(resultado.lucroLote)}`;
+    $("preco-lote").textContent = formatarReais(resultado.precoLote);
     mostrarComposicao(resultado);
 
     const pesoPorPeca = entrada.pesoG.divide(Racional.de(BigInt(entrada.quantidade)));
@@ -175,6 +180,7 @@ function copiaDoCalculo() {
     custoHora: decimalCurto(entrada.custoHoraImpressora),
     maoDeObra: decimalCurto(entrada.maoDeObra),
     lucroPct: decimalCurto(entrada.lucroPct),
+    lucroNaMaoDeObra: entrada.lucroNaMaoDeObra,
     custosCentavos: {
       filamento: cent(resultado.filamento),
       energia: cent(resultado.energia),
@@ -302,7 +308,23 @@ function sincronizarLucro(origem) {
   }
 }
 
+const CHAVE_MAO_DE_OBRA = "calculadora-lucro-mao-de-obra";
+
 export function iniciarCalculadora() {
+  // última escolha da caixinha (padrão: desligada, a mão de obra entra sem lucro)
+  try {
+    $("lucro-mao-obra").checked = localStorage.getItem(CHAVE_MAO_DE_OBRA) === "1";
+  } catch {
+    $("lucro-mao-obra").checked = false;
+  }
+  $("lucro-mao-obra").addEventListener("change", () => {
+    try {
+      localStorage.setItem(CHAVE_MAO_DE_OBRA, $("lucro-mao-obra").checked ? "1" : "0");
+    } catch {
+      // sem armazenamento: vale só nesta abertura
+    }
+    atualizarResultado();
+  });
   for (const id of CAMPOS) {
     if (id !== "lucro") $(id).addEventListener("input", atualizarResultado);
     $(id).addEventListener("input", () => {

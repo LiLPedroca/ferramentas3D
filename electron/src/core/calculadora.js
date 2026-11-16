@@ -20,7 +20,8 @@ const CAMPOS_NAO_NEGATIVOS = [
   "lucroPct",
 ];
 
-// Campos: todos Racional, exceto quantidade (inteiro >= 1).
+// Campos: todos Racional, exceto quantidade (inteiro >= 1) e lucroNaMaoDeObra (booleano; sem ele, true:
+// o lucro vale também sobre a mão de obra, como sempre foi).
 export function criarEntrada(campos) {
   const entrada = {};
   for (const nome of CAMPOS_NAO_NEGATIVOS) {
@@ -33,19 +34,22 @@ export function criarEntrada(campos) {
     throw new EntradaInvalida("A quantidade de peças deve ser um inteiro maior que zero.");
   }
   entrada.quantidade = quantidade;
+  entrada.lucroNaMaoDeObra = campos.lucroNaMaoDeObra !== false;
   return entrada;
 }
 
 export function calcular(entrada) {
   const mil = Racional.de(1000n);
   const cem = Racional.de(100n);
-  const um = Racional.de(1n);
 
   const filamento = entrada.pesoG.divide(mil).multiplica(entrada.precoKg);
   const energia = entrada.potenciaW.divide(mil).multiplica(entrada.horas).multiplica(entrada.tarifaKwh);
   const impressora = entrada.horas.multiplica(entrada.custoHoraImpressora);
   const custoLote = filamento.soma(energia).soma(impressora).soma(entrada.maoDeObra);
-  const precoLote = custoLote.multiplica(um.soma(entrada.lucroPct.divide(cem)));
+  // base do lucro: o custo todo, ou só os custos de produção (a mão de obra entra sem lucro)
+  const baseDoLucro = entrada.lucroNaMaoDeObra === false ? custoLote.subtrai(entrada.maoDeObra) : custoLote;
+  const lucroLote = baseDoLucro.multiplica(entrada.lucroPct.divide(cem));
+  const precoLote = custoLote.soma(lucroLote);
   const qtd = Racional.de(BigInt(entrada.quantidade));
 
   return {
@@ -54,6 +58,8 @@ export function calcular(entrada) {
     impressora,
     maoDeObra: entrada.maoDeObra,
     custoLote,
+    baseDoLucro,
+    lucroLote,
     precoLote,
     custoUnitario: custoLote.divide(qtd),
     precoUnitario: precoLote.divide(qtd),
