@@ -1752,7 +1752,16 @@
                 <span>Altura das partes</span>
                 <div class="entrada"><input id="lg-altura" inputmode="decimal" /><em>mm</em></div>
               </label>
-              <label class="chave-linha lg-chave"><span>Argola</span><input type="checkbox" class="chave" role="switch" id="lg-com-argola" /></label>
+              <h3 class="lg-sub">Chaveiro</h3>
+              <div class="lg-chaveiro" role="radiogroup" aria-label="Chaveiro">
+                <label><input type="radio" name="lg-chaveiro" value="nenhum" checked /> Nenhum</label>
+                <label><input type="radio" name="lg-chaveiro" value="argola" /> Argola para chaveiro</label>
+                <label><input type="radio" name="lg-chaveiro" value="furo" /> Furo para chaveiro</label>
+              </div>
+              <label class="campo" id="lg-furo-campo" hidden>
+                <span>Tamanho do furo</span>
+                <div class="entrada"><input id="lg-furo" inputmode="decimal" /><em>mm</em></div>
+              </label>
             </div>
             <div class="lg-rolagem lg-personalizar" data-lg-secao="personalizar" hidden>
               <p class="ajuda">Clique ou passe na peça para tirar o que sobrou do fundo.</p>

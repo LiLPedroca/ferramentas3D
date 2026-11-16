@@ -77,7 +77,7 @@ const comIlhas = [
 
 describe("2D para 3D: peça sem base", () => {
   it("padrões do desenho: 100 mm de largura, 3 mm de altura, sem argola", () => {
-    expect(PADRAO_RELEVO).toMatchObject({ largura: 100, altura: 3, comArgola: false });
+    expect(PADRAO_RELEVO).toMatchObject({ largura: 100, altura: 3, chaveiro: "nenhum" });
   });
 
   it("partes formam partição exata: soma das áreas = área da união, sem sobreposição", () => {
@@ -257,3 +257,43 @@ describe("2D para 3D: relevo por cor", () => {
     expect(() => validarOpcoesRelevo({ relevos: { "#111111": -1 } })).toThrow(/Relevo/);
   });
 });
+
+describe("2D para 3D: chaveiro (argola ou furo)", () => {
+  const areaTotal = (r) => r.partes.reduce((s, p) => s + p.area, 0);
+
+  it("furo para chaveiro: atravessa a peça perto da borda, sem mudar a largura", () => {
+    const sem = gerarRelevo(M, cores, { largura: 60 });
+    const r = gerarRelevo(M, cores, { largura: 60, chaveiro: "furo", furo: 5 });
+    expect(r.dimensoes[0]).toBeCloseTo(60, 1);
+    expect(r.argola).not.toBeNull();
+    expect(r.argola.furo).toBeCloseTo(2.5, 6);
+    // o furo tira a área de um círculo de 5 mm
+    expect(areaTotal(sem) - areaTotal(r)).toBeCloseTo(Math.PI * 2.5 * 2.5, 0);
+    // o centro do furo fica dentro da peça
+    expect(r.partes.some((p) => pontoDentroDe(p, r.argola.centro))).toBe(false);
+    for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
+  });
+
+  it("argola para chaveiro: o tamanho do furo muda o tamanho da argola", () => {
+    const pequena = gerarRelevo(M, cores, { largura: 60, chaveiro: "argola", furo: 3 });
+    const grande = gerarRelevo(M, cores, { largura: 60, chaveiro: "argola", furo: 7 });
+    expect(grande.argola.raio).toBeGreaterThan(pequena.argola.raio);
+    expect(grande.argola.furo).toBeCloseTo(3.5, 6);
+  });
+
+  it("comArgola antigo ainda vale como argola", () => {
+    expect(validarOpcoesRelevo({ comArgola: true }).chaveiro).toBe("argola");
+    expect(validarOpcoesRelevo({}).chaveiro).toBe("nenhum");
+  });
+});
+
+function pontoDentroDe(parte, [x, y]) {
+  let dentro = false;
+  for (const laco of parte.lacos)
+    for (let i = 0, j = laco.length - 1; i < laco.length; j = i++) {
+      const [xi, yi] = laco[i];
+      const [xj, yj] = laco[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) dentro = !dentro;
+    }
+  return dentro;
+}

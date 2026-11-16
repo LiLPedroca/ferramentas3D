@@ -58,7 +58,7 @@ describe("2D para 3D: tela", () => {
   it("medidas: largura 100, altura das partes 3, argola desligada", () => {
     expect($("lg-largura").value).toBe("100");
     expect($("lg-altura").value).toBe("3");
-    expect($("lg-com-argola").checked).toBe(false);
+    expect(document.querySelector('input[name="lg-chaveiro"]:checked').value).toBe("nenhum");
   });
 
   it("imagem vira peça sem base: linha de informação com medidas e partes", async () => {
@@ -137,9 +137,9 @@ describe("2D para 3D: Meus modelos e impressão", () => {
   it("modelo antigo (versão 2, com base) abre sem base, com a argola e a largura dele", async () => {
     const { opcoesDoSalvo } = await import("../src/renderer/logo-tela.js");
     const o = opcoesDoSalvo({ versao: 2, largura: 60, base: 2.4, relevo: 1.2, estilo: "contorno", comArgola: true, argola: 0.3, corBase: "#f4f4f4" });
-    expect(o).toMatchObject({ largura: 60, altura: 3, comArgola: true, argola: 0.3 });
+    expect(o).toMatchObject({ largura: 60, altura: 3, chaveiro: "argola", argola: 0.3 });
     expect(o).not.toHaveProperty("base");
-    expect(opcoesDoSalvo({ versao: 3, largura: 80, altura: 5.4, comArgola: false })).toMatchObject({ largura: 80, altura: 5.4, comArgola: false });
+    expect(opcoesDoSalvo({ versao: 3, largura: 80, altura: 5.4, comArgola: false })).toMatchObject({ largura: 80, altura: 5.4, chaveiro: "nenhum" });
     expect(opcoesDoSalvo({ largura: 999 }).largura).toBe(100);
   });
 
@@ -243,5 +243,23 @@ describe("2D para 3D: relevo nos chips de cor", () => {
     await vi.waitFor(() => expect(t.modelo().partes.filter((p) => p.cor === cor).every((p) => Math.abs(p.altura - (t.modelo().opcoes.altura + 0.4)) < 1e-6)).toBe(true), { timeout: 20000 });
     linha.querySelector("[data-relevo='menos']").click();
     expect(document.querySelector("#lg-cores-lista .lg-relevo .lg-relevo-mm").textContent).toBe("+0,2 mm");
+  }, 40000);
+});
+
+describe("2D para 3D: argola ou furo para chaveiro", () => {
+  it("três opções com nomes claros e o tamanho do furo só quando precisa", async () => {
+    document.querySelector('#tela-logo [data-lg-aba="peca"]').click();
+    const nomes = [...document.querySelectorAll('input[name="lg-chaveiro"]')].map((r) => r.closest("label").textContent.trim());
+    expect(nomes).toEqual(["Nenhum", "Argola para chaveiro", "Furo para chaveiro"]);
+    expect($("lg-furo-campo").hidden).toBe(true);
+    const furo = document.querySelector('input[name="lg-chaveiro"][value="furo"]');
+    furo.checked = true;
+    furo.dispatchEvent(new Event("change", { bubbles: true }));
+    expect($("lg-furo-campo").hidden).toBe(false);
+    expect($("lg-furo").value).toBe("4");
+    await vi.waitFor(() => expect(window.__logoTeste.modelo()?.argola?.furo).toBe(2), { timeout: 20000 });
+    $("lg-furo").value = "6";
+    $("lg-furo").dispatchEvent(new Event("input"));
+    await vi.waitFor(() => expect(window.__logoTeste.modelo()?.argola?.furo).toBe(3), { timeout: 20000 });
   }, 40000);
 });

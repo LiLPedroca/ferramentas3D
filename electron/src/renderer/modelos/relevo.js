@@ -4,9 +4,10 @@
 import { camadaDaTroca } from "./chaveiro.js";
 import { areaComSinal, comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolido, pontoNoLaco, resolverLargura } from "./manifold.js";
 
-export const PADRAO_RELEVO = { largura: 100, altura: 3, comArgola: false, argola: null, furo: 4, parede: 2, relevos: {} };
+export const PADRAO_RELEVO = { largura: 100, altura: 3, chaveiro: "nenhum", argola: null, furo: 4, parede: 2, relevos: {} };
+export const CHAVEIROS = ["nenhum", "argola", "furo"]; // argola para fora da peça ou furo atravessando a peça
 export const LIMITES_RELEVO = { largura: [20, 250], altura: [2, 10], furo: [3, 8], parede: [1.6, 5] };
-const NOMES = { largura: "Largura", altura: "Altura das partes", furo: "Furo da argola", parede: "Parede da argola" };
+const NOMES = { largura: "Largura", altura: "Altura das partes", furo: "Tamanho do furo", parede: "Parede da argola" };
 const TOPO = 0.6; // mm (3 camadas de 0,2): com AMS, as cores que não são a base ficam só nessa espessura de cima
 const ILHA_MINIMA = 1.5;
 export const CAMADA = 0.2; // mm: uma camada do relevo por cor
@@ -32,8 +33,12 @@ export function validarOpcoesRelevo(entrada = {}) {
     if (!Number.isInteger(n) || n < 0 || n > RELEVO_MAXIMO) throw new Error(`Relevo: use de 0 a ${RELEVO_MAXIMO} camadas.`);
     if (n) relevos[cor.toLowerCase()] = n;
   }
-  const opcoes = { comArgola: o.comArgola === true, argola, semAms: o.semAms === true, ordem: Array.isArray(o.ordem) ? o.ordem.slice() : null, relevos };
+  // chaveiro: modelos antigos só tinham comArgola
+  const chaveiro = CHAVEIROS.includes(entrada.chaveiro) ? entrada.chaveiro : entrada.comArgola === true ? "argola" : "nenhum";
+  const opcoes = { chaveiro, comArgola: chaveiro === "argola", argola, semAms: o.semAms === true, ordem: Array.isArray(o.ordem) ? o.ordem.slice() : null, relevos };
   for (const chave of Object.keys(LIMITES_RELEVO)) opcoes[chave] = numero(o[chave], chave);
+  // a parede da argola acompanha o tamanho do furo (furo maior, argola mais forte)
+  opcoes.parede = Math.min(LIMITES_RELEVO.parede[1], Math.max(2, opcoes.furo / 2));
   return opcoes;
 }
 
@@ -198,6 +203,45 @@ function argolaEm(M, guardar, arte, partes, o, posicao) {
   return { secao: anel, alvo, argola: { t: posicao, centro, raio, furo: o.furo / 2, afastamento }, perimetro };
 }
 
+// Furo para chaveiro: atravessa a peça, a 2 mm da borda de fora (posição t no contorno). Tira o círculo de
+// todas as partes. Recusa posição em que o furo não fique com pelo menos 1,2 mm de peça em volta.
+function furoEm(M, guardar, arte, partes, o, posicao) {
+  const C = M.CrossSection;
+  const perimetro = contornoExterno(arte);
+  const ancora = pontoNoLaco(perimetro, posicao);
+  const raio = o.furo / 2;
+  const afastamento = -(raio + 2);
+  const centro = [ancora.ponto[0] + ancora.normal[0] * afastamento, ancora.ponto[1] + ancora.normal[1] * afastamento];
+  const folga = guardar(guardar(C.circle(raio + 1.2, 72)).translate(centro));
+  if (guardar(folga.subtract(arte)).area() > 0.01) throw new Error("O furo não cabe aqui. Arraste-o para outra posição na borda.");
+  const furo = guardar(guardar(C.circle(raio, 72)).translate(centro));
+  let tocadas = 0;
+  const novas = [];
+  for (const p of partes) {
+    if (guardar(p.secao.intersect(guardar(folga.offset(0.4)))).area() > 0.001) tocadas++;
+    const secao = guardar(p.secao.subtract(furo));
+    const area = secao.area();
+    if (area >= RESIDUO) novas.push({ ...p, secao, area });
+  }
+  const aviso = tocadas > 1 ? "O furo ficou perto de um detalhe do desenho. Se quiser, arraste-o na prévia 2D." : "";
+  return { partes: novas, furo: { t: posicao, centro, raio: raio + 0.6, furo: raio, afastamento }, perimetro, aviso };
+}
+
+function prenderFuro(M, guardar, arte, partes, o) {
+  if (o.argola !== null) return furoEm(M, guardar, arte, partes, o, o.argola);
+  const inicio = maisPertoNoLaco(contornoExterno(arte), [0, 1e4]).t; // padrão: em cima
+  let erro = null;
+  for (let k = 0; k <= 30; k++)
+    for (const sinal of k ? [1, -1] : [1]) {
+      try {
+        return furoEm(M, guardar, arte, partes, o, (((inicio + sinal * k * 0.015) % 1) + 1) % 1);
+      } catch (e) {
+        erro ??= e;
+      }
+    }
+  throw erro;
+}
+
 function prenderArgola(M, guardar, arte, partes, o) {
   if (o.argola !== null) return argolaEm(M, guardar, arte, partes, o, o.argola);
   const perimetro = contornoExterno(arte);
@@ -223,7 +267,7 @@ let guardadas = []; // [{ cores, chave, dados | erro }]
 export const estatisticasRelevo = { particoes: 0 };
 
 function particao(M, cores, o) {
-  const chave = JSON.stringify([o.largura, o.comArgola, o.argola, o.furo, o.parede]);
+  const chave = JSON.stringify([o.largura, o.chaveiro, o.argola, o.furo, o.parede]);
   const achada = guardadas.find((g) => g.cores === cores && g.chave === chave);
   if (achada?.erro) throw achada.erro;
   if (achada) return achada.dados;
@@ -247,13 +291,15 @@ function calcularParticao(M, C, cores, o) {
 
     const gerarCom = (larguraArte) => {
       const s = larguraArte / 100;
-      const partes = partesNaEscala(M, guardar, secoes, s);
+      let partes = partesNaEscala(M, guardar, secoes, s);
       if (!partes.length) throw new Error("O desenho ficou pequeno demais para imprimir. Aumente a largura.");
       const arte = guardar(C.union(partes.map((p) => p.secao)));
-      const presa = o.comArgola ? prenderArgola(M, guardar, arte, partes, o) : null;
+      const presa = o.chaveiro === "argola" ? prenderArgola(M, guardar, arte, partes, o) : null;
+      const furo = o.chaveiro === "furo" ? prenderFuro(M, guardar, arte, partes, o) : null;
+      if (furo) partes = furo.partes;
       const total = presa ? guardar(arte.add(presa.secao)) : arte;
       const b = total.bounds();
-      return { s, partes, presa, caixa: { min: b.min, max: b.max }, dimensoes: [b.max[0] - b.min[0], b.max[1] - b.min[1], 0] };
+      return { s, partes, presa, furo, caixa: { min: b.min, max: b.max }, dimensoes: [b.max[0] - b.min[0], b.max[1] - b.min[1], 0] };
     };
     // a arte pode não ocupar os 100 de largura (o fundo saiu): o chute já desconta isso
     let x0 = Infinity;
@@ -263,15 +309,16 @@ function calcularParticao(M, C, cores, o) {
       x0 = Math.min(x0, b.min[0]);
       x1 = Math.max(x1, b.max[0]);
     }
-    const util = o.comArgola ? Math.max(5, o.largura - 2 * (o.furo / 2 + o.parede)) : o.largura;
+    const util = o.chaveiro === "argola" ? Math.max(5, o.largura - 2 * (o.furo / 2 + o.parede)) : o.largura;
     const r = resolverLargura(o.largura, (util * 100) / Math.max(1e-6, x1 - x0), gerarCom);
     return {
       s: r.s,
       caixa: r.caixa,
       dimensoes: r.dimensoes,
       partes: r.partes.map((p, id) => ({ id, cor: p.cor, area: p.area, lacos: lacosDe(p.secao), anel: r.presa?.alvo === id ? lacosDe(r.presa.secao) : null })),
-      argola: r.presa?.argola ?? null,
-      perimetro: r.presa?.perimetro ?? null,
+      argola: r.presa?.argola ?? r.furo?.furo ?? null,
+      perimetro: r.presa?.perimetro ?? r.furo?.perimetro ?? null,
+      avisos: r.furo?.aviso ? [r.furo.aviso] : [],
     };
   });
   for (const p of dados.partes) p.ponto = pontoInterno(p.lacos).map((v) => v / dados.s);
@@ -351,7 +398,7 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
       dimensoes: [d.dimensoes[0], d.dimensoes[1], alturaMax],
       argola: d.argola,
       perimetro: d.perimetro,
-      avisos: [],
+      avisos: d.avisos ?? [],
       opcoes: o,
     };
   });

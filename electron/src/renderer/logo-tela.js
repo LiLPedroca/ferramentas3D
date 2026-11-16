@@ -26,7 +26,7 @@ const $ = (id) => document.getElementById(id);
 const LADO = 2000; // resolução máxima do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
 const AMPLIAR = 4; // imagem pequena é ampliada até 4 vezes (mais que isso só gasta memória)
 const PEQUENA = 600; // imagem menor que isso (lado maior): avisa que as bordas podem sair menos lisas
-const MEDIDAS = { "lg-largura": "largura", "lg-altura": "altura" };
+const MEDIDAS = { "lg-largura": "largura", "lg-altura": "altura", "lg-furo": "furo" };
 const LIMPEZA = { tirarFundo: true, areasInternas: false }; // só o fundo ligado à borda sai
 const LIMITE_HISTORICO = 30;
 
@@ -137,7 +137,8 @@ function terminarRenomear(aceitar) {
 // ---------- Campos ----------
 function preencherCampos() {
   for (const [id, chave] of Object.entries(MEDIDAS)) if (document.activeElement !== $(id)) $(id).value = formatar(opcoes[chave]);
-  $("lg-com-argola").checked = opcoes.comArgola === true;
+  for (const r of document.querySelectorAll('input[name="lg-chaveiro"]')) r.checked = r.value === (opcoes.chaveiro ?? "nenhum");
+  $("lg-furo-campo").hidden = (opcoes.chaveiro ?? "nenhum") === "nenhum";
 }
 
 function mudar(mudancas) {
@@ -369,9 +370,10 @@ async function gerar() {
     try {
       novo = gerarRelevo(M, cores, opcoes, naArte);
     } catch (erro) {
-      if (!opcoes.comArgola || !/argola/i.test(erro.message)) throw erro;
-      novo = gerarRelevo(M, cores, { ...opcoes, comArgola: false }, naArte);
-      semArgola = opcoes.argola === null ? "A argola não coube em nenhum ponto da borda. Desligue a argola ou mude o desenho." : erro.message;
+      if ((opcoes.chaveiro ?? "nenhum") === "nenhum" || !/argola|furo/i.test(erro.message)) throw erro;
+      novo = gerarRelevo(M, cores, { ...opcoes, chaveiro: "nenhum" }, naArte);
+      const qual = opcoes.chaveiro === "furo" ? "O furo" : "A argola";
+      semArgola = opcoes.argola === null ? `${qual} não coube em nenhum ponto da borda. Diminua o tamanho do furo ou escolha "Nenhum".` : erro.message;
     }
     const novasPartes = novo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
     // canto da peça antes de ir para a origem (o 3D é mostrado deslocado; o clique precisa voltar)
@@ -927,8 +929,8 @@ export function opcoesDoSalvo(o = {}) {
     ...PADRAO_RELEVO,
     largura: pega("largura"),
     altura: o.versao === 3 ? pega("altura") : PADRAO_RELEVO.altura,
-    // antes de 3, a argola vinha ligada quando não dizia nada
-    comArgola: o.versao === 3 ? o.comArgola === true : o.comArgola !== false,
+    // antes de 3, a argola vinha ligada quando não dizia nada; "chaveiro" veio depois de comArgola
+    chaveiro: o.versao === 3 && ["nenhum", "argola", "furo"].includes(o.chaveiro) ? o.chaveiro : (o.versao === 3 ? o.comArgola === true : o.comArgola !== false) ? "argola" : "nenhum",
     argola: argola >= 0 && argola <= 1 ? argola : null,
     furo: pega("furo"),
     parede: pega("parede"),
@@ -1144,7 +1146,7 @@ export function iniciarLogo() {
   });
   $("lg-alto").addEventListener("change", () => mostrarDados());
 
-  $("lg-com-argola").addEventListener("change", () => mudar({ comArgola: $("lg-com-argola").checked, argola: null }));
+  for (const r of document.querySelectorAll('input[name="lg-chaveiro"]')) r.addEventListener("change", () => r.checked && mudar({ chaveiro: r.value, comArgola: r.value === "argola", argola: null }));
 
   // prévia
   previa2d = criarPrevia2d($("lg-2d"), {

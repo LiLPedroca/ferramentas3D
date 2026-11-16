@@ -6296,6 +6296,21 @@ textarea:focus {
   color: #30a46c;
 }
 
+/* 2D para 3D: chaveiro (nenhum, argola ou furo) */
+.lg-chaveiro {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.lg-chaveiro label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
 /* 2D para 3D: cada cor numa linha, com o relevo ao lado */
 .lg-cor-linha {
   display: flex;
