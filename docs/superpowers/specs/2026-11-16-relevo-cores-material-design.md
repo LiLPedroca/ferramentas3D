@@ -34,3 +34,10 @@ Botão **"+ Adicionar peça ao conjunto"** em "Dados do lote". Cada peça: nome,
 (pode vir de Meus produtos) e mostra o seu valor sem mão de obra. Tempos são somados (impressões
 separadas; quem imprimir junto põe o tempo total numa peça e 0 nas outras). Mão de obra e lucro entram
 uma vez, sobre o conjunto. Resultado: **Preço do conjunto**. Com 1 peça, a calculadora fica como hoje.
+
+## 6. Produtos: exportar e importar (levar de um PC para outro)
+Na tela Produtos: **"Exportar produtos"** (um arquivo com todos os produtos e todas as informações,
+foto inclusa) e **"Importar produtos"**, que **junta e nunca apaga**: produto novo entra; o mesmo produto
+(mesmo id) fica com a versão de `atualizadoEm` mais recente; produtos só do PC de destino ficam como estão.
+No fim: "N novos, M atualizados". Validar tudo no processo principal (`core/produto.cjs`), igual ao
+cadastro. Só produtos por enquanto (clientes, orçamentos etc. ficam de fora).
