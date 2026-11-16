@@ -9,7 +9,7 @@ import { perguntarImpressao, registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg } from "./modelos/logo.js";
-import { faixasDoRelevo, gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro, trocasDoRelevo } from "./modelos/relevo.js";
+import { CAMADA, RELEVO_MAXIMO, faixasDoRelevo, gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro, trocasDoRelevo } from "./modelos/relevo.js";
 import { gerar3mf } from "./modelos/exportar.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
@@ -262,7 +262,9 @@ function mostrarCores() {
     tirar.setAttribute("aria-label", `Tirar ${c.nome}`);
     tirar.addEventListener("click", () => tirarCor(a.cor));
     chip.append(nome, tirar);
-    return chip;
+    const linha = el("div", "lg-cor-linha");
+    linha.append(chip, controleDeRelevo(c.hex.toLowerCase()));
+    return linha;
   });
   const mais = el("button", "lg-mais-cor", "+ Cor");
   mais.type = "button";
@@ -292,6 +294,44 @@ function mostrarCores() {
     }),
   );
   if (trocando) marcarCores($("lg-cores-novas"), CORES_LOGO[painelCor].hex);
+}
+
+// Relevo da cor: [−] N [+] em camadas, com o resultado em mm ao lado. Muda só a altura (não refaz a imagem).
+function controleDeRelevo(hex) {
+  const caixa = el("span", "lg-relevo");
+  caixa.dataset.cor = hex;
+  caixa.title = "Relevo: quantas camadas esta cor sobe acima do resto";
+  const menos = el("button", "lg-relevo-botao", "−");
+  const mais = el("button", "lg-relevo-botao", "+");
+  menos.type = mais.type = "button";
+  menos.dataset.relevo = "menos";
+  mais.dataset.relevo = "mais";
+  menos.setAttribute("aria-label", "Menos relevo");
+  mais.setAttribute("aria-label", "Mais relevo");
+  const n = el("span", "lg-relevo-n");
+  const mm = el("span", "lg-relevo-mm");
+  const mostrar = () => {
+    const v = opcoes.relevos?.[hex] ?? 0;
+    n.textContent = String(v);
+    mm.textContent = `+${(v * CAMADA).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mm`;
+    menos.disabled = v <= 0;
+    mais.disabled = v >= RELEVO_MAXIMO;
+  };
+  const mudarRelevo = (d) => {
+    const v = Math.max(0, Math.min(RELEVO_MAXIMO, (opcoes.relevos?.[hex] ?? 0) + d));
+    const relevos = { ...(opcoes.relevos ?? {}) };
+    if (v) relevos[hex] = v;
+    else delete relevos[hex];
+    opcoes = { ...opcoes, relevos };
+    mostrar();
+    marcarSujo();
+    agendar(150);
+  };
+  menos.addEventListener("click", () => mudarRelevo(-1));
+  mais.addEventListener("click", () => mudarRelevo(1));
+  mostrar();
+  caixa.append(el("span", "lg-relevo-rotulo", "Relevo"), menos, n, mais, mm);
+  return caixa;
 }
 
 // ---------- Peça ----------
@@ -892,6 +932,7 @@ export function opcoesDoSalvo(o = {}) {
     argola: argola >= 0 && argola <= 1 ? argola : null,
     furo: pega("furo"),
     parede: pega("parede"),
+    relevos: o.versao === 3 && o.relevos && typeof o.relevos === "object" ? Object.fromEntries(Object.entries(o.relevos).filter(([c, n]) => /^#[0-9a-f]{6}$/i.test(c) && Number.isInteger(n) && n > 0 && n <= RELEVO_MAXIMO)) : {},
   };
 }
 

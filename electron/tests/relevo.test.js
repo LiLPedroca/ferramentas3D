@@ -241,3 +241,19 @@ describe("2D para 3D: escolhas e cache", () => {
     expect(estatisticasRelevo.particoes).toBe(antes);
   });
 });
+
+describe("2D para 3D: relevo por cor", () => {
+  it("cor com relevo sobe N camadas de 0,2 mm; as outras não mudam", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const cor = r0.partes[0].cor;
+    const r = gerarRelevo(M, cores, { relevos: { [cor]: 2 } });
+    for (const p of r.partes) expect(p.altura).toBeCloseTo(p.cor === cor ? 3.4 : 3, 6);
+    expect(r.dimensoes[2]).toBeCloseTo(3.4, 6);
+    for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
+  });
+
+  it("relevo fora de 0 a 10 camadas dá erro em pt-BR", () => {
+    expect(() => validarOpcoesRelevo({ relevos: { "#111111": 11 } })).toThrow(/Relevo/);
+    expect(() => validarOpcoesRelevo({ relevos: { "#111111": -1 } })).toThrow(/Relevo/);
+  });
+});

@@ -228,3 +228,20 @@ describe("2D para 3D: abas Peça e Personalizar", () => {
     expect(secao.hidden).toBe(true);
   });
 });
+
+describe("2D para 3D: relevo nos chips de cor", () => {
+  it("+ sobe a cor uma camada e mostra em mm; − volta", async () => {
+    const t = window.__logoTeste;
+    document.querySelector('#tela-logo [data-lg-aba="peca"]').click();
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const linha = document.querySelector("#lg-cores-lista .lg-relevo");
+    const mais = linha.querySelector("[data-relevo='mais']");
+    const cor = linha.dataset.cor;
+    mais.click();
+    mais.click();
+    expect(linha.querySelector(".lg-relevo-mm").textContent).toBe("+0,4 mm");
+    await vi.waitFor(() => expect(t.modelo().partes.filter((p) => p.cor === cor).every((p) => Math.abs(p.altura - (t.modelo().opcoes.altura + 0.4)) < 1e-6)).toBe(true), { timeout: 20000 });
+    linha.querySelector("[data-relevo='menos']").click();
+    expect(document.querySelector("#lg-cores-lista .lg-relevo .lg-relevo-mm").textContent).toBe("+0,2 mm");
+  }, 40000);
+});

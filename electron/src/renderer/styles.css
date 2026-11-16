@@ -6296,6 +6296,54 @@ textarea:focus {
   color: #30a46c;
 }
 
+/* 2D para 3D: cada cor numa linha, com o relevo ao lado */
+.lg-cor-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  width: 100%;
+}
+
+.lg-relevo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.lg-relevo-botao {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lg-relevo-botao:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lg-relevo-n {
+  min-width: 14px;
+  color: var(--texto);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.lg-relevo-mm {
+  min-width: 52px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 2D para 3D: balão da parte escolhida (cor e altura) */
 .lg-balao {
   position: absolute;

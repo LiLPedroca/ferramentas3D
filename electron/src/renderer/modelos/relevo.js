@@ -4,11 +4,13 @@
 import { camadaDaTroca } from "./chaveiro.js";
 import { areaComSinal, comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolido, pontoNoLaco, resolverLargura } from "./manifold.js";
 
-export const PADRAO_RELEVO = { largura: 100, altura: 3, comArgola: false, argola: null, furo: 4, parede: 2 };
+export const PADRAO_RELEVO = { largura: 100, altura: 3, comArgola: false, argola: null, furo: 4, parede: 2, relevos: {} };
 export const LIMITES_RELEVO = { largura: [20, 250], altura: [2, 10], furo: [3, 8], parede: [1.6, 5] };
 const NOMES = { largura: "Largura", altura: "Altura das partes", furo: "Furo da argola", parede: "Parede da argola" };
 const TOPO = 0.6; // mm (3 camadas de 0,2): com AMS, as cores que não são a base ficam só nessa espessura de cima
-const ILHA_MINIMA = 1.5; // mm²: menor que isso não imprime direito; vira a parte vizinha (ou some)
+const ILHA_MINIMA = 1.5;
+export const CAMADA = 0.2; // mm: uma camada do relevo por cor
+export const RELEVO_MAXIMO = 10; // camadas (2 mm) // mm²: menor que isso não imprime direito; vira a parte vizinha (ou some)
 const COR_FURO = "#ff00ff";
 const virgula = (n) => String(n).replace(".", ",");
 
@@ -23,7 +25,14 @@ export function validarOpcoesRelevo(entrada = {}) {
   const o = { ...PADRAO_RELEVO, ...entrada };
   const argola = o.argola === null || o.argola === undefined || o.argola === "" ? null : Number(o.argola);
   if (argola !== null && !(argola >= 0 && argola <= 1)) throw new Error("Posição da argola inválida.");
-  const opcoes = { comArgola: o.comArgola === true, argola, semAms: o.semAms === true, ordem: Array.isArray(o.ordem) ? o.ordem.slice() : null };
+  // relevos: { "#rrggbb": camadas } — a cor sobe essas camadas (0,2 mm cada) acima da altura das partes
+  const relevos = {};
+  for (const [cor, n] of Object.entries(o.relevos ?? {})) {
+    if (!/^#[0-9a-f]{6}$/i.test(cor)) continue;
+    if (!Number.isInteger(n) || n < 0 || n > RELEVO_MAXIMO) throw new Error(`Relevo: use de 0 a ${RELEVO_MAXIMO} camadas.`);
+    if (n) relevos[cor.toLowerCase()] = n;
+  }
+  const opcoes = { comArgola: o.comArgola === true, argola, semAms: o.semAms === true, ordem: Array.isArray(o.ordem) ? o.ordem.slice() : null, relevos };
   for (const chave of Object.keys(LIMITES_RELEVO)) opcoes[chave] = numero(o[chave], chave);
   return opcoes;
 }
@@ -286,6 +295,8 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
     const h = Number(e.altura);
     if (Number.isFinite(h) && h >= LIMITES_RELEVO.altura[0] && h <= LIMITES_RELEVO.altura[1]) p.altura = h;
   }
+  // relevo por cor: depois das escolhas (vale para a cor final da parte)
+  for (const p of partes) if (o.relevos[p.cor]) p.altura = Math.round((p.altura + o.relevos[p.cor] * CAMADA) * 1000) / 1000;
   return comEscopo(M, (guardar) => {
     // a parte com a argola leva o anel junto (mesma cor e mesma altura)
     const formaDa = (p) => {
