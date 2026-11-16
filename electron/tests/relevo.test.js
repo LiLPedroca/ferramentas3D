@@ -118,7 +118,7 @@ describe("2D para 3D: peça sem base", () => {
     expect(outras).toBeCloseTo(areaOutras * 0.6, 0);
   });
 
-  it("parte mais alta de outra cor: base até a altura dela − 0,6", () => {
+  it("parte mais alta de outra cor: só a cor dela sobe; a base fica na altura das partes − 0,6", () => {
     const r0 = gerarRelevo(M, cores, {});
     const base = r0.malhas[0].cor;
     const outra = r0.partes.find((p) => p.cor !== base);
@@ -265,6 +265,31 @@ describe("2D para 3D: relevo por cor", () => {
     const r = gerarRelevo(M, cores, { relevos: { [cor]: 2 } });
     for (const p of r.partes) expect(p.altura).toBeCloseTo(p.cor === cor ? 3.4 : 3, 6);
     expect(r.dimensoes[2]).toBeCloseTo(3.4, 6);
+    for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
+  });
+
+  it("relevo de uma cor que não é a base: a base não sobe junto, a cor ocupa do 2,4 até o topo", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const base = r0.malhas[0].cor;
+    const outra = r0.malhas[1].cor;
+    const r = gerarRelevo(M, cores, { relevos: { [outra]: 8 } });
+    const vol = (m) => {
+      let v = 0;
+      const { vertices: x, triangulos: t } = m;
+      for (let i = 0; i < t.length; i += 3) {
+        const [p, q, s] = [0, 1, 2].map((k) => [0, 1, 2].map((e) => x[t[i + k] * 3 + e]));
+        v += (p[0] * (q[1] * s[2] - q[2] * s[1]) + p[1] * (q[2] * s[0] - q[0] * s[2]) + p[2] * (q[0] * s[1] - q[1] * s[0])) / 6;
+      }
+      return v;
+    };
+    expect(vol(r.malhas[0])).toBeCloseTo(vol(r0.malhas[0]), 0);
+    const area = r.partes.filter((p) => p.cor === outra).reduce((s, p) => s + p.area, 0);
+    const malha = r.malhas.find((m) => m.cor === outra);
+    expect(vol(malha)).toBeCloseTo(area * (0.6 + 1.6), 0);
+    let zMin = Infinity;
+    for (let i = 2; i < malha.vertices.length; i += 3) zMin = Math.min(zMin, malha.vertices[i]);
+    expect(zMin).toBeCloseTo(2.4, 5);
+    expect(r.malhas[0].cor).toBe(base);
     for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
   });
 

@@ -391,13 +391,16 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
     } else {
       // com AMS: cor só no topo. A cor de maior área é a base: sobe por baixo de todas as partes (sem troca de
       // filamento) e as outras cores ficam só nas últimas camadas (TOPO), lado a lado. A trás fica colada.
+      // Parte de outra cor mais alta que a altura das partes (relevo ou balão): só a cor dela sobe; a base
+      // para em (altura das partes − TOPO) e a cor ocupa daí até o topo.
       const area = new Map();
       for (const p of partes) area.set(p.cor, (area.get(p.cor) ?? 0) + p.area);
       const base = [...area].sort((a, b) => b[1] - a[1])[0][0];
       coresUsadas = [base, ...coresUsadas.filter((c) => c !== base)];
+      const pe = (p) => Math.round((Math.min(p.altura, o.altura) - TOPO) * 1000) / 1000; // onde a cor começa
       const porAltura = new Map(); // altura -> seções da base com essa altura
       for (const p of partes) {
-        const h = p.cor === base ? p.altura : p.altura - TOPO;
+        const h = p.cor === base ? p.altura : pe(p);
         if (!porAltura.has(h)) porAltura.set(h, []);
         porAltura.get(h).push(formaDa(p));
       }
@@ -405,7 +408,7 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
       const solidoBase = blocos.length === 1 ? blocos[0] : guardar(M.Manifold.union(blocos));
       malhas = [{ nome: "Cor 1", cor: base, ...malhaDoSolido(solidoBase, "cor 1") }];
       coresUsadas.slice(1).forEach((cor, i) => {
-        const solidos = partes.filter((p) => p.cor === cor).map((p) => guardar(guardar(formaDa(p).extrude(TOPO)).translate([0, 0, p.altura - TOPO])));
+        const solidos = partes.filter((p) => p.cor === cor).map((p) => guardar(guardar(formaDa(p).extrude(p.altura - pe(p))).translate([0, 0, pe(p)])));
         const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.union(solidos));
         malhas.push({ nome: `Cor ${i + 2}`, cor, ...malhaDoSolido(solido, `cor ${i + 2}`) });
       });
