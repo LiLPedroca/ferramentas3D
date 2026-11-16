@@ -13,7 +13,7 @@ import { CAMADA, RELEVO_MAXIMO, faixasDoRelevo, gerarRelevo, LIMITES_RELEVO, PAD
 import { gerar3mf } from "./modelos/exportar.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
-  mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
+  mapaOriginal, mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
 } from "./modelos/mapa-logo.js";
 import { motorDaTela } from "./modelos/manifold.js";
 import { criarPrevia2d, miniatura } from "./modelos/previa2d.js";
@@ -578,7 +578,7 @@ const pincel = (() => {
 
   const palco = () => $("lg-palco");
   const camada = () => $("lg-camada");
-  const usaDisco = () => ["borracha", "restaurar"].includes(ferramenta);
+  const usaDisco = () => ["borracha", "trazer"].includes(ferramenta);
   const raioTela = () => Number($("lg-pincel").value) / 2;
 
   // evento -> { mapa: [x, y] (pixels do mapa), raio (pixels do mapa) } ou null (fora da peça)
@@ -600,10 +600,18 @@ const pincel = (() => {
     return { x: mm[0] / k + minX, y: maxY - mm[1] / k, raio: Math.max(0.5, (raioTela() * mmPorPx) / k) };
   }
 
-  const valor = () => (ferramenta === "restaurar" ? "restaurar" : VAZIO);
+  const valor = () => (ferramenta === "trazer" ? "original" : VAZIO);
+  // de onde vem o "Trazer de volta": a imagem original nas cores do logo (refeito quando as cores mudam)
+  let original = null;
+  const origem = () => {
+    if (ferramenta !== "trazer") return auto;
+    const chave = JSON.stringify(alvos.map((a) => a.cor));
+    if (!original || original.imagem !== imagem || original.chave !== chave) original = { imagem, chave, mapa: mapaOriginal(imagem, alvos) };
+    return original.mapa;
+  };
 
   function corDoTraco() {
-    if (ferramenta === "restaurar") return "rgba(91, 141, 239, 0.55)";
+    if (ferramenta === "trazer") return "rgba(91, 141, 239, 0.55)";
     return "rgba(255, 80, 80, 0.5)";
   }
 
@@ -689,7 +697,7 @@ const pincel = (() => {
           }
           guardarParaDesfazer();
           tracando = ponto;
-          pintarTraco(mapa, ponto.x, ponto.y, ponto.x, ponto.y, ponto.raio, valor(), auto, manual);
+          pintarTraco(mapa, ponto.x, ponto.y, ponto.x, ponto.y, ponto.raio, valor(), origem(), manual);
           const t = noPalco(ev);
           marcas.push({ x: t.x, y: t.y, r: raioTela() });
           desenhar();
@@ -716,7 +724,7 @@ const pincel = (() => {
           ev.stopPropagation();
           const ponto = ondeNoMapa(ev);
           if (ponto) {
-            pintarTraco(mapa, tracando.x, tracando.y, ponto.x, ponto.y, ponto.raio, valor(), auto, manual);
+            pintarTraco(mapa, tracando.x, tracando.y, ponto.x, ponto.y, ponto.raio, valor(), origem(), manual);
             // marcas na tela a cada meio raio, para o traço aparecer contínuo
             const ultima = marcas[marcas.length - 1];
             const r = raioTela();

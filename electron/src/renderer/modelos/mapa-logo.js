@@ -323,6 +323,15 @@ export function mapaPorAlvos(imagem, vazio, alvos, fundo = null) {
   return { largura: w, altura: h, idx };
 }
 
+// Mapa da imagem como ela é, sem tirar o fundo (só o transparente fica vazio): cada pixel com a cor do
+// logo mais próxima. É a fonte do "Trazer de volta".
+export function mapaOriginal(imagem, alvos) {
+  const n = imagem.width * imagem.height;
+  const vazio = new Uint8Array(n);
+  for (let p = 0; p < n; p++) if (imagem.data[p * 4 + 3] < 128) vazio[p] = 1;
+  return mapaPorAlvos(imagem, vazio, alvos);
+}
+
 // Recorte e cores automáticos de uma vez. alvos: os escolhidos (ou null para achar sozinho).
 export function recorteAutomatico(imagem, { tirarFundo = true, areasInternas = false, alvos = null } = {}) {
   const { vazio, fundo } = mascaraDoFundo(imagem, { tirarFundo, areasInternas });
@@ -457,8 +466,10 @@ export function pintarDisco(mapa, x, y, raio, valor, origem = null, manual = nul
     for (let xx = Math.max(0, Math.floor(x - raio)); xx <= Math.min(w - 1, Math.ceil(x + raio)); xx++) {
       if ((xx + 0.5 - x) ** 2 + (yy + 0.5 - y) ** 2 > r2) continue;
       const p = yy * w + xx;
+      // "restaurar": volta ao automático; "original": copia do mapa da imagem original e fica como correção à mão
       const restaurar = valor === "restaurar";
-      const novo = restaurar ? (origem ? origem.idx[p] : idx[p]) : valor;
+      const deOrigem = restaurar || valor === "original";
+      const novo = deOrigem ? (origem ? origem.idx[p] : idx[p]) : valor;
       if (manual) {
         const m = restaurar ? 0 : 1;
         if (manual[p] !== m) {

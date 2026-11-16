@@ -263,3 +263,13 @@ describe("2D para 3D: argola ou furo para chaveiro", () => {
     await vi.waitFor(() => expect(window.__logoTeste.modelo()?.argola?.furo).toBe(3), { timeout: 20000 });
   }, 40000);
 });
+
+describe("2D para 3D: Trazer de volta", () => {
+  it("a aba Personalizar tem Trazer de volta no lugar de Restaurar", () => {
+    const b = document.querySelector('#tela-logo [data-ferramenta="trazer"]');
+    expect(b).not.toBeNull();
+    expect(b.textContent).toMatch(/^Trazer de volta/);
+    expect(b.textContent).toMatch(/imagem original/);
+    expect(document.querySelector('#tela-logo [data-ferramenta="restaurar"]')).toBeNull();
+  });
+});

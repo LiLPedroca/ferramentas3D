@@ -378,3 +378,22 @@ describe("2D para 3D: cores intermediárias de verdade continuam", () => {
     expect(contar(mapa, indice("Cinza"))).toBe(120 * 100);
   });
 });
+
+describe("2D para 3D: trazer de volta (imagem original)", () => {
+  it("mapa original não tira o fundo; pintar com ele marca como correção à mão", async () => {
+    const { mapaOriginal } = await import("../src/renderer/modelos/mapa-logo.js");
+    const w = 20;
+    const h = 10;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let p = 0; p < w * h; p++) data.set(p % w < 10 ? [17, 17, 17, 255] : [250, 250, 250, 255], p * 4);
+    const img = { width: w, height: h, data };
+    const alvos = [indice("Preto"), indice("Branco")].map(alvoDaCor);
+    const original = mapaOriginal(img, alvos);
+    expect(original.idx[5 * w + 15]).toBe(indice("Branco")); // o "fundo" branco também está lá
+    const mapa = { largura: w, altura: h, idx: new Int8Array(w * h).fill(VAZIO) };
+    const manual = new Uint8Array(w * h);
+    pintarDisco(mapa, 15, 5, 2, "original", original, manual);
+    expect(mapa.idx[5 * w + 15]).toBe(indice("Branco"));
+    expect(manual[5 * w + 15]).toBe(1);
+  });
+});
