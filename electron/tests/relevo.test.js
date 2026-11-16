@@ -1,0 +1,152 @@
+// @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
+import { coresDoSvg } from "../src/renderer/modelos/logo.js";
+import { carregarManifold } from "../src/renderer/modelos/manifold.js";
+import { gerarRelevo, PADRAO_RELEVO, validarOpcoesRelevo } from "../src/renderer/modelos/relevo.js";
+
+// SVG real gerado pelo Conversor SVG (logo de teste: círculo azul, triângulo laranja, "3D" vazado).
+const svg = readFileSync(join(__dirname, "dados", "logo-teste.svg"), "utf8");
+
+let M;
+let cores;
+beforeAll(async () => {
+  M = await carregarManifold();
+  cores = coresDoSvg(svg);
+});
+
+// toda aresta em dois triângulos, uma vez em cada sentido, e volume positivo
+function fechada({ vertices, triangulos }) {
+  const arestas = new Map();
+  let volume = 0;
+  for (let i = 0; i < triangulos.length; i += 3) {
+    const t = [triangulos[i], triangulos[i + 1], triangulos[i + 2]];
+    for (let k = 0; k < 3; k++) {
+      const a = t[k];
+      const b = t[(k + 1) % 3];
+      const chave = a < b ? `${a}-${b}` : `${b}-${a}`;
+      const e = arestas.get(chave) ?? [0, 0];
+      e[0]++;
+      e[1] += a < b ? 1 : -1;
+      arestas.set(chave, e);
+    }
+    const [p, q, r] = t.map((k) => [vertices[k * 3], vertices[k * 3 + 1], vertices[k * 3 + 2]]);
+    volume += (p[0] * (q[1] * r[2] - q[2] * r[1]) + p[1] * (q[2] * r[0] - q[0] * r[2]) + p[2] * (q[0] * r[1] - q[1] * r[0])) / 6;
+  }
+  return [...arestas.values()].every(([n, s]) => n === 2 && s === 0) && volume > 0;
+}
+
+const secao = (p) => new M.CrossSection(p.lacos, "EvenOdd");
+
+function areaDaUniao(r) {
+  const s = r.partes.map(secao);
+  const u = M.CrossSection.union(s);
+  const a = u.area();
+  u.delete();
+  s.forEach((x) => x.delete());
+  return a;
+}
+
+function areaDasIntersecoes(r) {
+  const s = r.partes.map(secao);
+  let total = 0;
+  for (let i = 0; i < s.length; i++)
+    for (let j = i + 1; j < s.length; j++) {
+      const x = s[i].intersect(s[j]);
+      total += x.area();
+      x.delete();
+    }
+  s.forEach((x) => x.delete());
+  return total;
+}
+
+const zMin = ({ vertices }) => {
+  let m = Infinity;
+  for (let i = 2; i < vertices.length; i += 3) m = Math.min(m, vertices[i]);
+  return m;
+};
+
+// arte de 100 de largura, Y para cima: quadrado grande preto, quadradinho vermelho colado nele (1 mm²
+// na peça de 100 mm) e outro vermelho solto, longe.
+const quadrado = (x, y, l) => [[x, y], [x + l, y], [x + l, y + l], [x, y + l]];
+const comIlhas = [
+  { cor: "#111111", formas: [[quadrado(0, 0, 80)]] },
+  { cor: "#e53935", formas: [[quadrado(80, 10, 1)], [quadrado(99, 99, 1)], [quadrado(85, 40, 10)]] },
+];
+
+describe("2D para 3D: peça sem base", () => {
+  it("padrões do desenho: 100 mm de largura, 3 mm de altura, sem argola", () => {
+    expect(PADRAO_RELEVO).toMatchObject({ largura: 100, altura: 3, comArgola: false });
+  });
+
+  it("partes formam partição exata: soma das áreas = área da união, sem sobreposição", () => {
+    const r = gerarRelevo(M, cores, { largura: 100 });
+    const soma = r.partes.reduce((s, p) => s + p.area, 0);
+    expect(soma).toBeCloseTo(areaDaUniao(r), 1);
+    expect(areaDasIntersecoes(r)).toBeLessThan(0.01);
+  });
+
+  it("cada malha é fechada e todas começam em z=0", () => {
+    const r = gerarRelevo(M, cores, {});
+    expect(r.malhas.length).toBe(new Set(r.partes.map((p) => p.cor)).size);
+    for (const m of r.malhas) {
+      expect(fechada(m), m.nome).toBe(true);
+      expect(zMin(m)).toBeCloseTo(0, 5);
+    }
+  });
+
+  it("altura padrão 3 mm; escolha muda só a parte do ponto", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const alvo = r0.partes[0];
+    const r = gerarRelevo(M, cores, {}, [{ ponto: alvo.ponto, altura: 7.4 }]);
+    expect(r.partes.find((p) => p.id === alvo.id).altura).toBe(7.4);
+    expect(r.partes.filter((p) => p.id !== alvo.id).every((p) => p.altura === 3)).toBe(true);
+    expect(r.dimensoes[2]).toBeCloseTo(7.4, 5);
+  });
+
+  it("escolha de cor muda só aquela parte", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const alvo = r0.partes[0];
+    const r = gerarRelevo(M, cores, {}, [{ ponto: alvo.ponto, cor: "#e53935" }]);
+    expect(r.partes.find((p) => p.id === alvo.id).cor).toBe("#e53935");
+    for (const p of r.partes.filter((q) => q.id !== alvo.id)) expect(p.cor).toBe(r0.partes.find((q) => q.id === p.id).cor);
+    expect(r.malhas.some((m) => m.cor === "#e53935")).toBe(true);
+  });
+
+  it("ponto fora de qualquer parte é ignorado sem erro", () => {
+    const r = gerarRelevo(M, cores, {}, [{ ponto: [-50, -50], altura: 9 }]);
+    expect(r.partes.every((p) => p.altura === 3)).toBe(true);
+  });
+
+  it("ilha menor que 1,5 mm² some ou vira a vizinha", () => {
+    const r = gerarRelevo(M, comIlhas, { largura: 100 });
+    // o quadradinho colado vira preto; o solto some; sobram o preto e o vermelho de 10 × 10
+    expect(r.partes).toHaveLength(2);
+    expect(r.partes.every((p) => p.area >= 1.5)).toBe(true);
+    const preto = r.partes.find((p) => p.cor === "#111111");
+    expect(preto.area).toBeCloseTo(6401 * (100 / 95) ** 2, 0);
+  });
+
+  it("largura pedida é respeitada (±0,05 mm)", () => {
+    for (const largura of [40, 100, 180]) expect(gerarRelevo(M, cores, { largura }).dimensoes[0]).toBeCloseTo(largura, 1);
+  });
+
+  it("altura fora de 2 a 10 dá erro em pt-BR", () => {
+    expect(() => validarOpcoesRelevo({ altura: 12 })).toThrow("Altura");
+    expect(() => validarOpcoesRelevo({ altura: 1 })).toThrow("Altura");
+  });
+
+  it("arte vazia dá erro em pt-BR", () => {
+    expect(() => gerarRelevo(M, [], {})).toThrow(/vazia/);
+  });
+
+  it("com argola: argola na malha da cor que encosta, peça fechada e largura total certa", () => {
+    const r = gerarRelevo(M, cores, { comArgola: true, largura: 60 });
+    expect(r.argola).not.toBeNull();
+    expect(r.dimensoes[0]).toBeCloseTo(60, 1);
+    for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
+    const sem = gerarRelevo(M, cores, { largura: 60 });
+    expect(r.malhas.length).toBe(sem.malhas.length);
+  });
+});
