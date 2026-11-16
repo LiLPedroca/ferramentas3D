@@ -157,6 +157,68 @@ describe("criador de logos: correção à mão", () => {
   });
 });
 
+describe("2D para 3D: meio-tom da borda não vira outra cor", () => {
+  it("borda suave entre preto e branco (imagem ampliada) não vira dourado", () => {
+    // quadrado preto em branco com borda em degradê de 6 pixels (como uma imagem pequena ampliada 4 vezes),
+    // e uma faixa dourada de verdade
+    const w = 120;
+    const h = 80;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const fora = Math.max(20 - x, x - 70, 20 - y, y - 60, 0);
+        const v = Math.round(Math.min(1, fora / 6) * 255);
+        let c = [v, v, v];
+        if (x >= 90 && x < 110 && y >= 20 && y < 60) c = [201, 162, 58];
+        data.set([...c, 255], (y * w + x) * 4);
+      }
+    const img = { width: w, height: h, data };
+    const vazio = new Uint8Array(w * h);
+    const alvos = [indice("Preto"), indice("Branco"), indice("Dourado")].map(alvoDaCor);
+    const mapa = mapaPorAlvos(img, vazio, alvos);
+    const dourado = indice("Dourado");
+    let fora = 0;
+    let dentro = 0;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (mapa.idx[y * w + x] !== dourado) continue;
+        if (x >= 90 && x < 110 && y >= 20 && y < 60) dentro++;
+        else fora++;
+      }
+    expect(fora).toBe(0);
+    expect(dentro).toBe(20 * 40);
+  });
+});
+
+describe("2D para 3D: meio-tom com o fundo", () => {
+  it("borda suave entre o preto e o fundo branco não vira contorno branco", () => {
+    const w = 100;
+    const h = 100;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        // quadrado preto de 20 a 80, borda em degradê de 6 px para fora; um quadrado branco dentro
+        const fora = Math.max(20 - x, x - 80, 20 - y, y - 80, 0);
+        let v = Math.round(Math.min(1, fora / 6) * 255);
+        if (x >= 40 && x < 60 && y >= 40 && y < 60) v = 250;
+        data.set([v, v, v, 255], (y * w + x) * 4);
+      }
+    const img = { width: w, height: h, data };
+    const { mapa } = recorteAutomatico(img);
+    const branco = indice("Branco");
+    let anel = 0;
+    let miolo = 0;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (mapa.idx[y * w + x] !== branco) continue;
+        if (x >= 40 && x < 60 && y >= 40 && y < 60) miolo++;
+        else anel++;
+      }
+    expect(anel).toBe(0);
+    expect(miolo).toBe(400);
+  });
+});
+
 describe("criador de logos: qualidade da borda", () => {
   it("a borda segue o meio-tom da imagem com fração de pixel", () => {
     const cx = 60.37;
@@ -172,7 +234,8 @@ describe("criador de logos: qualidade da borda", () => {
     const semMeioTom = erroMedio(svgDoMapa(mapa));
     const comMeioTom = erroMedio(svgDoMapa(mapa, { suave: { imagem: img, refs, fundo, manual: null } }));
     expect(comMeioTom).toBeLessThan(0.12);
-    expect(comMeioTom).toBeLessThan(semMeioTom / 3);
+    // a borda com o fundo já sai pelo meio-tom (limparBordaDoFundo); o "suave" não pode piorar
+    expect(comMeioTom).toBeLessThanOrEqual(semMeioTom);
   });
 
   it("curvas seguem a borda de perto: desvio máximo ao longo das curvas < 0,2 px", () => {

@@ -59,6 +59,8 @@ let previa3d = null;
 let temporizador = null;
 let geracao = 0;
 let entrada = null; // { cores, naArte } da última peça (refaz a peça sem AMS na hora de exportar)
+let versaoMapa = 0; // muda quando o mapa ou as cores mudam (trocar cor/altura de uma parte não muda)
+let coresGuardadas = null; // { versao, largura, cores }: a vetorização só é refeita quando precisa
 let projetoAtual = null; // { id, nome } quando está em Meus modelos
 let nomeProjeto = "";
 let sujo = false;
@@ -153,7 +155,7 @@ const copiaAlvos = (lista) => lista.map((a) => ({ cor: a.cor, ref: a.ref.slice()
 function refazerAutomatico({ achar = false } = {}) {
   ({ vazio, fundo } = mascaraDoFundo(imagem, limpeza()));
   if (achar || !alvos.length) alvos = coresAutomaticas(imagem, vazio, fundo);
-  auto = mapaPorAlvos(imagem, vazio, alvos);
+  auto = mapaPorAlvos(imagem, vazio, alvos, fundo);
   if (!mapa || !manual) {
     mapa = { largura: auto.largura, altura: auto.altura, idx: auto.idx.slice() };
     manual = new Uint8Array(auto.idx.length);
@@ -182,7 +184,7 @@ function voltarEdicao(de, para) {
   alvos = e.alvos;
   escolhas = e.escolhas ?? [];
   fecharBalao();
-  auto = mapaPorAlvos(imagem, vazio, alvos);
+  auto = mapaPorAlvos(imagem, vazio, alvos, fundo);
   mapa.idx = e.idx;
   manual = e.manual;
   preencherCampos();
@@ -190,7 +192,8 @@ function voltarEdicao(de, para) {
 }
 
 // Depois de qualquer mudança no mapa: lista de cores, desfazer, e a peça é refeita.
-function mapaMudou({ espera = 120 } = {}) {
+function mapaMudou({ espera = 120, soEscolhas = false } = {}) {
+  if (!soEscolhas) versaoMapa += 1;
   marcarSujo();
   mostrarCores();
   atualizarDesfazer();
@@ -300,9 +303,15 @@ async function gerar() {
   try {
     conferirMedidas(MEDIDAS, LIMITES_RELEVO);
     const refs = Object.fromEntries(alvos.map((a) => [a.cor, a.ref]));
-    // passo: corda de no máximo 0,05 mm na peça final (a arte tem 100 de largura)
-    const passo = (0.05 * 100) / opcoes.largura;
-    const cores = coresDoSvg(svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual }, furos: mascaraDeFuros(mapa, vazio, manual) }), { juntar: false, passo });
+    // passo: curvas amostradas a cada 0,05 mm na peça final (a arte tem 100 de largura); depois saem os
+    // pontos que desviam menos de 0,005 mm (trechos retos ficam leves, curvas continuam lisas)
+    if (coresGuardadas?.versao !== versaoMapa || coresGuardadas.largura !== opcoes.largura) {
+      const passo = (0.05 * 100) / opcoes.largura;
+      const tolerancia = (0.005 * mapa.largura) / opcoes.largura;
+      const svg = svgDoMapa(mapa, { suave: { imagem, refs, fundo, manual }, furos: mascaraDeFuros(mapa, vazio, manual) });
+      coresGuardadas = { versao: versaoMapa, largura: opcoes.largura, cores: coresDoSvg(svg, { juntar: false, passo, tolerancia }) };
+    }
+    const cores = coresGuardadas.cores;
     const q = cores.quadro;
     const naArte = escolhas.map((e) => ({ ...e, ponto: [(e.ponto[0] - q.minX) * q.escala, (q.maxY - e.ponto[1]) * q.escala] }));
     const M = await motorDaTela();
@@ -397,7 +406,7 @@ function mudarParte(mudanca) {
   guardarParaDesfazer();
   for (const p of alvo) escolhas.push({ ponto: pixelDaParte(p), ...mudanca });
   if (mudanca.cor) marcarCores($("lg-balao-cores"), mudanca.cor);
-  mapaMudou({ espera: 0 });
+  mapaMudou({ espera: 0, soEscolhas: true });
 }
 
 function alturaDoBalao() {
@@ -770,6 +779,7 @@ async function carregar([arquivo], salvo = null) {
 // Imagem já no tamanho do mapa ({ width, height, data }) -> recorte, cores e peça.
 // info: { nome, w, h, svg } da imagem original. salvo: modelo de Meus modelos (opcional).
 async function usarImagem(pixels, info, salvo = null) {
+  versaoMapa += 1;
   imagem = { ...pixels, nome: info.nome };
   tamanhoOriginal = { w: info.w, h: info.h, svg: info.svg === true };
   $("lg-trabalho").hidden = false;

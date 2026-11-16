@@ -39,61 +39,128 @@ export function pontoDentro(lacos, [x, y]) {
   return dentro;
 }
 
-// Um ponto bem dentro da seção (longe da borda): encolhe a seção até sobrar pouco e pega um vértice.
-function pontoInterno(guardar, secao) {
-  let d = Math.sqrt(secao.area()) / 4;
-  for (let i = 0; i < 12; i++, d /= 2) {
-    const miolo = guardar(secao.offset(-d, "Round", 2, 16));
-    const lacos = miolo.toPolygons().filter((l) => areaComSinal(l) > 0);
-    if (lacos.length) return [lacos[0][0][0], lacos[0][0][1]];
+// Um ponto bem dentro da parte: corta a parte com algumas linhas horizontais e pega o meio do trecho
+// interno mais largo. Só JavaScript (encolher a seção com o Manifold era lento em partes grandes).
+export function pontoInterno(lacos) {
+  const externo = lacos.reduce((a, b) => (Math.abs(areaComSinal(b)) > Math.abs(areaComSinal(a)) ? b : a));
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const p of externo) (y0 = Math.min(y0, p[1])), (y1 = Math.max(y1, p[1]));
+  let melhor = null;
+  for (const f of [0.5, 0.37, 0.63, 0.25, 0.75, 0.15, 0.85]) {
+    const y = y0 + (y1 - y0) * f;
+    const xs = [];
+    for (const laco of lacos)
+      for (let i = 0, j = laco.length - 1; i < laco.length; j = i++) {
+        const [xi, yi] = laco[i];
+        const [xj, yj] = laco[j];
+        if (yi > y !== yj > y) xs.push(xi + ((y - yi) * (xj - xi)) / (yj - yi));
+      }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const largura = xs[k + 1] - xs[k];
+      if (!melhor || largura > melhor.largura) melhor = { largura, ponto: [(xs[k] + xs[k + 1]) / 2, y] };
+    }
   }
-  const l = secao.toPolygons()[0];
-  return [l[0][0], l[0][1]];
+  return melhor ? melhor.ponto : [externo[0][0], externo[0][1]];
 }
+
+const FOLGA = 0.05; // arte (≈ 0,05 mm na peça de 100 mm): engole as lascas entre bordas quase iguais
 
 // Seções por cor na arte (100 de largura). Como no SVG, o que vem depois fica por cima: a parte
 // visível de uma cor é ela menos as cores seguintes. Assim nenhuma cor se sobrepõe a outra.
+// O vetorizador desenha as cores em camadas empilhadas, e a mesma divisa entre duas cores aparece em
+// duas camadas com traçados quase iguais: a diferença vira milhares de lascas finíssimas. Por isso
+// cada camada de cima cresce FOLGA para dentro das de baixo (só onde já havia desenho) antes de recortar.
 function secoesPorCor(M, guardar, cores) {
   const C = M.CrossSection;
   const furosArte = cores.find((c) => c.cor === COR_FURO)?.formas ?? [];
   const furos = furosArte.length ? guardar(C.union(furosArte.map((l) => guardar(new C(l, "EvenOdd"))))) : null;
-  let acumulado = null;
-  const secoes = [];
-  for (const { cor, formas } of cores.filter((c) => c.cor !== COR_FURO).reverse()) {
+  const camadas = [];
+  let abaixo = null;
+  for (const { cor, formas } of cores.filter((c) => c.cor !== COR_FURO)) {
     if (!formas.length) continue;
-    let secao = guardar(C.union(formas.map((l) => guardar(new C(l, "EvenOdd")))));
-    if (furos) secao = guardar(secao.subtract(furos));
-    const inteira = secao;
-    if (acumulado) secao = guardar(secao.subtract(acumulado));
-    acumulado = acumulado ? guardar(acumulado.add(inteira)) : inteira;
+    let camada = guardar(C.union(formas.map((l) => guardar(new C(l, "EvenOdd")))));
+    if (furos) camada = guardar(camada.subtract(furos));
+    if (abaixo) camada = guardar(guardar(camada.offset(FOLGA, "Miter", 2)).intersect(guardar(abaixo.add(camada))));
+    abaixo = abaixo ? guardar(abaixo.add(camada)) : camada;
+    camadas.push({ cor, camada });
+  }
+  let acima = null;
+  const secoes = [];
+  for (const { cor, camada } of camadas.reverse()) {
+    const secao = acima ? guardar(camada.subtract(acima)) : camada;
+    acima = acima ? guardar(acima.add(camada)) : camada;
     if (secao.area() > 0) secoes.unshift({ cor, secao });
   }
   return secoes;
 }
 
+const RESIDUO = 0.01; // mm²: sobra numérica das contas (fiapos sem largura): some
+
+// Distância do ponto p ao segmento a-b.
+function distanciaAoSegmento(p, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const c = dx * dx + dy * dy;
+  const t = c ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / c)) : 0;
+  return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+}
+
+// Quantos pontos da ilha ficam na borda da parte (até 0,02 mm): mede o contato sem contas do Manifold.
+function contato(ilha, b, parte) {
+  const tol = 0.02;
+  let n = 0;
+  for (const laco of parte.lacos)
+    for (let i = 0, j = laco.length - 1; i < laco.length; j = i++) {
+      const a = laco[j];
+      const c = laco[i];
+      if (Math.max(a[0], c[0]) < b.min[0] - tol || Math.min(a[0], c[0]) > b.max[0] + tol || Math.max(a[1], c[1]) < b.min[1] - tol || Math.min(a[1], c[1]) > b.max[1] + tol) continue;
+      for (const laco2 of ilha) for (const p of laco2) if (distanciaAoSegmento(p, a, c) <= tol) n++;
+    }
+  return n;
+}
+
 // Divide em partes (ilhas) já na escala da peça e junta as ilhas pequenas à vizinha de maior contato.
 function partesNaEscala(M, guardar, secoes, s) {
+  const C = M.CrossSection;
   const pecas = [];
   secoes.forEach(({ cor, secao }, ordemCor) => {
-    for (const p of guardar(secao.scale([s, s])).decompose().map(guardar)) pecas.push({ cor, ordemCor, secao: p, area: p.area() });
+    for (const p of guardar(secao.scale([s, s])).decompose().map(guardar)) {
+      const area = p.area();
+      if (area >= RESIDUO) pecas.push({ cor, ordemCor, secao: p, area });
+    }
   });
   const pequenas = pecas.filter((p) => p.area < ILHA_MINIMA);
-  let grandes = pecas.filter((p) => p.area >= ILHA_MINIMA);
-  for (const ilha of pequenas) {
-    const borda = guardar(ilha.secao.offset(0.05, "Square", 2, 8));
-    let melhor = null;
-    let contato = 1e-6;
-    for (const g of grandes) {
-      const a = guardar(borda.intersect(g.secao)).area();
-      if (a > contato) (contato = a), (melhor = g);
-    }
-    if (melhor) {
-      melhor.secao = guardar(melhor.secao.add(ilha.secao));
-      melhor.area = melhor.secao.area();
-    }
+  const grandes = pecas.filter((p) => p.area >= ILHA_MINIMA);
+  for (const g of grandes) {
+    g.caixa = g.secao.bounds();
+    g.lacos = g.secao.toPolygons();
+    g.juntar = [];
   }
-  grandes = grandes.sort((a, b) => a.ordemCor - b.ordemCor || b.area - a.area);
-  return grandes;
+  for (const ilha of pequenas) {
+    const b = ilha.secao.bounds();
+    const lacos = ilha.secao.toPolygons();
+    let melhor = null;
+    let maior = 0;
+    for (const g of grandes) {
+      const k = g.caixa;
+      if (k.min[0] > b.max[0] + 0.1 || k.max[0] < b.min[0] - 0.1 || k.min[1] > b.max[1] + 0.1 || k.max[1] < b.min[1] - 0.1) continue;
+      const n = contato(lacos, b, g);
+      if (n > maior) (maior = n), (melhor = g);
+    }
+    melhor?.juntar.push(ilha.secao);
+  }
+  for (const g of grandes) {
+    if (g.juntar.length) {
+      g.secao = guardar(C.union([g.secao, ...g.juntar]));
+      g.area = g.secao.area();
+    }
+    delete g.caixa;
+    delete g.lacos;
+    delete g.juntar;
+  }
+  return grandes.sort((a, b) => a.ordemCor - b.ordemCor || b.area - a.area);
 }
 
 // Argola presa na borda do contorno externo da peça; o anel é só a parte fora do desenho e se junta à
@@ -137,12 +204,17 @@ function prenderArgola(M, guardar, arte, partes, o) {
   throw erro;
 }
 
-// cores: resultado de coresDoSvg ([{ cor, formas }], arte com 100 de largura, Y para cima).
-// escolhas: [{ ponto: [x, y] na arte, cor?, altura? }]; vale para a parte que contém o ponto (a última ganha).
-export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
-  const o = validarOpcoesRelevo(entrada);
+const lacosDe = (secao) => secao.toPolygons().map((l) => l.map((q) => [q[0], q[1]]));
+
+// Divisão da arte em partes, na escala da peça, só com dados (sem objetos do Manifold). É a parte cara;
+// fica guardada enquanto a arte e as medidas não mudam (trocar cor ou altura de uma parte não refaz).
+let ultimaParticao = null; // { cores, chave, dados }
+
+function particao(M, cores, o) {
+  const chave = JSON.stringify([o.largura, o.comArgola, o.argola, o.furo, o.parede]);
+  if (ultimaParticao?.cores === cores && ultimaParticao.chave === chave) return ultimaParticao.dados;
   const C = M.CrossSection;
-  return comEscopo(M, (guardar) => {
+  const dados = comEscopo(M, (guardar) => {
     const secoes = secoesPorCor(M, guardar, cores);
     if (!secoes.length) throw new Error("A imagem ficou vazia depois da conversão. Tente outra imagem.");
 
@@ -156,25 +228,52 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
       const b = total.bounds();
       return { s, partes, presa, caixa: { min: b.min, max: b.max }, dimensoes: [b.max[0] - b.min[0], b.max[1] - b.min[1], 0] };
     };
-    const chute = o.comArgola ? Math.max(5, o.largura - 2 * (o.furo / 2 + o.parede)) : o.largura;
-    const r = resolverLargura(o.largura, chute, gerarCom);
-
-    const partes = r.partes.map((p, id) => {
-      const lacos = p.secao.toPolygons().map((l) => l.map((q) => [q[0], q[1]]));
-      return { id, cor: p.cor, altura: o.altura, area: p.area, lacos, ponto: pontoInterno(guardar, p.secao).map((v) => v / r.s), secao: p.secao };
-    });
-    for (const e of escolhas) {
-      if (!e?.ponto) continue;
-      const mm = [e.ponto[0] * r.s, e.ponto[1] * r.s];
-      const p = partes.find((q) => pontoDentro(q.lacos, mm));
-      if (!p) continue;
-      if (typeof e.cor === "string" && /^#[0-9a-f]{6}$/i.test(e.cor)) p.cor = e.cor.toLowerCase();
-      const h = Number(e.altura);
-      if (Number.isFinite(h) && h >= LIMITES_RELEVO.altura[0] && h <= LIMITES_RELEVO.altura[1]) p.altura = h;
+    // a arte pode não ocupar os 100 de largura (o fundo saiu): o chute já desconta isso
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    for (const { secao } of secoes) {
+      const b = secao.bounds();
+      x0 = Math.min(x0, b.min[0]);
+      x1 = Math.max(x1, b.max[0]);
     }
-    if (r.presa) r.partes[r.presa.alvo].anel = r.presa.secao;
+    const util = o.comArgola ? Math.max(5, o.largura - 2 * (o.furo / 2 + o.parede)) : o.largura;
+    const r = resolverLargura(o.largura, (util * 100) / Math.max(1e-6, x1 - x0), gerarCom);
+    return {
+      s: r.s,
+      caixa: r.caixa,
+      dimensoes: r.dimensoes,
+      partes: r.partes.map((p, id) => ({ id, cor: p.cor, area: p.area, lacos: lacosDe(p.secao), anel: r.presa?.alvo === id ? lacosDe(r.presa.secao) : null })),
+      argola: r.presa?.argola ?? null,
+      perimetro: r.presa?.perimetro ?? null,
+    };
+  });
+  for (const p of dados.partes) p.ponto = pontoInterno(p.lacos).map((v) => v / dados.s);
+  ultimaParticao = { cores, chave, dados };
+  return dados;
+}
 
-    const formaDa = (p) => (r.partes[p.id].anel ? guardar(p.secao.add(r.partes[p.id].anel)) : p.secao);
+// cores: resultado de coresDoSvg ([{ cor, formas }], arte com 100 de largura, Y para cima).
+// escolhas: [{ ponto: [x, y] na arte, cor?, altura? }]; vale para a parte que contém o ponto (a última ganha).
+export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
+  const o = validarOpcoesRelevo(entrada);
+  const C = M.CrossSection;
+  const d = particao(M, cores, o);
+  const partes = d.partes.map((p) => ({ id: p.id, cor: p.cor, altura: o.altura, area: p.area, lacos: p.lacos, ponto: p.ponto }));
+  for (const e of escolhas) {
+    if (!e?.ponto) continue;
+    const mm = [e.ponto[0] * d.s, e.ponto[1] * d.s];
+    const p = partes.find((q) => pontoDentro(q.lacos, mm));
+    if (!p) continue;
+    if (typeof e.cor === "string" && /^#[0-9a-f]{6}$/i.test(e.cor)) p.cor = e.cor.toLowerCase();
+    const h = Number(e.altura);
+    if (Number.isFinite(h) && h >= LIMITES_RELEVO.altura[0] && h <= LIMITES_RELEVO.altura[1]) p.altura = h;
+  }
+  return comEscopo(M, (guardar) => {
+    // a parte com a argola leva o anel junto (mesma cor e mesma altura)
+    const formaDa = (p) => {
+      const anel = d.partes[p.id].anel;
+      return anel ? guardar(new C([...p.lacos, ...anel], "NonZero")) : guardar(new C(p.lacos, "NonZero"));
+    };
     let coresUsadas = [...new Set(partes.map((p) => p.cor))];
     let faixas = null;
     let malhas;
@@ -189,27 +288,26 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
         const solido = guardar(guardar(secao.extrude(f.ate - f.de)).translate([0, 0, f.de]));
         return { nome: `Cor ${k + 1}`, cor: f.cor, ...malhaDoSolido(solido, `cor ${k + 1}`) };
       });
-    } else malhas = coresUsadas.map((cor, i) => {
-      const solidos = partes
-        .filter((p) => p.cor === cor)
-        .map((p) => guardar(formaDa(p).extrude(p.altura)));
-      const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.union(solidos));
-      return { nome: `Cor ${i + 1}`, cor, ...malhaDoSolido(solido, `cor ${i + 1}`) };
-    });
+    } else
+      malhas = coresUsadas.map((cor, i) => {
+        const solidos = partes.filter((p) => p.cor === cor).map((p) => guardar(formaDa(p).extrude(p.altura)));
+        // partes da mesma cor nunca se sobrepõem: juntar sem conta booleana (bem mais rápido)
+        const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.compose(solidos));
+        return { nome: `Cor ${i + 1}`, cor, ...malhaDoSolido(solido, `cor ${i + 1}`) };
+      });
     const alturaMax = faixas ? faixas[faixas.length - 1].ate : Math.max(...partes.map((p) => p.altura));
-    const avisos = [];
     return {
       malhas,
-      partes: partes.map(({ secao: _s, ...p }) => p),
+      partes,
       camadas: partes.map((p) => ({ lacos: p.lacos, cor: p.cor, id: p.id })),
       cores: coresUsadas,
       faixas,
-      caixa: r.caixa,
-      escalaArte: r.s,
-      dimensoes: [r.dimensoes[0], r.dimensoes[1], alturaMax],
-      argola: r.presa?.argola ?? null,
-      perimetro: r.presa?.perimetro ?? null,
-      avisos,
+      caixa: d.caixa,
+      escalaArte: d.s,
+      dimensoes: [d.dimensoes[0], d.dimensoes[1], alturaMax],
+      argola: d.argola,
+      perimetro: d.perimetro,
+      avisos: [],
       opcoes: o,
     };
   });

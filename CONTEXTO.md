@@ -642,3 +642,31 @@ Pedido de uma cliente: um chaveiro por funcionário, com o nome e o símbolo da 
 - Conferido: testes (`filamento.test.js`, `filamentos-3mf.test.js`), captura da tela, desconto multicor com Desfazer,
   Calculadora com R$ 120/kg. Não conferido: desconto a partir de um 3MF real do Anycubic Slicer Next (o formato do
   `slice_info` pode variar) e o aviso do fatiador na tela.
+
+## Trabalho do Claude Code (16/11/2026) — 2D para 3D no lugar do Criador de logos (v0.53.0, só no PC do Pedro)
+
+Desenho: `docs/superpowers/specs/2026-11-16-2d-para-3d-design.md`; plano: `docs/superpowers/plans/2026-11-16-2d-para-3d.md`.
+
+- Mesma tela `logo`, novo nome "2D para 3D". Peça SEM BASE (`modelos/relevo.js`): cada região ligada de uma cor é
+  uma parte, lado a lado, todas de z = 0. Altura padrão 3 mm (2 a 10, passo 0,2). Ilha < 1,5 mm² vai para a
+  vizinha de maior contato (sem vizinha, some); resíduo numérico < 0,01 mm² some.
+- Partição exata: cada camada do vetorizador cresce 0,05 (arte) para dentro das de baixo antes de recortar
+  (`secoesPorCor`). Sem isso, a mesma divisa traçada em duas camadas gerava ~3.000 lascas e a peça levava minutos.
+- A divisão em partes fica guardada (`particao`, só dados); trocar cor/altura de uma parte só refaz as malhas.
+  A tela também guarda a vetorização (`versaoMapa`).
+- Balão da parte (clique no 2D ou 3D): cores prontas, altura, "Todas desta cor"; desfazer cobre isso. As escolhas
+  ficam guardadas por um ponto (pixel do mapa); a que cai fora de qualquer parte é descartada.
+- Qualidade: mapa até 2000 px (imagem pequena ampliada até 4×), Bézier com erro 0,15 px, curvas amostradas a cada
+  0,05 mm e simplificadas a 0,005 mm. Meio-tom: pixel que é mistura de duas cores do logo fica com uma delas (não
+  vira uma terceira, ex.: cinza entre preto e branco virava dourado); mistura com o fundo encostada nele sai
+  (`limparBordaDoFundo`), sem contorno branco.
+- 3D: mesa da Kobra X (260 × 260, grade de 10 mm) e cotas X (vermelha) e Y (verde) com rótulos (`criarPrevia`
+  com `mesa` e `cotas`; `cotasDaCaixa`).
+- Exportar/Abrir no fatiador perguntam "Como você vai imprimir?". Sem AMS: degraus por cor (cor de maior área
+  embaixo, faixa 1 = altura das partes, +1 mm por cor), tudo no filamento 1, M600 no começo de cada faixa.
+- Argola opcional (desligada); entra na parte que mais toca. Saíram: base, borda, relevo, estilos, pincel, balde e
+  as chaves de limpeza do fundo. Modelos antigos (versão 1/2) abrem sem base, com largura e argola deles (versão 3).
+- Conferido: 411 testes; Santos (447 px) com 4 cores certas, 30 partes, ~4 s na captura; 3MF fatiado pela linha
+  de comando: com AMS T0–T3 sem M600; sem AMS 3 M600 em 3,2/4,2/5,2 mm.
+- Não conferido: impressão real; clique no 3D para abrir o balão (só no 2D por roteiro); ordem das cores sem AMS
+  não é escolhida na tela (sempre maior área embaixo).

@@ -205,8 +205,49 @@ export function coresAutomaticas(imagem, vazio, fundo = null) {
 // Alvo novo pelo botão "+ Cor": representa a própria cor pronta.
 export const alvoDaCor = (cor) => ({ cor, ref: rgbDaCor(cor) });
 
-// Mapa do recorte automático com estes alvos.
-export function mapaPorAlvos(imagem, vazio, alvos) {
+// Borda com o fundo: pixels encostados no que saiu e que são mistura do fundo com uma cor do logo
+// (meio-tom do serrilhado) saem também, se puxam mais para o fundo, ou ficam com aquela cor. Sem isso,
+// um logo preto em fundo branco ganha um contorno branco fininho. Repete para bordas largas (imagem ampliada).
+function limparBordaDoFundo(imagem, idx, alvos, fundo) {
+  const { width: w, data } = imagem;
+  const refs = alvos.map((a) => a.ref);
+  const longe = refs.map((r) => dist2(r, fundo) > 60 * 60);
+  for (let volta = 0; volta < 8; volta++) {
+    const mudar = [];
+    for (let p = 0; p < idx.length; p++) {
+      if (idx[p] === VAZIO) continue;
+      const x = p % w;
+      const encosta = (x > 0 && idx[p - 1] === VAZIO) || (x < w - 1 && idx[p + 1] === VAZIO) || (p >= w && idx[p - w] === VAZIO) || (p < idx.length - w && idx[p + w] === VAZIO);
+      if (!encosta) continue;
+      const i = p * 4;
+      let melhor = null;
+      let menor = 30 * 30; // a mistura precisa ficar perto da linha entre o fundo e a cor
+      for (let k = 0; k < refs.length; k++) {
+        if (!longe[k]) continue;
+        const r = refs[k];
+        const v0 = r[0] - fundo[0];
+        const v1 = r[1] - fundo[1];
+        const v2 = r[2] - fundo[2];
+        const c = v0 * v0 + v1 * v1 + v2 * v2;
+        const t = ((data[i] - fundo[0]) * v0 + (data[i + 1] - fundo[1]) * v1 + (data[i + 2] - fundo[2]) * v2) / c;
+        if (t <= 0 || t >= 0.92) continue; // perto da cor pura: é logo de verdade
+        const e0 = data[i] - fundo[0] - t * v0;
+        const e1 = data[i + 1] - fundo[1] - t * v1;
+        const e2 = data[i + 2] - fundo[2] - t * v2;
+        const d = e0 * e0 + e1 * e1 + e2 * e2;
+        if (d < menor) (menor = d), (melhor = { k, t });
+      }
+      if (!melhor) continue;
+      const novo = melhor.t < 0.5 ? VAZIO : alvos[melhor.k].cor;
+      if (novo !== idx[p]) mudar.push(p, novo);
+    }
+    if (!mudar.length) break;
+    for (let j = 0; j < mudar.length; j += 2) idx[mudar[j]] = mudar[j + 1];
+  }
+}
+
+// Mapa do recorte automático com estes alvos. fundo (opcional): cor do fundo que saiu.
+export function mapaPorAlvos(imagem, vazio, alvos, fundo = null) {
   const { width: w, height: h, data } = imagem;
   const n = w * h;
   const idx = new Int8Array(n).fill(VAZIO);
@@ -228,8 +269,34 @@ export function mapaPorAlvos(imagem, vazio, alvos) {
           melhor = k;
         }
       }
+      // meio-tom da borda: um pixel que é mistura de duas cores do logo (ex.: cinza entre preto e branco)
+      // fica com a mais próxima das duas, e não com uma terceira cor parecida com a mistura (dourado)
+      if (menor > 400 && refs.length > 2) {
+        let par = null;
+        let perto = menor * 0.25;
+        for (let a = 0; a < refs.length; a++)
+          for (let b = a + 1; b < refs.length; b++) {
+            if (a === melhor || b === melhor) continue;
+            const ra = refs[a];
+            const rb = refs[b];
+            const v0 = rb[0] - ra[0];
+            const v1 = rb[1] - ra[1];
+            const v2 = rb[2] - ra[2];
+            const c = v0 * v0 + v1 * v1 + v2 * v2;
+            if (!c) continue;
+            const t = ((data[i] - ra[0]) * v0 + (data[i + 1] - ra[1]) * v1 + (data[i + 2] - ra[2]) * v2) / c;
+            if (t <= 0 || t >= 1) continue;
+            const e0 = data[i] - ra[0] - t * v0;
+            const e1 = data[i + 1] - ra[1] - t * v1;
+            const e2 = data[i + 2] - ra[2] - t * v2;
+            const d = e0 * e0 + e1 * e1 + e2 * e2;
+            if (d < perto) (perto = d), (par = t < 0.5 ? a : b);
+          }
+        if (par !== null) melhor = par;
+      }
       idx[p] = alvos[melhor].cor;
     }
+    if (fundo) limparBordaDoFundo(imagem, idx, alvos, fundo);
     limparSerrilhado(idx, w, h);
   }
   return { largura: w, altura: h, idx };
@@ -239,7 +306,7 @@ export function mapaPorAlvos(imagem, vazio, alvos) {
 export function recorteAutomatico(imagem, { tirarFundo = true, areasInternas = false, alvos = null } = {}) {
   const { vazio, fundo } = mascaraDoFundo(imagem, { tirarFundo, areasInternas });
   const lista = alvos ?? coresAutomaticas(imagem, vazio, fundo);
-  return { mapa: mapaPorAlvos(imagem, vazio, lista), alvos: lista, vazio, fundo };
+  return { mapa: mapaPorAlvos(imagem, vazio, lista, fundo), alvos: lista, vazio, fundo };
 }
 
 // Põe as correções à mão por cima do automático: onde manual = 1 fica o que está em "mapa".
