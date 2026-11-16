@@ -37,3 +37,10 @@ como fica e imprimir tudo num só 3MF.
   (`colorir3mf` reescreve o 3MF original): as logos entram como objetos novos nesse 3MF.
 - A curva da prévia é só visual: mapear x da logo para o ângulo `x / r` em volta do eixo do copo.
 - Medir o tubo (altura e raio) a partir da malha da parte do corpo do copo.
+
+## Ajustes aprovados depois da v0.57.0 (aguardando "comece")
+- **"Usar de Meus modelos"** ao lado de "Adicionar logo": lista as logos salvas do 2D para 3D (miniatura + nome);
+  a escolhida abre na janela grande para ajustar e "Usar no copo". O copo guarda uma cópia (o modelo salvo não
+  muda); sem chaveiro no copo.
+- **Posição livre na altura:** a logo sobe e desce pelo copo inteiro (da base à borda), não só no tubo. Passou do
+  tubo: só um aviso ("A logo está passando do tubo"). Em volta continua girando.
