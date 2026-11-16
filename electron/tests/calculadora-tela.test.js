@@ -43,4 +43,24 @@ describe("Calculadora: mão de obra e conta do preço", () => {
     expect(texto("custo-unitario")).toBe("R$ 20,00");
     expect(texto("valor-unitario")).toBe("R$ 5,00");
   });
+
+  it("conjunto: soma o custo das peças; a mão de obra entra uma vez", () => {
+    // peça de cima: 50 g a R$ 100/kg = R$ 5; outra peça: 30 g = R$ 3; mão de obra R$ 15
+    expect($("conjunto-lista").hidden).toBe(true);
+    $("conj-adicionar").click();
+    const linha = document.querySelector("#conjunto-pecas .conj-linha");
+    const [nome, peso] = linha.querySelectorAll("input");
+    nome.value = "Suporte";
+    peso.value = "30";
+    peso.dispatchEvent(new Event("input"));
+    expect($("conjunto-lista").hidden).toBe(false);
+    expect(texto("titulo-res")).toBe("Preço do conjunto sugerido");
+    expect(texto("conj-valor-principal")).toBe("R$ 5,00");
+    expect(linha.querySelector(".conj-valor").textContent.replace(/\s/g, " ")).toBe("R$ 3,00");
+    expect(texto("custo-unitario")).toBe("R$ 23,00");
+    expect(texto("valor-unitario")).toBe("R$ 8,00");
+    linha.querySelector("button").click();
+    expect($("conjunto-lista").hidden).toBe(true);
+    expect(texto("custo-unitario")).toBe("R$ 20,00");
+  });
 });

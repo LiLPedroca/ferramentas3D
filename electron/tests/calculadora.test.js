@@ -8,6 +8,8 @@ import {
   lerInteiro,
   lerNumero,
   pecasParaPagarImpressora,
+  somarConjunto,
+  valorDaPeca,
 } from "../src/core/calculadora.js";
 
 const R = (n, d = 1n) => new Racional(BigInt(n), BigInt(d));
@@ -59,6 +61,18 @@ describe("calcular (paridade com o Python)", () => {
     const r = calcular(entrada({ quantidade: 4 }));
     iguais(r.valorUnitario, r.custoLote.subtrai(r.maoDeObra).divide(R(4)));
     iguais(r.valorUnitario, r.filamento.soma(r.energia).soma(r.impressora).divide(R(4)));
+  });
+
+  it("conjunto: soma peso e tempo das peças; mão de obra e lucro entram uma vez", () => {
+    const base = entrada({ quantidade: 1 });
+    const extras = [
+      { pesoG: R(80), horas: R(3) },
+      { pesoG: R(40), horas: R(3, 2) },
+    ];
+    const r = calcular(somarConjunto(base, extras));
+    const soma = [{ pesoG: base.pesoG, horas: base.horas }, ...extras].map((p) => valorDaPeca(base, p)).reduce((a, b) => a.soma(b));
+    iguais(r.custoLote, soma.soma(base.maoDeObra));
+    iguais(r.maoDeObra, base.maoDeObra);
   });
 
   it("lucro unitário", () => {

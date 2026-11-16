@@ -69,6 +69,23 @@ export function calcular(entrada) {
   };
 }
 
+// Conjunto (kit): peças impressas separadas e vendidas juntas. Soma o peso e o tempo de cada peça; a mão
+// de obra e o lucro entram uma vez, sobre o conjunto. pecas: [{ pesoG, horas }] (Racional).
+export function somarConjunto(entrada, pecas) {
+  let pesoG = entrada.pesoG;
+  let horas = entrada.horas;
+  for (const p of pecas) {
+    pesoG = pesoG.soma(p.pesoG);
+    horas = horas.soma(p.horas);
+  }
+  return { ...entrada, pesoG, horas };
+}
+
+// Quanto uma peça custa em material e máquina (filamento + energia + impressora), sem a mão de obra.
+export function valorDaPeca(entrada, peca) {
+  return calcular({ ...entrada, pesoG: peca.pesoG, horas: peca.horas, maoDeObra: Racional.de(0n), quantidade: 1 }).custoLote;
+}
+
 // Quantas peças vendidas pagam a impressora. Retorna null sem lucro positivo.
 export function pecasParaPagarImpressora(valorImpressora, lucroPorPeca) {
   const valor = Racional.de(valorImpressora);

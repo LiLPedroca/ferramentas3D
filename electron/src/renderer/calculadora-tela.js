@@ -7,6 +7,8 @@ import {
   lerInteiro,
   lerNumero,
   pecasParaPagarImpressora,
+  somarConjunto,
+  valorDaPeca,
 } from "../core/calculadora.js";
 import { Racional } from "../core/racional.js";
 import { abrirEditor } from "./produtos.js";
@@ -69,16 +71,113 @@ function percentual(parte, total) {
   return Math.min(100, (comoNumero(parte) / comoNumero(total)) * 100);
 }
 
-function lerTempoHoras() {
-  const h = lerInteiro($("horas").value.trim() === "" ? "0" : $("horas").value, "Horas");
-  const m = lerInteiro($("minutos").value.trim() === "" ? "0" : $("minutos").value, "Minutos");
-  if (m > 59) throw new EntradaInvalida("Minutos devem ficar entre 0 e 59.");
+function lerTempoHoras(campoH = $("horas"), campoM = $("minutos"), prefixo = "") {
+  const h = lerInteiro(campoH.value.trim() === "" ? "0" : campoH.value, `${prefixo}Horas`);
+  const m = lerInteiro(campoM.value.trim() === "" ? "0" : campoM.value, `${prefixo}Minutos`);
+  if (m > 59) throw new EntradaInvalida(`${prefixo}Minutos devem ficar entre 0 e 59.`);
   return new Racional(BigInt(h) * 60n + BigInt(m), 60n);
+}
+
+// ---------- Conjunto (kit): outras peças vendidas junto com a de cima ----------
+// Cada linha: nome, peso e tempo da peça (do lote). A conta soma tudo; mão de obra e lucro uma vez só.
+const pecasDoConjunto = []; // [{ linha, nome, peso, horas, minutos, valor }]
+let pecasLidas = null; // { principal: { pesoG, horas }, extras: [{ pesoG, horas }] } do último cálculo
+
+function entradaCurta(valor, unidade, rotulo, modo = "decimal") {
+  const caixa = document.createElement("div");
+  caixa.className = "entrada";
+  const input = document.createElement("input");
+  input.inputMode = modo;
+  input.autocomplete = "off";
+  input.value = valor;
+  input.setAttribute("aria-label", rotulo);
+  const em = document.createElement("em");
+  em.textContent = unidade;
+  caixa.append(input, em);
+  input.addEventListener("input", () => {
+    usuarioMexeu = true;
+    atualizarResultado();
+  });
+  return { caixa, input };
+}
+
+function adicionarPecaAoConjunto({ nome = "", peso = "", horas = "", minutos = "" } = {}) {
+  const linha = document.createElement("div");
+  linha.className = "conj-linha";
+  const campoNome = document.createElement("div");
+  campoNome.className = "entrada";
+  const inputNome = document.createElement("input");
+  inputNome.maxLength = 120;
+  inputNome.placeholder = "Nome da peça";
+  inputNome.value = nome;
+  inputNome.setAttribute("aria-label", "Nome da peça do conjunto");
+  campoNome.append(inputNome);
+  const p = entradaCurta(peso, "g", "Peso da peça do conjunto");
+  const h = entradaCurta(horas, "h", "Horas da peça do conjunto", "numeric");
+  const m = entradaCurta(minutos, "min", "Minutos da peça do conjunto", "numeric");
+  const valor = document.createElement("span");
+  valor.className = "conj-valor";
+  const remover = document.createElement("button");
+  remover.type = "button";
+  remover.className = "fechar";
+  remover.textContent = "×";
+  remover.setAttribute("aria-label", "Tirar esta peça do conjunto");
+  const peca = { linha, nome: inputNome, peso: p.input, horas: h.input, minutos: m.input, valor };
+  remover.addEventListener("click", () => {
+    pecasDoConjunto.splice(pecasDoConjunto.indexOf(peca), 1);
+    linha.remove();
+    atualizarResultado();
+  });
+  linha.append(campoNome, p.caixa, h.caixa, m.caixa, valor, remover);
+  $("conjunto-pecas").append(linha);
+  pecasDoConjunto.push(peca);
+  atualizarResultado();
+  return peca;
+}
+
+function limparConjunto() {
+  pecasDoConjunto.length = 0;
+  $("conjunto-pecas").replaceChildren();
+}
+
+function lerPecasDoConjunto() {
+  return pecasDoConjunto.map((p, i) => {
+    const prefixo = `Peça ${i + 2} do conjunto: `;
+    return {
+      pesoG: lerNumero(p.peso.value.trim() === "" ? "0" : p.peso.value, `${prefixo}peso (g)`),
+      horas: lerTempoHoras(p.horas, p.minutos, prefixo),
+    };
+  });
+}
+
+// Meus produtos na lista "ou escolher de Meus produtos…": peso por peça e o tempo do cálculo guardado.
+let produtosDoConjunto = [];
+async function atualizarProdutosDoConjunto() {
+  const r = await window.dados?.produtos?.listar?.();
+  produtosDoConjunto = r?.ok ? r.dados : [];
+  const sel = $("conj-produto");
+  sel.hidden = produtosDoConjunto.length === 0;
+  sel.replaceChildren(new Option("ou escolher de Meus produtos…", ""), ...produtosDoConjunto.map((p) => new Option(p.nome, p.id)));
+}
+
+function adicionarProdutoAoConjunto() {
+  const p = produtosDoConjunto.find((x) => x.id === $("conj-produto").value);
+  $("conj-produto").value = "";
+  if (!p) return;
+  const c = p.custo?.calculo;
+  const minutos = c ? Math.round((Number(c.horas) * 60) / Math.max(1, c.quantidade)) : 0;
+  adicionarPecaAoConjunto({
+    nome: p.nome,
+    peso: String(p.pesoG ?? "").replace(".", ","),
+    horas: minutos ? String(Math.floor(minutos / 60)) : "",
+    minutos: minutos ? String(minutos % 60) : "",
+  });
 }
 
 function lerEntrada() {
   const quantidade = lerInteiro($("quantidade").value, "Quantidade de peças");
-  return criarEntrada({
+  const extras = lerPecasDoConjunto();
+  const base = criarEntrada({
     pesoG: lerNumero($("peso").value, "Peso total do lote (g)"),
     precoKg: lerNumero($("preco-kg").value, "Preço do filamento (R$/kg)"),
     potenciaW: lerNumero($("potencia").value, "Consumo da impressora (W)"),
@@ -89,6 +188,21 @@ function lerEntrada() {
     lucroPct: lerNumero($("lucro").value, "Lucro sobre o custo (%)"),
     lucroNaMaoDeObra: $("lucro-mao-obra").checked,
     quantidade,
+  });
+  pecasLidas = { base, extras };
+  return extras.length ? somarConjunto(base, extras) : base;
+}
+
+function mostrarConjunto() {
+  const tem = pecasDoConjunto.length > 0;
+  $("conjunto-lista").hidden = !tem;
+  $("titulo-res").textContent = tem ? "Preço do conjunto sugerido" : "Preço de venda sugerido";
+  if (!tem || !pecasLidas) return;
+  const { base, extras } = pecasLidas;
+  $("conj-nome-principal").textContent = $("calc-nome").value.trim() || "Peça de cima";
+  $("conj-valor-principal").textContent = formatarReais(valorDaPeca(base, base));
+  extras.forEach((p, i) => {
+    pecasDoConjunto[i].valor.textContent = formatarReais(valorDaPeca(base, p));
   });
 }
 
@@ -154,6 +268,7 @@ function atualizarResultado() {
     $("lucro-lote").textContent = `+ ${formatarReais(resultado.lucroLote)}`;
     $("preco-lote").textContent = formatarReais(resultado.precoLote);
     mostrarComposicao(resultado);
+    mostrarConjunto();
 
     const pesoPorPeca = entrada.pesoG.divide(Racional.de(BigInt(entrada.quantidade)));
     $("ajuda-peso").textContent = `${formatarPeso(pesoPorPeca)} g por peça`;
@@ -241,6 +356,7 @@ function adicionarAoOrcamento() {
 function novoCalculo() {
   for (const [id, valor] of Object.entries(padroes())) $(id).value = valor;
   $("calc-nome").value = "";
+  limparConjunto();
   $("rolo-calc").value = "";
   $("descontar-rolo").hidden = true;
   $("origem-calculo").hidden = true;
@@ -272,7 +388,8 @@ function roloEscolhido() {
 function mostrarBotaoDescontar() {
   const f = roloEscolhido();
   $("descontar-rolo").hidden = !f;
-  if (f) $("descontar-rolo").textContent = `Descontar ${$("peso").value || 0} g do rolo ${nomeDoRolo(f)}`;
+  const total = ultimoCalculo ? comoNumero(ultimoCalculo.entrada.pesoG).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : $("peso").value || 0;
+  if (f) $("descontar-rolo").textContent = `Descontar ${total} g do rolo ${nomeDoRolo(f)}`;
 }
 
 function escolherRolo() {
@@ -334,6 +451,7 @@ export function iniciarCalculadora() {
   }
   $("calc-nome").addEventListener("input", () => {
     usuarioMexeu = true;
+    if (pecasDoConjunto.length) mostrarConjunto();
   });
   $("lucro").addEventListener("input", () => {
     sincronizarLucro("campo");
@@ -354,6 +472,10 @@ export function iniciarCalculadora() {
   $("rolo-calc").addEventListener("change", escolherRolo);
   $("peso").addEventListener("input", mostrarBotaoDescontar);
   $("descontar-rolo").addEventListener("click", descontarDoLote);
+  $("conj-adicionar").addEventListener("click", () => adicionarPecaAoConjunto().nome.focus());
+  $("conj-produto").addEventListener("change", adicionarProdutoAoConjunto);
+  registrarAoAbrir("calculadora", atualizarProdutosDoConjunto);
+  atualizarProdutosDoConjunto();
   registrarAoAbrir("calculadora", atualizarRolos);
   atualizarRolos();
 

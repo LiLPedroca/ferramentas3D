@@ -569,6 +569,54 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Calculadora: peças do conjunto (kit) */
+.conjunto {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.conjunto-lista {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.conjunto-titulo {
+  margin: 0;
+  font-weight: 600;
+}
+
+.conj-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 64px 64px 84px 28px;
+  align-items: center;
+  gap: 6px;
+}
+
+.conj-principal {
+  grid-template-columns: minmax(0, 1fr) auto;
+  color: var(--texto-suave);
+}
+
+.conj-linha input {
+  min-width: 0;
+}
+
+.conj-valor {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.conjunto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Valor da peça: custo sem a mão de obra, em destaque */
 .metricas .metrica-valor strong {
   color: var(--acento-forte);
