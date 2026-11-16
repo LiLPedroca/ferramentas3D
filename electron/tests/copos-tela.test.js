@@ -6,7 +6,7 @@ beforeEach(() => { vi.resetModules(); estado.verBase.mockClear(); });
 vi.mock('../src/renderer/shell.js', () => ({ registrarAoAbrir: (_id, fn) => { estado.abrir = fn; }, irPara: vi.fn(), mostrarAviso: vi.fn(), confirmar: vi.fn() }));
 vi.mock('../src/renderer/modelos/previa3d.js', () => ({ criarPrevia: () => ({ mostrar: vi.fn(), colorir: vi.fn(), enquadrar: vi.fn(), verBase: estado.verBase, extras: vi.fn(), realcarExtra: vi.fn() }) }));
 vi.mock('../src/renderer/logo-tela.js', () => ({ abrirLogoNoCopo: vi.fn() }));
-vi.mock('../src/renderer/modelos/logo-copo.js', () => ({ medirTubo: () => ({ centro: [0, 0], z0: 30, z1: 120, raios: [40] }), limitarAltura: (z) => z, anguloDaNovaCopia: vi.fn(), caixaDaLogo: vi.fn(), logoMaiorQueOTubo: vi.fn(), logoNaCurva: vi.fn(), logosNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), raioEm: vi.fn() }));
+vi.mock('../src/renderer/modelos/logo-copo.js', () => ({ medirTubo: () => ({ centro: [0, 0], z0: 30, z1: 120, raios: [40] }), limitarNoCopo: (z) => z, passaDoTubo: () => false, anguloDaNovaCopia: vi.fn(), caixaDaLogo: vi.fn(), logoMaiorQueOTubo: vi.fn(), logoNaCurva: vi.fn(), logosNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), raioEm: vi.fn() }));
 vi.mock('../src/renderer/modelos-ui.js', () => ({ abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn() }));
 vi.mock('../src/renderer/modelos-acoes.js', () => ({ salvarArquivoModelo: vi.fn(), salvarModeloComo: vi.fn(), enviarModeloAoFatiador: vi.fn(), densidadeDoModelo: vi.fn() }));
 vi.mock('../src/renderer/modelos/copos-exportar.js', () => ({ colorir3mf: vi.fn(), gerarStlNativoCopo: vi.fn(), colorir3mfMultipartes: vi.fn(() => new Uint8Array([7])), stlComLogos: vi.fn() }));

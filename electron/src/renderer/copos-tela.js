@@ -1,6 +1,6 @@
 import { CATALOGO_COPOS, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
 import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo, stlComLogos } from './modelos/copos-exportar.js';
-import { anguloDaNovaCopia, caixaDaLogo, limitarAltura, logoMaiorQueOTubo, logoNaCurva, logosNaMesa, medirTubo, raioEm } from './modelos/logo-copo.js';
+import { anguloDaNovaCopia, caixaDaLogo, limitarNoCopo, logoNaCurva, logosNaMesa, medirTubo, passaDoTubo, raioEm } from './modelos/logo-copo.js';
 import { abrirLogoNoCopo } from './logo-tela.js';
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
@@ -42,7 +42,7 @@ async function carregar(novo, salvas) {
     previa.mostrar(aplicarCores(pacote.partes, cores)); previa.enquadrar();
     anterior?.partes.forEach(p => p.geometria.dispose());
     tubo = medirTubo(pacote.partes);
-    if (logo) { logo.copias = logo.copias.map(c => ({ ...c, z: limitarAltura(c.z, logo.caixa.altura, tubo) })); }
+    if (logo) { logo.copias = logo.copias.map(c => ({ ...c, z: limitarNoCopo(c.z, logo.caixa.altura, tubo) })); }
     mostrarLogo();
     $('cp-nome').value = atual?.nome ?? `Copo ${novo}`;
     $('cp-medidas').textContent = '145 mm · Ø interno 81,4 mm';
@@ -113,7 +113,7 @@ function mostrarLogo() {
   $('cp-logo-info').textContent = `${mm(logo.caixa.largura)} × ${mm(logo.caixa.altura)} mm · ${n} ${n === 1 ? 'logo' : 'logos'}`;
   $('cp-logo-remover-esta').hidden = selecionada === null || n < 2;
   const avisos = [];
-  if (logoMaiorQueOTubo(logo.caixa.altura, tubo)) avisos.push(`A logo é mais alta que o tubo (${mm(tubo.z1 - tubo.z0)} mm): diminua a largura dela.`);
+  if (logo.copias.some(c => passaDoTubo(c.z, logo.caixa.altura, tubo))) avisos.push('A logo está passando do tubo.');
   if (!logosNaMesa(n, logo.caixa, copoNaMesa()).cabem) avisos.push('Nem todas as logos cabem na mesa ao lado do copo.');
   $('cp-logo-aviso').textContent = avisos.join(' ');
 }
@@ -128,7 +128,7 @@ async function editarLogo() {
 function usarLogo(r, copias) {
   const caixa = caixaDaLogo(r.malhas);
   const meio = tubo ? (tubo.z0 + tubo.z1) / 2 : 100;
-  logo = { ...r, caixa, copias: (copias ?? [{ angulo: 0, z: meio }]).map(c => ({ ...c, z: tubo ? limitarAltura(c.z, caixa.altura, tubo) : c.z })) };
+  logo = { ...r, caixa, copias: (copias ?? [{ angulo: 0, z: meio }]).map(c => ({ ...c, z: tubo ? limitarNoCopo(c.z, caixa.altura, tubo) : c.z })) };
   selecionada = null;
   mostrarLogo();
 }
@@ -187,7 +187,7 @@ function ligarArrasto() {
     if (!p) return;
     const c = logo.copias[arrasto.id];
     c.angulo = arrasto.inicio.angulo + (anguloDe(p) - arrasto.pega);
-    c.z = limitarAltura(arrasto.inicio.z + (p[2] - arrasto.pegaZ), logo.caixa.altura, tubo);
+    c.z = limitarNoCopo(arrasto.inicio.z + (p[2] - arrasto.pegaZ), logo.caixa.altura, tubo);
     arrasto.mexeu = true;
     previa.moverExtra(arrasto.id, c.angulo - arrasto.inicio.angulo, c.z - arrasto.inicio.z, tubo.centro);
   });

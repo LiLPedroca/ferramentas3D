@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { anguloDaNovaCopia, caixaDaLogo, limitarAltura, logoMaiorQueOTubo, logoNaCurva, logosNaMesa, medirTubo, raioEm } from "../src/renderer/modelos/logo-copo.js";
+import { anguloDaNovaCopia, caixaDaLogo, limitarAltura, limitarNoCopo, logoMaiorQueOTubo, logoNaCurva, logosNaMesa, medirTubo, passaDoTubo, raioEm } from "../src/renderer/modelos/logo-copo.js";
 
 // anel de pontos (cilindro) de raio r entre as alturas z0 e z1
 function anel(r, z0, z1) {
@@ -38,6 +38,16 @@ describe("Logo no copo", () => {
     expect(limitarAltura(70, 40, t)).toBe(70);
     expect(limitarAltura(10, 100, t)).toBe(75); // maior que o tubo: fica no meio
     expect(logoMaiorQueOTubo(100, t)).toBe(true);
+  });
+
+  it("posição livre: sobe e desce pelo copo inteiro; fora do tubo só avisa", () => {
+    const t = { z0: 80, z1: 125, altura: 145 };
+    expect(limitarNoCopo(10, 60, t)).toBe(30);
+    expect(limitarNoCopo(200, 60, t)).toBe(115);
+    expect(limitarNoCopo(60, 60, t)).toBe(60);
+    expect(passaDoTubo(60, 60, t)).toBe(true);
+    expect(passaDoTubo(100, 40, t)).toBe(false);
+    expect(medirTubo(copo).altura).toBeCloseTo(145, 3);
   });
 
   it("a primeira cópia vai atrás (180°); as outras no maior espaço livre; sem espaço, não cabe", () => {

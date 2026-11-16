@@ -46,8 +46,10 @@ export function medirTubo(partes) {
     if (f - b > melhor[1] - melhor[0]) melhor = [b, f];
     b = f + 1;
   }
-  // 1 mm de folga em cada ponta; o raio de cada faixa vem só da parte principal (sem detalhes por fora)
-  return { centro: [cx, cy], z0: melhor[0] + 1, z1: melhor[1], raios: Array.from(raioDe[0], (r, b) => r || raio[b]) };
+  // 1 mm de folga em cada ponta
+  // fora do tubo (borda, base, detalhes) vale o maior raio de todas as partes: a logo fica por cima delas
+  const raios = Array.from(raio, (r, b) => (b >= melhor[0] && b <= melhor[1] && raioDe[0][b] ? raioDe[0][b] : r));
+  return { centro: [cx, cy], altura, z0: melhor[0] + 1, z1: melhor[1], raios };
 }
 
 // Raio do tubo na altura z (mm), entre as faixas de 1 mm.
@@ -80,6 +82,16 @@ export function limitarAltura(z, alturaLogo, tubo) {
   if (alturaLogo >= tubo.z1 - tubo.z0) return meio;
   return Math.min(tubo.z1 - alturaLogo / 2, Math.max(tubo.z0 + alturaLogo / 2, z));
 }
+
+// Posição livre na altura: a logo pode ir do pé à boca do copo (só não sai dele).
+export function limitarNoCopo(z, alturaLogo, tubo) {
+  const topo = tubo.altura ?? tubo.z1;
+  if (alturaLogo >= topo) return topo / 2;
+  return Math.min(topo - alturaLogo / 2, Math.max(alturaLogo / 2, z));
+}
+
+// A logo nessa altura passa do tubo (fica por cima da borda, da base ou de um detalhe).
+export const passaDoTubo = (z, alturaLogo, tubo) => z - alturaLogo / 2 < tubo.z0 - 0.01 || z + alturaLogo / 2 > tubo.z1 + 0.01;
 
 // Logo maior que o tubo (na altura): ela encosta na borda ou na base.
 export const logoMaiorQueOTubo = (alturaLogo, tubo) => alturaLogo > tubo.z1 - tubo.z0;
