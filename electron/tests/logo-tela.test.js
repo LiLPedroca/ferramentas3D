@@ -160,3 +160,49 @@ describe("2D para 3D: Meus modelos e impressão", () => {
     expect(arq.partes.length).toBe(window.__logoTeste.modelo().cores.length);
   });
 });
+
+describe("2D para 3D: correções da revisão", () => {
+  it("modelo salvo reabre no tamanho em que foi salvo (correções e escolhas continuam no lugar)", async () => {
+    const { escalaDoMapa } = await import("../src/renderer/logo-tela.js");
+    expect(escalaDoMapa(800, 600, { svg: false, salvo: true })).toBe(1);
+    expect(escalaDoMapa(447, 447, { svg: false, salvo: false })).toBeCloseTo(1788 / 447, 6);
+    expect(escalaDoMapa(6000, 3000, { svg: false, salvo: false })).toBeCloseTo(2000 / 6000, 6);
+    expect(escalaDoMapa(100, 50, { svg: true, salvo: false })).toBe(20);
+  });
+
+  it("várias mudanças na mesma parte viram uma escolha só; desfazer escolha não refaz a vetorização", async () => {
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const t = window.__logoTeste;
+    const alvo = t.modelo().partes[0];
+    const antes = t.escolhas().length;
+    t.abrirBalao(alvo.id, 50, 50);
+    $("lg-balao-todas").checked = false;
+    $("lg-balao-altura").value = "5";
+    $("lg-balao-altura").dispatchEvent(new Event("change"));
+    $("lg-balao-altura").value = "7";
+    $("lg-balao-altura").dispatchEvent(new Event("change"));
+    expect(t.escolhas().length).toBeLessThanOrEqual(antes + 1);
+    const ultima = t.escolhas()[t.escolhas().length - 1];
+    expect(ultima.altura).toBe(7);
+    expect(ultima.corOriginal).toBe(alvo.corOriginal);
+    const versao = t.versaoMapa();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
+    expect(t.versaoMapa()).toBe(versao);
+    await vi.waitFor(() => expect(t.modelo().partes.find((p) => p.id === alvo.id).altura).toBe(5), { timeout: 20000 });
+  }, 30000);
+
+  it("balão continua na mesma parte depois de mudar a largura", async () => {
+    const t = window.__logoTeste;
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const alvo = [...t.modelo().partes].sort((a, b) => a.area - b.area)[0];
+    t.abrirBalao(alvo.id, 50, 50);
+    $("lg-largura").value = "60";
+    $("lg-largura").dispatchEvent(new Event("input"));
+    await vi.waitFor(() => expect(t.modelo().dimensoes[0]).toBeCloseTo(60, 1), { timeout: 20000 });
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const agora = t.modelo().partes.find((p) => p.id === t.balao()?.id);
+    if (agora) expect(agora.corOriginal).toBe(alvo.corOriginal);
+    if (agora) expect(agora.area).toBeCloseTo(alvo.area * 0.36, 0);
+    else expect($("lg-balao").hidden).toBe(true);
+  }, 30000);
+});

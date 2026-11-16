@@ -165,8 +165,9 @@ function refazerAutomatico({ achar = false } = {}) {
 const copiaEscolhas = () => escolhas.map((e) => ({ ...e, ponto: e.ponto.slice() }));
 const instantaneo = () => ({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), escolhas: copiaEscolhas() });
 
-function guardarParaDesfazer() {
-  historico.push(instantaneo());
+// soEscolhas: a mudança foi só de cor/altura de partes (guarda só as escolhas, sem copiar o mapa)
+function guardarParaDesfazer({ soEscolhas = false } = {}) {
+  historico.push(soEscolhas ? { soEscolhas: true, escolhas: copiaEscolhas() } : instantaneo());
   if (historico.length > LIMITE_HISTORICO) historico.shift();
   refazer = [];
   atualizarDesfazer();
@@ -179,8 +180,15 @@ function atualizarDesfazer() {
 
 function voltarEdicao(de, para) {
   if (!de.length || !mapa) return;
-  para.push(instantaneo());
   const e = de.pop();
+  if (e.soEscolhas) {
+    para.push({ soEscolhas: true, escolhas: copiaEscolhas() });
+    escolhas = e.escolhas;
+    fecharBalao();
+    mapaMudou({ soEscolhas: true });
+    return;
+  }
+  para.push(instantaneo());
   alvos = e.alvos;
   escolhas = e.escolhas ?? [];
   fecharBalao();
@@ -340,7 +348,8 @@ async function gerar() {
     // escolhas cujo ponto não cai mais em nenhuma parte (a parte sumiu) são descartadas
     escolhas = escolhas.filter((e, i) => {
       const [x, y] = naArte[i].ponto;
-      return novo.partes.some((p) => pontoDentro(p.lacos, [x * novo.escalaArte, y * novo.escalaArte]));
+      const p = novo.partes.find((q) => pontoDentro(q.lacos, [x * novo.escalaArte, y * novo.escalaArte]));
+      return p && (!e.corOriginal || e.corOriginal === p.corOriginal);
     });
     vinculo = { k: cores.quadro.escala * novo.escalaArte, minX: cores.quadro.minX, maxY: cores.quadro.maxY, desloc };
     if (modo === "3d") previa3d?.mostrar(partes);
@@ -361,11 +370,21 @@ async function gerar() {
   mostrarDados();
   previa2d.mostrar(modelo);
   pincel.limparTraco();
-  if (balao && !modelo?.partes.some((p) => p.id === balao.id)) fecharBalao();
+  // a divisão pode ter sido refeita (largura, borracha): o balão segue a parte pelo ponto dela
+  if (balao) {
+    const p = modelo?.partes.find((q) => q.corOriginal === balao.corOriginal && pontoDentro(q.lacos, [balao.ponto[0] * modelo.escalaArte, balao.ponto[1] * modelo.escalaArte]));
+    if (!p) fecharBalao();
+    else {
+      balao.id = p.id;
+      previa2d?.destacar?.(p.id);
+      if (document.activeElement !== $("lg-balao-altura")) $("lg-balao-altura").value = formatar(p.altura);
+      marcarCores($("lg-balao-cores"), p.cor);
+    }
+  }
 }
 
 // ---------- Balão da parte (cor e altura de cada parte) ----------
-let balao = null; // { id } da parte escolhida
+let balao = null; // { id, ponto (arte), corOriginal } da parte escolhida
 
 // Ponto da parte (arte, 100 de largura) -> pixel do mapa, onde a escolha fica guardada.
 function pixelDaParte(parte) {
@@ -384,7 +403,7 @@ function fecharBalao() {
 function abrirBalao(id, x, y) {
   const parte = modelo?.partes.find((p) => p.id === id);
   if (!parte) return fecharBalao();
-  balao = { id };
+  balao = { id, ponto: parte.ponto.slice(), corOriginal: parte.corOriginal };
   const caixa = $("lg-balao");
   caixa.hidden = false;
   $("lg-balao-erro").textContent = "";
@@ -403,8 +422,17 @@ function mudarParte(mudanca) {
   const parte = modelo?.partes.find((p) => p.id === balao?.id);
   if (!parte || !vinculo) return;
   const alvo = $("lg-balao-todas").checked ? modelo.partes.filter((p) => p.cor === parte.cor) : [parte];
-  guardarParaDesfazer();
-  for (const p of alvo) escolhas.push({ ponto: pixelDaParte(p), ...mudanca });
+  if (alvo.every((p) => (mudanca.cor === undefined || p.cor === mudanca.cor) && (mudanca.altura === undefined || p.altura === mudanca.altura))) return;
+  guardarParaDesfazer({ soEscolhas: true });
+  const { k, minX, maxY } = vinculo;
+  const parteDoPixel = (e) => modelo.partes.find((q) => pontoDentro(q.lacos, [(e.ponto[0] - minX) * k, (maxY - e.ponto[1]) * k]));
+  for (const p of alvo) {
+    // uma escolha por parte: junta com a que já existia (cor de uma vez, altura de outra)
+    const antigas = escolhas.filter((e) => parteDoPixel(e)?.id === p.id);
+    const junta = Object.assign({}, ...antigas, mudanca, { ponto: pixelDaParte(p), corOriginal: p.corOriginal });
+    escolhas = escolhas.filter((e) => !antigas.includes(e));
+    escolhas.push(junta);
+  }
   if (mudanca.cor) marcarCores($("lg-balao-cores"), mudanca.cor);
   mapaMudou({ espera: 0, soEscolhas: true });
 }
@@ -749,6 +777,14 @@ async function pixelsDe(dataUrl) {
   return { width: bitmap.width, height: bitmap.height, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
 }
 
+// Quanto a imagem é ampliada/reduzida para virar o mapa. Modelo salvo já guardou a imagem no tamanho do
+// mapa: fica como está (as correções à mão e as escolhas das partes estão nesses pixels).
+export function escalaDoMapa(w, h, { svg = false, salvo = false } = {}) {
+  if (salvo) return 1;
+  const maior = Math.max(w, h);
+  return svg ? LADO / maior : Math.min(LADO, AMPLIAR * maior) / maior;
+}
+
 // salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes, correcoes }).
 async function carregar([arquivo], salvo = null) {
   let aberta;
@@ -761,8 +797,7 @@ async function carregar([arquivo], salvo = null) {
   try {
     // o lado maior vira até LADO: imagem grande é reduzida e pequena é ampliada com suavização
     // (o meio-tom ampliado ainda dá a borda com fração de pixel)
-    const maior = Math.max(aberta.w, aberta.h);
-    const escala = aberta.svg ? LADO / maior : Math.min(LADO, AMPLIAR * maior) / maior;
+    const escala = escalaDoMapa(aberta.w, aberta.h, { svg: aberta.svg, salvo: Boolean(salvo) });
     const w = Math.max(1, Math.round(aberta.w * escala));
     const h = Math.max(1, Math.round(aberta.h * escala));
     const canvas = new OffscreenCanvas(w, h);
@@ -820,7 +855,7 @@ async function usarImagem(pixels, info, salvo = null) {
   refazerAutomatico({ achar: !alvos.length });
   if (salvo?.correcoes) {
     try {
-      aplicarCorrecoes(await pixelsDe(salvo.correcoes), mapa, manual);
+      if (!aplicarCorrecoes(await pixelsDe(salvo.correcoes), mapa, manual)) throw new Error("tamanho");
     } catch {
       mostrarAviso("As correções à mão deste modelo não puderam ser lidas. O recorte automático foi refeito.");
     }
@@ -1088,7 +1123,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, versaoMapa: () => versaoMapa, balao: () => balao, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {

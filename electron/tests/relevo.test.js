@@ -186,3 +186,24 @@ describe("2D para 3D: degraus por cor sem AMS", () => {
   });
 });
 
+
+describe("2D para 3D: escolhas e cache", () => {
+  it("escolha feita numa parte de outra cor (a parte sumiu e virou vizinha) é ignorada", () => {
+    const r0 = gerarRelevo(M, cores, {});
+    const alvo = r0.partes[0];
+    const outra = r0.partes.find((p) => p.cor !== alvo.corOriginal).corOriginal;
+    const r = gerarRelevo(M, cores, {}, [{ ponto: alvo.ponto, altura: 8, corOriginal: outra }]);
+    expect(r.partes.find((p) => p.id === alvo.id).altura).toBe(3);
+    expect(gerarRelevo(M, cores, {}, [{ ponto: alvo.ponto, altura: 8, corOriginal: alvo.corOriginal }]).partes.find((p) => p.id === alvo.id).altura).toBe(8);
+  });
+
+  it("argola que não cabe: a falha fica guardada e não refaz a divisão a cada mudança", async () => {
+    const { estatisticasRelevo } = await import("../src/renderer/modelos/relevo.js");
+    // furo grande demais para a parede da arte fina: a argola não cabe em lugar nenhum
+    const fino = [{ cor: "#111111", formas: [[[[0, 0], [100, 0], [100, 0.8], [0, 0.8]]]] }];
+    expect(() => gerarRelevo(M, fino, { comArgola: true, largura: 100, furo: 8 })).toThrow();
+    const antes = estatisticasRelevo.particoes;
+    expect(() => gerarRelevo(M, fino, { comArgola: true, largura: 100, furo: 8 }, [{ ponto: [50, 0.4], altura: 5 }])).toThrow();
+    expect(estatisticasRelevo.particoes).toBe(antes);
+  });
+});

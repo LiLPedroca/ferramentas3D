@@ -344,3 +344,37 @@ describe("criador de logos: peça", () => {
     expect(mm[1]).toBeLessThan(caixa[3]);
   });
 });
+
+describe("2D para 3D: cores intermediárias de verdade continuam", () => {
+  const cinza = (v) => [v, v, v];
+  function imagem(desenho, w = 120, h = 100) {
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data.set([...desenho(x, y), 255], (y * w + x) * 4);
+    return { width: w, height: h, data };
+  }
+  const contar = (mapa, cor) => mapa.idx.reduce((n, v) => n + (v === cor ? 1 : 0), 0);
+
+  it("cinza encostado no fundo branco não é apagado como meio-tom", () => {
+    // bloco preto, linha cinza de 3 px e bloco cinza, tudo em fundo branco
+    const img = imagem((x, y) => {
+      if (y < 20 || y >= 80) return cinza(255);
+      if (x >= 10 && x < 50) return cinza(17);
+      if (x >= 50 && x < 53) return cinza(160);
+      if (x >= 70 && x < 110) return cinza(160);
+      return cinza(255);
+    });
+    const vazio = new Uint8Array(120 * 100);
+    for (let p = 0; p < vazio.length; p++) if (img.data[p * 4] === 255) vazio[p] = 1;
+    const alvos = [indice("Preto"), indice("Branco")].map(alvoDaCor).concat([{ cor: indice("Cinza"), ref: [160, 160, 160] }]);
+    const mapa = mapaPorAlvos(img, vazio, alvos, [255, 255, 255]);
+    expect(contar(mapa, indice("Cinza"))).toBeGreaterThanOrEqual(60 * 43 - 60);
+  });
+
+  it("cinza com ruído não vira pontos pretos e brancos", () => {
+    const img = imagem((x, y) => cinza(128 + ((x + y) % 2 ? 25 : -25)));
+    const vazio = new Uint8Array(120 * 100);
+    const alvos = [indice("Preto"), indice("Branco")].map(alvoDaCor).concat([{ cor: indice("Cinza"), ref: [128, 128, 128] }]);
+    const mapa = mapaPorAlvos(img, vazio, alvos);
+    expect(contar(mapa, indice("Cinza"))).toBe(120 * 100);
+  });
+});

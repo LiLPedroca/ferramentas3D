@@ -208,12 +208,29 @@ const lacosDe = (secao) => secao.toPolygons().map((l) => l.map((q) => [q[0], q[1
 
 // Divisão da arte em partes, na escala da peça, só com dados (sem objetos do Manifold). É a parte cara;
 // fica guardada enquanto a arte e as medidas não mudam (trocar cor ou altura de uma parte não refaz).
-let ultimaParticao = null; // { cores, chave, dados }
+// Guarda as últimas divisões (e as que falharam, como a argola que não cabe), para não refazer a cada mudança.
+let guardadas = []; // [{ cores, chave, dados | erro }]
+export const estatisticasRelevo = { particoes: 0 };
 
 function particao(M, cores, o) {
   const chave = JSON.stringify([o.largura, o.comArgola, o.argola, o.furo, o.parede]);
-  if (ultimaParticao?.cores === cores && ultimaParticao.chave === chave) return ultimaParticao.dados;
+  const achada = guardadas.find((g) => g.cores === cores && g.chave === chave);
+  if (achada?.erro) throw achada.erro;
+  if (achada) return achada.dados;
+  estatisticasRelevo.particoes += 1;
   const C = M.CrossSection;
+  let dados;
+  try {
+    dados = calcularParticao(M, C, cores, o);
+  } catch (erro) {
+    guardadas = [{ cores, chave, erro }, ...guardadas.filter((g) => g.cores === cores)].slice(0, 3);
+    throw erro;
+  }
+  guardadas = [{ cores, chave, dados }, ...guardadas.filter((g) => g.cores === cores)].slice(0, 3);
+  return dados;
+}
+
+function calcularParticao(M, C, cores, o) {
   const dados = comEscopo(M, (guardar) => {
     const secoes = secoesPorCor(M, guardar, cores);
     if (!secoes.length) throw new Error("A imagem ficou vazia depois da conversão. Tente outra imagem.");
@@ -248,7 +265,6 @@ function particao(M, cores, o) {
     };
   });
   for (const p of dados.partes) p.ponto = pontoInterno(p.lacos).map((v) => v / dados.s);
-  ultimaParticao = { cores, chave, dados };
   return dados;
 }
 
@@ -258,12 +274,13 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
   const o = validarOpcoesRelevo(entrada);
   const C = M.CrossSection;
   const d = particao(M, cores, o);
-  const partes = d.partes.map((p) => ({ id: p.id, cor: p.cor, altura: o.altura, area: p.area, lacos: p.lacos, ponto: p.ponto }));
+  // corOriginal: a cor da parte antes das escolhas (a escolha só vale se a parte ainda for daquela cor)
+  const partes = d.partes.map((p) => ({ id: p.id, cor: p.cor, corOriginal: p.cor, altura: o.altura, area: p.area, lacos: p.lacos, ponto: p.ponto }));
   for (const e of escolhas) {
     if (!e?.ponto) continue;
     const mm = [e.ponto[0] * d.s, e.ponto[1] * d.s];
     const p = partes.find((q) => pontoDentro(q.lacos, mm));
-    if (!p) continue;
+    if (!p || (e.corOriginal && e.corOriginal !== p.corOriginal)) continue;
     if (typeof e.cor === "string" && /^#[0-9a-f]{6}$/i.test(e.cor)) p.cor = e.cor.toLowerCase();
     const h = Number(e.altura);
     if (Number.isFinite(h) && h >= LIMITES_RELEVO.altura[0] && h <= LIMITES_RELEVO.altura[1]) p.altura = h;

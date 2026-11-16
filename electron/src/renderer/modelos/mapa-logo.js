@@ -208,11 +208,24 @@ export const alvoDaCor = (cor) => ({ cor, ref: rgbDaCor(cor) });
 // Borda com o fundo: pixels encostados no que saiu e que são mistura do fundo com uma cor do logo
 // (meio-tom do serrilhado) saem também, se puxam mais para o fundo, ou ficam com aquela cor. Sem isso,
 // um logo preto em fundo branco ganha um contorno branco fininho. Repete para bordas largas (imagem ampliada).
+// A cor r fica a menos de "raio" do trecho do meio (8% a 92%) do segmento a-b?
+function pertoDoSegmento(r, a, b, raio) {
+  const v = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const c = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  if (!c) return false;
+  const t = ((r[0] - a[0]) * v[0] + (r[1] - a[1]) * v[1] + (r[2] - a[2]) * v[2]) / c;
+  if (t <= 0.08 || t >= 0.92) return false;
+  return dist2(r, [a[0] + t * v[0], a[1] + t * v[1], a[2] + t * v[2]]) < raio * raio;
+}
+
 function limparBordaDoFundo(imagem, idx, alvos, fundo) {
   const { width: w, data } = imagem;
   const refs = alvos.map((a) => a.ref);
   const longe = refs.map((r) => dist2(r, fundo) > 60 * 60);
-  for (let volta = 0; volta < 8; volta++) {
+  const posicao = new Map(alvos.map((a, k) => [a.cor, k]));
+  // uma cor do logo que fica ela mesma entre o fundo e outra cor (cinza entre branco e preto) é de verdade
+  const intermediaria = refs.map((r, k) => refs.some((q, j) => j !== k && longe[j] && pertoDoSegmento(r, fundo, q, 40)));
+  for (let volta = 0; volta < 6; volta++) {
     const mudar = [];
     for (let p = 0; p < idx.length; p++) {
       if (idx[p] === VAZIO) continue;
@@ -220,6 +233,12 @@ function limparBordaDoFundo(imagem, idx, alvos, fundo) {
       const encosta = (x > 0 && idx[p - 1] === VAZIO) || (x < w - 1 && idx[p + 1] === VAZIO) || (p >= w && idx[p - w] === VAZIO) || (p < idx.length - w && idx[p + w] === VAZIO);
       if (!encosta) continue;
       const i = p * 4;
+      const propria = posicao.get(idx[p]);
+      if (propria !== undefined) {
+        if (intermediaria[propria]) continue;
+        const r = refs[propria];
+        if ((data[i] - r[0]) ** 2 + (data[i + 1] - r[1]) ** 2 + (data[i + 2] - r[2]) ** 2 < 30 * 30) continue; // cor pura
+      }
       let melhor = null;
       let menor = 30 * 30; // a mistura precisa ficar perto da linha entre o fundo e a cor
       for (let k = 0; k < refs.length; k++) {
@@ -279,6 +298,8 @@ export function mapaPorAlvos(imagem, vazio, alvos, fundo = null) {
             if (a === melhor || b === melhor) continue;
             const ra = refs[a];
             const rb = refs[b];
+            // se a cor escolhida fica ela mesma entre a e b (cinza entre preto e branco), é cor de verdade
+            if (pertoDoSegmento(refs[melhor], ra, rb, 40)) continue;
             const v0 = rb[0] - ra[0];
             const v1 = rb[1] - ra[1];
             const v2 = rb[2] - ra[2];
