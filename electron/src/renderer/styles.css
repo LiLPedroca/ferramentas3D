@@ -6199,6 +6199,45 @@ textarea:focus {
   bottom: 12px;
 }
 
+/* 2D para 3D: balão da parte escolhida (cor e altura) */
+.lg-balao {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  gap: 8px;
+  width: 232px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.lg-balao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lg-balao .erro-campo {
+  margin: 0;
+  color: var(--erro, #e5484d);
+  font-size: 12px;
+}
+
+.lg-balao .erro-campo:empty {
+  display: none;
+}
+
+.lg-balao-todas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
 /* 2D para 3D: medidas, partes e alturas, discreto no alto da prévia */
 .lg-info {
   position: absolute;

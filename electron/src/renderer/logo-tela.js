@@ -9,7 +9,7 @@ import { registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg } from "./modelos/logo.js";
-import { gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO } from "./modelos/relevo.js";
+import { gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro } from "./modelos/relevo.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
   mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
@@ -158,8 +158,11 @@ function refazerAutomatico({ achar = false } = {}) {
   } else juntarManual(auto, mapa, manual);
 }
 
+const copiaEscolhas = () => escolhas.map((e) => ({ ...e, ponto: e.ponto.slice() }));
+const instantaneo = () => ({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), escolhas: copiaEscolhas() });
+
 function guardarParaDesfazer() {
-  historico.push({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() });
+  historico.push(instantaneo());
   if (historico.length > LIMITE_HISTORICO) historico.shift();
   refazer = [];
   atualizarDesfazer();
@@ -172,9 +175,11 @@ function atualizarDesfazer() {
 
 function voltarEdicao(de, para) {
   if (!de.length || !mapa) return;
-  para.push({ idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() });
+  para.push(instantaneo());
   const e = de.pop();
   alvos = e.alvos;
+  escolhas = e.escolhas ?? [];
+  fecharBalao();
   auto = mapaPorAlvos(imagem, vazio, alvos);
   mapa.idx = e.idx;
   manual = e.manual;
@@ -320,6 +325,11 @@ async function gerar() {
     posicionarNaOrigem(novasPartes.map((p) => p.geometria));
     modelo = novo;
     partes = novasPartes;
+    // escolhas cujo ponto não cai mais em nenhuma parte (a parte sumiu) são descartadas
+    escolhas = escolhas.filter((e, i) => {
+      const [x, y] = naArte[i].ponto;
+      return novo.partes.some((p) => pontoDentro(p.lacos, [x * novo.escalaArte, y * novo.escalaArte]));
+    });
     vinculo = { k: cores.quadro.escala * novo.escalaArte, minX: cores.quadro.minX, maxY: cores.quadro.maxY, desloc };
     if (modo === "3d") previa3d?.mostrar(partes);
     if (semArgola) {
@@ -339,6 +349,89 @@ async function gerar() {
   mostrarDados();
   previa2d.mostrar(modelo);
   pincel.limparTraco();
+  if (balao && !modelo?.partes.some((p) => p.id === balao.id)) fecharBalao();
+}
+
+// ---------- Balão da parte (cor e altura de cada parte) ----------
+let balao = null; // { id } da parte escolhida
+
+// Ponto da parte (arte, 100 de largura) -> pixel do mapa, onde a escolha fica guardada.
+function pixelDaParte(parte) {
+  const { k, minX, maxY } = vinculo;
+  const mm = [parte.ponto[0] * modelo.escalaArte, parte.ponto[1] * modelo.escalaArte];
+  return [mm[0] / k + minX, maxY - mm[1] / k];
+}
+
+function fecharBalao() {
+  balao = null;
+  $("lg-balao").hidden = true;
+  previa2d?.destacar?.(null);
+}
+
+// x, y: posição (px CSS) no palco onde o balão aparece.
+function abrirBalao(id, x, y) {
+  const parte = modelo?.partes.find((p) => p.id === id);
+  if (!parte) return fecharBalao();
+  balao = { id };
+  const caixa = $("lg-balao");
+  caixa.hidden = false;
+  $("lg-balao-erro").textContent = "";
+  $("lg-balao-altura").value = formatar(parte.altura);
+  marcarCores($("lg-balao-cores"), parte.cor);
+  const area = caixa.parentElement.getBoundingClientRect();
+  const largura = caixa.offsetWidth || 232;
+  const altura = caixa.offsetHeight || 170;
+  caixa.style.left = `${Math.max(8, Math.min(x + 12, (area.width || x + largura + 20) - largura - 8))}px`;
+  caixa.style.top = `${Math.max(8, Math.min(y + 12, (area.height || y + altura + 20) - altura - 8))}px`;
+  previa2d?.destacar?.(id);
+}
+
+// Muda a parte do balão (ou todas da mesma cor). mudanca: { cor } | { altura }.
+function mudarParte(mudanca) {
+  const parte = modelo?.partes.find((p) => p.id === balao?.id);
+  if (!parte || !vinculo) return;
+  const alvo = $("lg-balao-todas").checked ? modelo.partes.filter((p) => p.cor === parte.cor) : [parte];
+  guardarParaDesfazer();
+  for (const p of alvo) escolhas.push({ ponto: pixelDaParte(p), ...mudanca });
+  if (mudanca.cor) marcarCores($("lg-balao-cores"), mudanca.cor);
+  mapaMudou({ espera: 0 });
+}
+
+function alturaDoBalao() {
+  const n = Number(String($("lg-balao-altura").value).replace(",", "."));
+  const [minimo, maximo] = LIMITES_RELEVO.altura;
+  if (!Number.isFinite(n) || n < minimo || n > maximo) {
+    $("lg-balao-erro").textContent = `Use de ${formatar(minimo)} a ${formatar(maximo)} mm.`;
+    return;
+  }
+  $("lg-balao-erro").textContent = "";
+  const altura = Math.round(n * 5) / 5; // passo de 0,2 mm (uma camada)
+  $("lg-balao-altura").value = formatar(altura);
+  mudarParte({ altura });
+}
+
+// Clique (sem arrastar) na peça: abre o balão da parte. Não vale com uma ferramenta de correção ligada.
+function ligarCliqueNaParte() {
+  const palco = $("lg-palco");
+  let inicio = null;
+  palco.addEventListener("pointerdown", (ev) => {
+    inicio = ev.button === 0 && !pincel.ligado() ? { x: ev.clientX, y: ev.clientY } : null;
+  });
+  palco.addEventListener("pointerup", (ev) => {
+    if (!inicio || !modelo || !vinculo || pincel.ligado()) return;
+    const parado = Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y) < 4;
+    inicio = null;
+    if (!parado) return;
+    let mm = null;
+    if (modo === "3d") {
+      const p = previa3d?.pontoNaPeca(ev.clientX, ev.clientY);
+      if (p) mm = [p[0] + vinculo.desloc[0], p[1] + vinculo.desloc[1]];
+    } else mm = previa2d.paraModelo(ev.clientX, ev.clientY);
+    const parte = mm && modelo.partes.find((p) => pontoDentro(p.lacos, mm));
+    if (!parte) return fecharBalao();
+    const r = palco.getBoundingClientRect();
+    abrirBalao(parte.id, ev.clientX - r.left, ev.clientY - r.top);
+  });
 }
 
 function mostrarDados() {
@@ -522,7 +615,7 @@ const pincel = (() => {
           marcas.push({ x: t.x, y: t.y, r: raioTela() });
           desenhar();
         } else {
-          const antes = { idx: mapa.idx.slice(), manual: manual.slice(), alvos: copiaAlvos(alvos), limpeza: limpeza() };
+          const antes = instantaneo();
           const v = valor();
           if (encher(mapa, ponto.x, ponto.y, v, manual)) {
             historico.push(antes);
@@ -825,6 +918,13 @@ export function iniciarLogo() {
   document.querySelector("#tela-logo .lg-cadeado").innerHTML = ICONES.cadeado;
   preencherCampos();
   pincel.iniciar();
+  $("lg-balao-cores").replaceChildren(...CORES_LOGO.map((c) => botaoCor(c, () => mudarParte({ cor: c.hex }))));
+  $("lg-balao-altura").addEventListener("change", alturaDoBalao);
+  $("lg-balao-altura").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") alturaDoBalao();
+  });
+  $("lg-balao-fechar").addEventListener("click", fecharBalao);
+  ligarCliqueNaParte();
 
   // projeto
   $("lg-renomear").addEventListener("click", renomear);
@@ -869,6 +969,10 @@ export function iniciarLogo() {
     if (ev.target.closest?.("input, textarea, select") || document.querySelector("dialog[open]")) return;
     if (ev.key === "Escape" && pincel.ligado()) {
       pincel.ligar(false);
+      return;
+    }
+    if (ev.key === "Escape" && balao) {
+      fecharBalao();
       return;
     }
     if (!(ev.ctrlKey || ev.metaKey)) return;
@@ -945,7 +1049,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem, abrirBalao, gerar, adicionarEscolha: (e) => escolhas.push(e) };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {

@@ -1769,6 +1769,19 @@
               <canvas class="lg-camada" id="lg-camada" aria-hidden="true"></canvas>
             </div>
             <p class="lg-dica" id="lg-dica" hidden></p>
+            <div class="lg-balao" id="lg-balao" role="dialog" aria-label="Parte escolhida" hidden>
+              <div class="lg-balao-topo">
+                <span>Parte</span>
+                <button type="button" class="fechar" id="lg-balao-fechar" aria-label="Fechar">×</button>
+              </div>
+              <div class="lg-bolinhas" id="lg-balao-cores" role="group" aria-label="Cor da parte"></div>
+              <label class="campo">
+                <span>Altura</span>
+                <div class="entrada"><input id="lg-balao-altura" inputmode="decimal" /><em>mm</em></div>
+              </label>
+              <p class="erro-campo" id="lg-balao-erro" role="alert"></p>
+              <label class="lg-balao-todas"><input type="checkbox" id="lg-balao-todas" /> Todas desta cor</label>
+            </div>
             <div class="lg-zoom" role="group" aria-label="Zoom">
               <button type="button" id="lg-zoom-menos" aria-label="Diminuir zoom">−</button>
               <span id="lg-zoom-valor">100%</span>

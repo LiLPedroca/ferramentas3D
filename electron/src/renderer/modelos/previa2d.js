@@ -44,6 +44,7 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   let panorama = null; // { x, y, desvio } enquanto arrasta a vista (botão direito ou do meio)
   let arrasto = null; // { t, centro }
   let arrastoSimbolo = null; // { inicio: [x, y], atual: [x, y] } em mm
+  let destaque = null; // id da camada contornada (parte escolhida no 2D para 3D)
 
   function transformacao() {
     const { min, max } = modelo.caixa;
@@ -97,6 +98,19 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
         ctx.stroke();
       }
     });
+    const escolhida = destaque === null ? null : modelo.camadas.find((c) => c.id === destaque);
+    if (escolhida) {
+      caminho(ctx, escolhida.lacos, paraTela);
+      ctx.save();
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(0,0,0,0.8)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
     // símbolo arrastável: moldura tracejada (e a posição nova enquanto arrasta)
     if (modelo.simbolo && aoSoltarSimbolo) {
       const { min, max } = modelo.simbolo.caixa;
@@ -246,6 +260,11 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   const api = {
     mostrar(novo) {
       modelo = novo;
+      desenhar();
+    },
+    // contorna a camada com esse id (null tira o contorno)
+    destacar(id) {
+      destaque = id ?? null;
       desenhar();
     },
     ativar(sim) {
