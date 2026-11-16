@@ -71,6 +71,7 @@ export function criarPrevia(container, opcoes = {}) {
   let distanciaInicial = 1;
 
   let malhas = [];
+  let extras = [];
   let primeiraVez = true;
   let centro = new THREE.Vector3();
   let tamanho = new THREE.Vector3(10, 10, 10);
@@ -192,6 +193,49 @@ export function criarPrevia(container, opcoes = {}) {
       const dir = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0); // direita da câmera
       const b = this.paraTela([ponto[0] + dir.x, ponto[1] + dir.y, ponto[2] + dir.z]);
       return 1 / Math.max(1e-6, Math.hypot(b[0] - a[0], b[1] - a[1]));
+    },
+    // Peças a mais por cima da principal (ex.: logos no copo), sem mexer no enquadramento.
+    // lista: [{ id, cor, posicoes (Float32Array, triângulos soltos) }]
+    extras(lista) {
+      for (const m of extras) {
+        cena.remove(m);
+        m.geometry.dispose();
+        m.material.dispose();
+      }
+      extras = lista.map((e) => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(e.posicoes, 3));
+        g.computeVertexNormals();
+        const malha = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: e.cor, roughness: 0.5, metalness: 0.05, emissive: 0x000000 }));
+        malha.userData.id = e.id;
+        cena.add(malha);
+        return malha;
+      });
+    },
+    // id da peça a mais sob o mouse (ou null)
+    extraNoPonto(clientX, clientY) {
+      const r = renderizador.domElement.getBoundingClientRect();
+      if (!r.width || !extras.length) return null;
+      raio.setFromCamera(new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1), camera);
+      return raio.intersectObjects(extras, false)[0]?.object.userData.id ?? null;
+    },
+    // realça as peças a mais de um id (as outras ficam normais)
+    realcarExtra(id) {
+      for (const m of extras) m.material.emissive.setHex(m.userData.id === id && id !== null ? 0x1d3d7a : 0x000000);
+    },
+    // gira as peças a mais de um id em volta de um eixo vertical (centro [x, y]) e sobe dz (arrastar)
+    moverExtra(id, angulo, dz, [cx, cy]) {
+      const c = Math.cos(angulo);
+      const s = Math.sin(angulo);
+      for (const m of extras) {
+        if (m.userData.id !== id) continue;
+        m.rotation.z = angulo;
+        m.position.set(cx - (c * cx - s * cy), cy - (s * cx + c * cy), dz);
+      }
+    },
+    // trava o giro da câmera (enquanto arrasta algo na peça)
+    travarGiro(sim) {
+      controles.enabled = !sim;
     },
     aoMudarVista: null,
   };

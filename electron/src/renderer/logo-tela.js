@@ -565,7 +565,7 @@ function agendar(espera = 250) {
 }
 
 function habilitar(pronto) {
-  for (const id of ["lg-3mf", "lg-exportar-mais", "lg-fatiador", "lg-custo", "lg-salvar-modelo"]) $(id).disabled = !pronto;
+  for (const id of ["lg-3mf", "lg-exportar-mais", "lg-fatiador", "lg-custo", "lg-salvar-modelo", "lg-copo-usar"]) $(id).disabled = !pronto;
   if (!pronto) fecharMenuExportar();
 }
 
@@ -1017,25 +1017,32 @@ async function imagemParaGuardar(rgba, w, h, limite = 1_900_000) {
   throw new Error("A imagem do logo ficou grande demais para guardar.");
 }
 
+// Tudo o que é preciso para reabrir a peça como está: opções, imagem (no tamanho do mapa) e correções.
+async function estadoParaGuardar() {
+  const temCorrecao = manual.some((v) => v);
+  return {
+    opcoes: {
+      ...opcoes,
+      versao: 3,
+      escolhas,
+      alvos: alvos.map((a) => ({ cor: CORES_LOGO[a.cor].id, ref: a.ref.map(Math.round) })),
+      nomeImagem: $("lg-nome").textContent,
+    },
+    imagem: await imagemParaGuardar(new Uint8ClampedArray(imagem.data), imagem.width, imagem.height),
+    correcoes: temCorrecao ? await imagemParaGuardar(rgbaDasCorrecoes(mapa, manual), mapa.largura, mapa.altura, 1_400_000) : "",
+  };
+}
+
 async function salvarProjeto() {
   if (!modelo || !mapa) return;
   terminarRenomear(true);
   $("lg-salvar-modelo").disabled = true;
   try {
-    const temCorrecao = manual.some((v) => v);
     const valores = {
       tipo: "logo",
       nome: nomeProjeto || "Peça",
-      opcoes: {
-        ...opcoes,
-        versao: 3,
-        escolhas,
-        alvos: alvos.map((a) => ({ cor: CORES_LOGO[a.cor].id, ref: a.ref.map(Math.round) })),
-        nomeImagem: $("lg-nome").textContent,
-      },
+      ...(await estadoParaGuardar()),
       miniatura: miniatura(modelo),
-      imagem: await imagemParaGuardar(new Uint8ClampedArray(imagem.data), imagem.width, imagem.height),
-      correcoes: temCorrecao ? await imagemParaGuardar(rgbaDasCorrecoes(mapa, manual), mapa.largura, mapa.altura, 1_400_000) : "",
     };
     const resposta = await window.dados.projetos.salvar(valores, projetoAtual?.id);
     if (!resposta.ok) {
@@ -1053,7 +1060,92 @@ async function salvarProjeto() {
   }
 }
 
+// ---------- Logo do copo: o 2D para 3D numa janela grande por cima dos Copos personalizados ----------
+// A tela do 2D para 3D vai para dentro da janela (sem Chaveiro e sem exportar) e volta ao fechar. O que
+// estava aberto no 2D para 3D antes é reaberto depois.
+let noCopo = null; // { resolver, lugar: [pai, próximo], antes }
+
+// salvo (opcional): a logo que já estava no copo ({ opcoes, imagem, correcoes }).
+// Devolve { salvo, malhas, miniatura } ao usar no copo, ou null se cancelou.
+// invisivel: refaz a peça da logo salva sem mostrar a janela (ao reabrir um copo de Meus modelos).
+export async function abrirLogoNoCopo(salvo = null, { invisivel = false } = {}) {
+  if (noCopo) return null;
+  const tela = $("tela-logo");
+  const antes = modelo && imagem && mapa ? { ...(await estadoParaGuardar()), id: projetoAtual?.id, nome: nomeProjeto, sujo } : null;
+  noCopo = { lugar: [tela.parentElement, tela.nextSibling], antes };
+  $("lg-copo-corpo").append(tela);
+  tela.classList.remove("oculta");
+  tela.classList.add("lg-no-copo");
+  if (!invisivel) $("dialogo-logo-copo").showModal();
+  const resultado = new Promise((r) => {
+    noCopo.resolver = r;
+  });
+  if (salvo?.imagem) await carregar([arquivoDeTexto(salvo.imagem, salvo.opcoes?.nomeImagem || "logo.png")], { ...salvo, id: undefined, nome: "Logo do copo" });
+  else {
+    imagem = null;
+    modelo = null;
+    partes = null;
+    mapa = null;
+    opcoes = { ...PADRAO_RELEVO, largura: 50, altura: 2 };
+    $("lg-trabalho").hidden = true;
+    $("lg-zona").hidden = false;
+  }
+  if (invisivel) {
+    if (imagem) await usarNoCopo();
+    else terminarNoCopo(null);
+  }
+  return resultado;
+}
+
+async function terminarNoCopo(valor) {
+  if (!noCopo) return;
+  const { resolver, lugar, antes } = noCopo;
+  noCopo = null;
+  const tela = $("tela-logo");
+  fecharBalao();
+  if (pincel.ligado()) pincel.ligar(false);
+  if ($("dialogo-logo-copo").open) $("dialogo-logo-copo").close();
+  tela.classList.remove("lg-no-copo");
+  tela.classList.add("oculta");
+  lugar[0].insertBefore(tela, lugar[1]);
+  resolver(valor);
+  // o que estava no 2D para 3D volta como estava (ou a tela fica vazia, esperando uma imagem)
+  if (antes) {
+    await carregar([arquivoDeTexto(antes.imagem, antes.opcoes.nomeImagem || "logo.png")], { ...antes, id: antes.id });
+    projetoAtual = antes.id ? { id: antes.id, nome: antes.nome } : null;
+    nomeProjeto = antes.nome;
+    sujo = antes.sujo;
+    mostrarNome();
+    mostrarSelo();
+  } else {
+    imagem = null;
+    modelo = null;
+    partes = null;
+    mapa = null;
+    projetoAtual = null;
+    $("lg-trabalho").hidden = true;
+    $("lg-zona").hidden = false;
+  }
+}
+
+async function usarNoCopo() {
+  if (!noCopo || !imagem) return;
+  clearTimeout(temporizador);
+  await gerar();
+  if (!modelo) return;
+  const malhas = modelo.malhas.map((m) => ({ nome: m.nome, cor: m.cor, vertices: Array.from(m.vertices), triangulos: Array.from(m.triangulos) }));
+  terminarNoCopo({ salvo: await estadoParaGuardar(), malhas, miniatura: miniatura(modelo) });
+}
+
 export function iniciarLogo() {
+  $("lg-copo-usar").addEventListener("click", usarNoCopo);
+  $("lg-copo-cancelar").addEventListener("click", () => terminarNoCopo(null));
+  $("lg-copo-fechar").addEventListener("click", () => terminarNoCopo(null));
+  $("dialogo-logo-copo").addEventListener("cancel", (ev) => {
+    ev.preventDefault();
+    if (balao || pincel.ligado()) return; // o Esc fecha o balão ou a ferramenta primeiro
+    terminarNoCopo(null);
+  });
   ligarZonaArquivos($("lg-zona"), $("lg-entrada"), carregar);
   $("lg-trocar").addEventListener("click", () => $("lg-entrada").click());
   $("lg-renomear").innerHTML = ICONES.lapis;

@@ -1723,6 +1723,8 @@
             <span class="lg-selo" id="lg-selo"></span>
           </div>
           <div class="lg-topo-acoes">
+            <button class="botao-secundario lg-so-copo" id="lg-copo-cancelar" type="button">Cancelar</button>
+            <button class="botao-primario lg-so-copo" id="lg-copo-usar" type="button" disabled>Usar no copo</button>
             <button class="botao-secundario" id="lg-salvar-modelo" type="button" disabled>Salvar projeto</button>
             <div class="lg-exportar">
               <button class="botao-primario" id="lg-3mf" type="button" disabled>Exportar 3MF</button>
@@ -1776,13 +1778,13 @@
                 <span>Altura das partes</span>
                 <div class="entrada"><input id="lg-altura" inputmode="decimal" /><em>mm</em></div>
               </label>
-              <h3 class="lg-sub">Chaveiro</h3>
-              <div class="lg-chaveiro" role="radiogroup" aria-label="Chaveiro">
+              <h3 class="lg-sub lg-so-chaveiro">Chaveiro</h3>
+              <div class="lg-chaveiro lg-so-chaveiro" role="radiogroup" aria-label="Chaveiro">
                 <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="nenhum" checked /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path d="M12 6h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z" fill="currentColor" opacity="0.85"/></svg><span>Nenhum</span></label>
                 <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="argola" /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path d="M12 8h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z" fill="currentColor" opacity="0.85"/><circle cx="24" cy="4" r="4" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><span>Argola para chaveiro</span></label>
                 <label class="lg-chaveiro-cartao"><input type="radio" name="lg-chaveiro" value="furo" /><svg viewBox="0 0 48 52" width="44" height="46" aria-hidden="true"><path fill-rule="evenodd" d="M12 6h24l4 6v12c0 10-8 16-16 20C16 40 8 34 8 24V12z M24 11a3 3 0 1 0 0.01 0z" fill="currentColor" opacity="0.85"/></svg><span>Furo para chaveiro</span></label>
               </div>
-              <div class="lg-furo-linha" id="lg-furo-campo" hidden>
+              <div class="lg-furo-linha lg-so-chaveiro" id="lg-furo-campo" hidden>
                 <span>Tamanho do furo</span>
                 <div class="lg-furo-passo">
                   <button type="button" class="lg-relevo-botao" data-furo="menos" aria-label="Furo menor">−</button>
@@ -1975,6 +1977,22 @@
           <section><h2>Modelo</h2><div class="copos-catalogo" id="cp-catalogo"></div></section>
           <section><h2>Cores</h2><div class="copos-cores" id="cp-cores"></div></section>
           <details><summary>Personalização</summary><label class="copos-campo">Nome do projeto<input id="cp-nome" maxlength="80" value="Copo 1" /></label><button type="button" id="cp-restaurar">Restaurar preto e branco</button></details>
+          <details class="cp-logo" id="cp-logo-secao">
+            <summary><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="15" height="14" rx="2.5"/><path d="m3 15 4.5-4.5 4 4 2.5-2.5 4 4"/><circle cx="9" cy="9" r="1.6"/><path d="M19 2v6M16 5h6"/></svg>Logo personalizada</summary>
+            <div class="cp-logo-vazio" id="cp-logo-vazio">
+              <p>Coloque uma logo no tubo do copo. Ela sai reta na mesa, para você moldar.</p>
+              <button type="button" class="cp-logo-adicionar" id="cp-logo-adicionar" disabled>Adicionar logo</button>
+            </div>
+            <div class="cp-logo-com" id="cp-logo-com" hidden>
+              <div class="cp-logo-cartao"><img id="cp-logo-miniatura" alt="Logo" /><span id="cp-logo-info"></span></div>
+              <button type="button" id="cp-logo-editar">Editar logo</button>
+              <p class="cp-logo-nota">Ao editar, as cópias mudam juntas.</p>
+              <button type="button" id="cp-logo-clonar">Clonar logo</button>
+              <button type="button" id="cp-logo-remover-esta" hidden>Remover esta cópia</button>
+              <button type="button" id="cp-logo-remover">Remover logo</button>
+              <p class="cp-logo-aviso" id="cp-logo-aviso" role="status"></p>
+            </div>
+          </details>
           <details><summary>Ajustes</summary><p>Encaixe para copo de alumínio</p><p>Ø interno 81,4 mm · altura 145 mm</p><label><input type="checkbox" id="cp-grade" checked /> Mostrar grade</label></details>
         </aside>
         <section class="copos-cena" aria-label="Prévia do copo">
@@ -2319,6 +2337,15 @@
     </dialog>
 
     <!-- Diálogo: atualizacao -->
+
+    <!-- Diálogo: logo do copo (a tela do 2D para 3D vem para cá enquanto ele está aberto) -->
+    <dialog class="dialogo dialogo-logo-copo" id="dialogo-logo-copo" aria-labelledby="titulo-logo-copo">
+      <header class="dialogo-topo">
+        <h2 id="titulo-logo-copo">Logo personalizada</h2>
+        <button type="button" class="fechar" id="lg-copo-fechar" aria-label="Cancelar">×</button>
+      </header>
+      <div class="lg-copo-corpo" id="lg-copo-corpo"></div>
+    </dialog>
 
     <dialog class="dialogo dialogo-novidade" id="dialogo-novidade" aria-labelledby="novidade-titulo">
       <span class="novidade-icone" id="novidade-icone" aria-hidden="true"></span>

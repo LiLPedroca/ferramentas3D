@@ -9,6 +9,7 @@ export function perfilCopo(cores) {
     if (chave.startsWith('filament_') && Array.isArray(valor)) perfil[chave] = cores.map((_cor, i) => valor[i] ?? valor[0]);
   }
   perfil.filament_colour = [...cores];
+  perfil.filament_colour_info = [...cores]; // bolinhas da lista de filamentos na janela do Anycubic
   perfil.filament_map = cores.map((_c, i) => String(i + 1));
   perfil.flush_volumes_chan_multipliers = cores.map(() => '1');
   perfil.flush_volumes_vector = Array(numero * 2).fill('140');

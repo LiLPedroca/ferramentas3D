@@ -2,6 +2,12 @@ import { BufferGeometry, Float32BufferAttribute } from "three";
 
 export const CATALOGO_COPOS = [{ id: 1, nome: "Copo 1" }, { id: 2, nome: "Copo 2" }, { id: 3, nome: "Copo 3" }];
 const CORES_PADRAO = ["#000000", "#ffffff"];
+// Onde cada copo fica na mesa do 3MF original (mm): as logos vão ao lado.
+export const COPO_NA_MESA = {
+  1: { min: [86.4, 86.4], max: [173.6, 174.1] },
+  2: { min: [92.6, 93.1], max: [183.0, 183.3] },
+  3: { min: [79.3, 79.6], max: [176.8, 176.4] },
+};
 export const coresIniciais = (partes, salvas = []) => partes.map((_p, i) => /^#[0-9a-f]{6}$/i.test(salvas[i]) ? salvas[i] : CORES_PADRAO[i % CORES_PADRAO.length]);
 export function lerPacoteCopo(bytes) {
   if (bytes.byteLength < 4) throw new Error("Arquivo do copo incompleto.");

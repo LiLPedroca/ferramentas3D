@@ -66,7 +66,7 @@ export function gerarStlNativoCopo(bytes) {
 }
 
 // Troca as cores sem reconstruir ou separar a malha pintada do arquivo original.
-export function colorir3mf(bytes, originais, cores, { nome: nomeModelo } = {}) {
+export function colorir3mf(bytes, originais, cores, { nome: nomeModelo, logos } = {}) {
   const mapa = new Map(originais.map((cor, i) => [cor.toLowerCase(), cores[i]]));
   const zip = unzipSync(bytes);
   const modelosUsados = prepararEstrutura3mf(zip);
@@ -108,5 +108,94 @@ export function colorir3mf(bytes, originais, cores, { nome: nomeModelo } = {}) {
       .replace(/<Override\b[^>]*\/>/g, tipo => existe(tipo.match(/PartName="([^"]+)"/)?.[1]) ? tipo : '');
     arquivos[nome] = strToU8(texto);
   }
+  juntarLogos(arquivos, logos);
   return zipSync(arquivos, { level: 6 });
+}
+
+// Logos do 2D para 3D junto do copo, retas e deitadas na mesa ao lado dele. logos: [{ x, y, malhas:
+// [{ nome, cor, vertices, triangulos }] }], com x, y = onde fica o canto de baixo à esquerda da logo na
+// mesa. Cada cor da logo usa um filamento; cor igual a uma do copo usa o mesmo filamento.
+export function comLogos(bytes, logos) {
+  if (!logos?.length) return bytes;
+  const zip = unzipSync(bytes);
+  juntarLogos(zip, logos);
+  return zipSync(zip, { level: 6 });
+}
+
+// Mesmo que comLogos, direto nos arquivos já abertos do 3MF (sem compactar de novo).
+function juntarLogos(zip, logos) {
+  if (!logos?.length) return;
+  const chaveModelo = '3D/3dmodel.model', chaveConfig = 'Metadata/model_settings.config', chavePerfil = 'Metadata/project_settings.config';
+  let modelo = strFromU8(zip[chaveModelo]);
+  let config = zip[chaveConfig] ? strFromU8(zip[chaveConfig]) : '<?xml version="1.0" encoding="UTF-8"?><config></config>';
+  const perfil = zip[chavePerfil] ? JSON.parse(strFromU8(zip[chavePerfil])) : { filament_colour: ['#000000'] };
+  const cores = [...perfil.filament_colour].map(c => c.slice(0, 7).toUpperCase());
+  // cor quase igual (ex.: o preto da logo #1B1B1B e o preto do copo #000000) usa o mesmo filamento
+  const rgb = c => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16));
+  const perto = (a, b) => Math.hypot(...rgb(a).map((v, k) => v - rgb(b)[k])) < 48;
+  const slotDa = cor => {
+    const c = cor.slice(0, 7).toUpperCase();
+    let i = cores.findIndex(x => perto(x, c));
+    if (i < 0) i = cores.push(c) - 1;
+    return i + 1;
+  };
+  let proximo = Math.max(0, ...[...modelo.matchAll(/<(?:\w+:)?object\b[^>]*\bid="(\d+)"/g)].map(m => Number(m[1]))) + 1;
+  const num = n => String(Math.round(n * 1e4) / 1e4);
+  const objetos = [], itens = [], configs = [];
+  logos.forEach((logo, k) => {
+    let minX = Infinity, minY = Infinity;
+    for (const m of logo.malhas) for (let i = 0; i < m.vertices.length; i += 3) { minX = Math.min(minX, m.vertices[i]); minY = Math.min(minY, m.vertices[i + 1]); }
+    const ids = logo.malhas.map(m => {
+      const id = proximo++;
+      const vs = [];
+      for (let i = 0; i < m.vertices.length; i += 3) vs.push(`<vertex x="${num(m.vertices[i] - minX)}" y="${num(m.vertices[i + 1] - minY)}" z="${num(m.vertices[i + 2])}"/>`);
+      const ts = [];
+      for (let i = 0; i < m.triangulos.length; i += 3) ts.push(`<triangle v1="${m.triangulos[i]}" v2="${m.triangulos[i + 1]}" v3="${m.triangulos[i + 2]}"/>`);
+      objetos.push(`<object id="${id}" type="model"><mesh><vertices>${vs.join('')}</vertices><triangles>${ts.join('')}</triangles></mesh></object>`);
+      return id;
+    });
+    const conjunto = proximo++;
+    const nome = escaparXml(`Logo ${k + 1}`);
+    objetos.push(`<object id="${conjunto}" type="model" name="${nome}"><components>${ids.map(id => `<component objectid="${id}"/>`).join('')}</components></object>`);
+    itens.push(`<item objectid="${conjunto}" transform="1 0 0 0 1 0 0 0 1 ${num(logo.x)} ${num(logo.y)} 0" printable="1"/>`);
+    const partes = logo.malhas.map((m, i) => `<part id="${ids[i]}" subtype="normal_part"><metadata key="name" value="${escaparXml(m.nome ?? `Cor ${i + 1}`)}"/><metadata key="extruder" value="${slotDa(m.cor)}"/></part>`).join('');
+    configs.push(`<object id="${conjunto}"><metadata key="name" value="${nome}"/><metadata key="extruder" value="${slotDa(logo.malhas[0].cor)}"/>${partes}</object>`);
+  });
+  modelo = modelo.replace(/(<\/(?:\w+:)?resources>)/, `${objetos.join('')}$1`).replace(/(<\/(?:\w+:)?build>)/, `${itens.join('')}$1`);
+  config = config.replace(/(<\/config>)/, `${configs.join('')}$1`);
+  zip[chaveModelo] = strToU8(modelo);
+  zip[chaveConfig] = strToU8(config);
+  zip[chavePerfil] = strToU8(JSON.stringify(perfilCopo(cores)));
+}
+
+// STL do copo com as logos ao lado (mesmo lugar do 3MF). copoNaMesa: centro do copo na mesa do 3MF; o STL
+// do copo sai centrado em x, y.
+export function stlComLogos(stl, logos, centroDoCopo) {
+  if (!logos?.length) return stl;
+  const extras = [];
+  for (const logo of logos) {
+    let minX = Infinity, minY = Infinity;
+    for (const m of logo.malhas) for (let i = 0; i < m.vertices.length; i += 3) { minX = Math.min(minX, m.vertices[i]); minY = Math.min(minY, m.vertices[i + 1]); }
+    const dx = logo.x - minX - centroDoCopo[0], dy = logo.y - minY - centroDoCopo[1];
+    for (const m of logo.malhas) for (let i = 0; i < m.triangulos.length; i++) {
+      const k = m.triangulos[i] * 3;
+      extras.push(m.vertices[k] + dx, m.vertices[k + 1] + dy, m.vertices[k + 2]);
+    }
+  }
+  const antes = new DataView(stl.buffer, stl.byteOffset, stl.byteLength).getUint32(80, true);
+  const novos = extras.length / 9;
+  const saida = new Uint8Array(stl.length + novos * 50);
+  saida.set(stl);
+  const view = new DataView(saida.buffer);
+  view.setUint32(80, antes + novos, true);
+  let o = stl.length;
+  for (let t = 0; t < extras.length; t += 9) {
+    const [ax, ay, az, bx, by, bz, cx, cy, cz] = extras.slice(t, t + 9);
+    const u = [bx - ax, by - ay, bz - az], w = [cx - ax, cy - ay, cz - az];
+    const n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
+    const l = Math.hypot(...n) || 1;
+    for (const v of [n[0] / l, n[1] / l, n[2] / l, ax, ay, az, bx, by, bz, cx, cy, cz]) { view.setFloat32(o, v, true); o += 4; }
+    o += 2;
+  }
+  return saida;
 }

@@ -48,3 +48,31 @@ body:has(#tela-caneca:not(.oculta)) .interruptor-tema .bolinha-tema { transform:
 .copos-exportar #cp-multipartes { cursor:not-allowed; }
 .copos-exportar small { display:block; margin-top:3px; color:var(--texto-suave); }
 @media(max-width:850px) { .copos-editor { grid-template-columns:250px minmax(0,1fr); } .copos-painel { padding:18px; } .copos-catalogo { gap:4px; } .copos-catalogo img { height:80px; } }
+
+/* Logo personalizada (2D para 3D no tubo do copo) */
+.copos-painel .cp-logo summary { justify-content:flex-start; align-items:center; gap:10px; }
+.copos-painel .cp-logo summary::after { margin-left:auto; }
+.copos-painel .cp-logo:not(.com-logo) summary { border:1.5px solid var(--acento); border-radius:10px; padding:11px 12px; margin:0 -2px; }
+.copos-painel .cp-logo:not(.com-logo)[open] summary { margin-bottom:10px; }
+.cp-logo-vazio, .cp-logo-com { display:grid; gap:8px; margin-top:10px; }
+.cp-logo-vazio p, .cp-logo-com p { margin:0; }
+.cp-logo-adicionar { background:var(--acento) !important; color:var(--acento-texto) !important; border-color:var(--acento) !important; font-weight:600; }
+.cp-logo-cartao { display:flex; align-items:center; gap:12px; padding:8px; border:1px solid var(--borda); border-radius:10px; }
+.cp-logo-cartao img { width:56px; height:56px; object-fit:contain; border-radius:8px; background:var(--superficie-2); }
+.cp-logo-cartao span { color:var(--texto-suave); font-size:13px; }
+.copos-painel .cp-logo-nota { font-size:12px; margin-top:-4px; }
+.copos-painel .cp-logo-aviso { color:var(--aviso, #e5a23d); font-size:12.5px; }
+.copos-painel .cp-logo-aviso:empty { display:none; }
+.copos-3d.arrastando canvas { cursor:grabbing; }
+
+/* Janela grande do 2D para 3D por cima do copo */
+.dialogo-logo-copo { width:min(1500px, calc(100vw - 48px)); height:calc(100vh - 48px); max-height:none; display:none; }
+.dialogo-logo-copo[open] { display:flex; flex-direction:column; }
+.dialogo-logo-copo .dialogo-topo { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--borda); }
+.dialogo-logo-copo .dialogo-topo h2 { margin:0; font-size:18px; }
+.lg-copo-corpo { flex:1; min-height:0; display:flex; }
+.lg-copo-corpo > .tela { flex:1; min-height:0; }
+.lg-so-copo { display:none; }
+.lg-no-copo .lg-so-copo { display:inline-flex; }
+.lg-no-copo .lg-so-chaveiro, .lg-no-copo #lg-salvar-modelo, .lg-no-copo .lg-exportar, .lg-no-copo .lg-rodape-acoes, .lg-no-copo .lg-renomear, .lg-no-copo .lg-selo { display:none !important; }
+

@@ -1,14 +1,16 @@
-import { CATALOGO_COPOS, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
-import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo } from './modelos/copos-exportar.js';
+import { CATALOGO_COPOS, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
+import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo, stlComLogos } from './modelos/copos-exportar.js';
+import { anguloDaNovaCopia, caixaDaLogo, limitarAltura, logoMaiorQueOTubo, logoNaCurva, logosNaMesa, medirTubo, raioEm } from './modelos/logo-copo.js';
+import { abrirLogoNoCopo } from './logo-tela.js';
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
-import { registrarAoAbrir, irPara, mostrarAviso } from './shell.js';
+import { registrarAoAbrir, irPara, mostrarAviso, confirmar } from './shell.js';
 import { salvarArquivoModelo, salvarModeloComo, enviarModeloAoFatiador, densidadeDoModelo } from './modelos-acoes.js';
 import { preencherDoModelo } from './calculadora-tela.js';
 
 const $ = id => document.getElementById(id);
 let pacote, cores = [], previa, id = 1, pedido = 0, atual = null, ocupado = false, pronto = false;
-const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base'];
+const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base', 'cp-logo-adicionar', 'cp-logo-editar', 'cp-logo-clonar', 'cp-logo-remover', 'cp-logo-remover-esta'];
 function bloquear(sim) {
   ocupado = sim;
   [...acoes, 'cp-restaurar'].forEach(id => { $(id).disabled = sim || !pronto; });
@@ -39,6 +41,9 @@ async function carregar(novo, salvas) {
     previa ??= criarPrevia($('cp-3d'), { frente: true, gradeSuave: true });
     previa.mostrar(aplicarCores(pacote.partes, cores)); previa.enquadrar();
     anterior?.partes.forEach(p => p.geometria.dispose());
+    tubo = medirTubo(pacote.partes);
+    if (logo) { logo.copias = logo.copias.map(c => ({ ...c, z: limitarAltura(c.z, logo.caixa.altura, tubo) })); }
+    mostrarLogo();
     $('cp-nome').value = atual?.nome ?? `Copo ${novo}`;
     $('cp-medidas').textContent = '145 mm · Ø interno 81,4 mm';
     $('cp-status').textContent = ''; controles(); pronto = true; bloquear(false);
@@ -46,6 +51,15 @@ async function carregar(novo, salvas) {
 }
 function volume() {
   let soma = 0;
+  if (logo) for (const m of logo.malhas) {
+    const v = m.vertices, t = m.triangulos;
+    let s = 0;
+    for (let i = 0; i < t.length; i += 3) {
+      const [a, b, c] = [t[i] * 3, t[i + 1] * 3, t[i + 2] * 3];
+      s += v[a] * (v[b + 1] * v[c + 2] - v[b + 2] * v[c + 1]) + v[a + 1] * (v[b + 2] * v[c] - v[b] * v[c + 2]) + v[a + 2] * (v[b] * v[c + 1] - v[b + 1] * v[c]);
+    }
+    soma += Math.abs(s) * logo.copias.length;
+  }
   for (const p of pacote.partes) {
     const a = p.geometria.attributes.position.array;
     for (let i = 0; i < a.length; i += 9) soma += a[i] * (a[i+4]*a[i+8]-a[i+5]*a[i+7]) + a[i+1]*(a[i+5]*a[i+6]-a[i+3]*a[i+8]) + a[i+2]*(a[i+3]*a[i+7]-a[i+4]*a[i+6]);
@@ -57,8 +71,138 @@ async function nativo() {
   const nome = $('cp-nome').value || `Copo ${id}`;
   const r = await window.modelos.lerCopo(id, true);
   if (!r.ok) throw Error(r.erro);
-  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas, { nome }) };
+  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas, { nome, logos: logosParaMesa() }), aviso: avisoDaMesa() };
 }
+
+// ---------- Logo personalizada (2D para 3D no tubo do copo) ----------
+// logo: { salvo, malhas, caixa, miniatura, copias: [{ angulo, z }] }. A arte é a mesma em todas as cópias.
+let logo = null, tubo = null, selecionada = null, arrasto = null;
+
+const copoNaMesa = () => COPO_NA_MESA[id] ?? COPO_NA_MESA[1];
+function logosParaMesa() {
+  if (!logo) return [];
+  const { lugares } = logosNaMesa(logo.copias.length, logo.caixa, copoNaMesa());
+  return lugares.map(l => ({ x: l.x, y: l.y, malhas: logo.malhas }));
+}
+function avisoDaMesa() {
+  if (!logo || logosNaMesa(logo.copias.length, logo.caixa, copoNaMesa()).cabem) return '';
+  return ' Nem todas as logos couberam ao lado do copo: arrume na mesa do fatiador.';
+}
+function centroNaMesa() {
+  const c = copoNaMesa();
+  return [(c.min[0] + c.max[0]) / 2, (c.min[1] + c.max[1]) / 2];
+}
+
+// Desenha as cópias dobradas no tubo (cada cópia com o seu id na prévia).
+function mostrarLogo() {
+  const com = Boolean(logo);
+  $('cp-logo-secao').classList.toggle('com-logo', com);
+  $('cp-logo-vazio').hidden = com;
+  $('cp-logo-com').hidden = !com;
+  if (!previa) return;
+  if (!com || !tubo) { previa.extras([]); return; }
+  const lista = [];
+  logo.copias.forEach((c, i) => {
+    for (const m of logo.malhas) lista.push({ id: i, cor: m.cor, posicoes: logoNaCurva(m, logo.caixa, c, tubo) });
+  });
+  previa.extras(lista);
+  previa.realcarExtra(selecionada);
+  $('cp-logo-miniatura').src = logo.miniatura;
+  const mm = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  const n = logo.copias.length;
+  $('cp-logo-info').textContent = `${mm(logo.caixa.largura)} × ${mm(logo.caixa.altura)} mm · ${n} ${n === 1 ? 'logo' : 'logos'}`;
+  $('cp-logo-remover-esta').hidden = selecionada === null || n < 2;
+  const avisos = [];
+  if (logoMaiorQueOTubo(logo.caixa.altura, tubo)) avisos.push(`A logo é mais alta que o tubo (${mm(tubo.z1 - tubo.z0)} mm): diminua a largura dela.`);
+  if (!logosNaMesa(n, logo.caixa, copoNaMesa()).cabem) avisos.push('Nem todas as logos cabem na mesa ao lado do copo.');
+  $('cp-logo-aviso').textContent = avisos.join(' ');
+}
+
+async function editarLogo() {
+  if (ocupado || !pronto) return;
+  const r = await abrirLogoNoCopo(logo?.salvo ?? null);
+  if (!r) return;
+  usarLogo(r, logo?.copias);
+}
+
+function usarLogo(r, copias) {
+  const caixa = caixaDaLogo(r.malhas);
+  const meio = tubo ? (tubo.z0 + tubo.z1) / 2 : 100;
+  logo = { ...r, caixa, copias: (copias ?? [{ angulo: 0, z: meio }]).map(c => ({ ...c, z: tubo ? limitarAltura(c.z, caixa.altura, tubo) : c.z })) };
+  selecionada = null;
+  mostrarLogo();
+}
+
+function clonarLogo() {
+  if (!logo || !tubo) return;
+  const raio = raioEm(tubo, logo.copias[0].z);
+  const angulo = anguloDaNovaCopia(logo.copias.map(c => c.angulo), (logo.caixa.largura + 6) / raio);
+  if (angulo === null) { mostrarAviso('Não cabe mais uma cópia em volta do copo.'); return; }
+  logo.copias.push({ angulo, z: logo.copias[0].z });
+  selecionada = logo.copias.length - 1;
+  mostrarLogo();
+}
+
+async function removerLogo() {
+  if (!logo) return;
+  const ok = await confirmar({ titulo: 'Remover a logo?', texto: logo.copias.length > 1 ? 'A logo e as cópias saem do copo.' : 'A logo sai do copo.', botao: 'Remover' });
+  if (!ok) return;
+  logo = null;
+  selecionada = null;
+  mostrarLogo();
+}
+
+function removerEsta() {
+  if (!logo || selecionada === null || logo.copias.length < 2) return;
+  logo.copias.splice(selecionada, 1);
+  selecionada = null;
+  mostrarLogo();
+}
+
+// Arrastar uma cópia: gira em volta do copo e sobe/desce, sempre dentro do tubo.
+function ligarArrasto() {
+  const area = $('cp-3d');
+  const anguloDe = p => Math.atan2(p[0] - tubo.centro[0], -(p[1] - tubo.centro[1]));
+  area.addEventListener('pointerdown', ev => {
+    if (!logo || !tubo || ev.button !== 0 || !previa) return;
+    const alvo = previa.extraNoPonto(ev.clientX, ev.clientY);
+    if (alvo === null) {
+      if (selecionada !== null) { selecionada = null; previa.realcarExtra(null); $('cp-logo-remover-esta').hidden = true; }
+      return;
+    }
+    selecionada = alvo;
+    previa.realcarExtra(alvo);
+    $('cp-logo-remover-esta').hidden = logo.copias.length < 2;
+    $('cp-logo-secao').open = true;
+    const p = previa.pontoNaPeca(ev.clientX, ev.clientY);
+    const c = logo.copias[alvo];
+    arrasto = { id: alvo, inicio: { ...c }, pega: p ? anguloDe(p) : c.angulo, pegaZ: p ? p[2] : c.z, mexeu: false };
+    previa.travarGiro(true);
+    area.classList.add('arrastando');
+    area.setPointerCapture?.(ev.pointerId);
+  });
+  area.addEventListener('pointermove', ev => {
+    if (!arrasto) return;
+    const p = previa.pontoNaPeca(ev.clientX, ev.clientY);
+    if (!p) return;
+    const c = logo.copias[arrasto.id];
+    c.angulo = arrasto.inicio.angulo + (anguloDe(p) - arrasto.pega);
+    c.z = limitarAltura(arrasto.inicio.z + (p[2] - arrasto.pegaZ), logo.caixa.altura, tubo);
+    arrasto.mexeu = true;
+    previa.moverExtra(arrasto.id, c.angulo - arrasto.inicio.angulo, c.z - arrasto.inicio.z, tubo.centro);
+  });
+  const soltar = () => {
+    if (!arrasto) return;
+    const mexeu = arrasto.mexeu;
+    arrasto = null;
+    previa.travarGiro(false);
+    area.classList.remove('arrastando');
+    if (mexeu) mostrarLogo();
+  };
+  area.addEventListener('pointerup', soltar);
+  area.addEventListener('pointercancel', soltar);
+}
+
 async function executar(fn) {
   if (ocupado || !pronto) return;
   bloquear(true); $('cp-exportar').open = false; $('cp-status').textContent = 'Preparando…';
@@ -81,16 +225,27 @@ export function iniciarCopos() {
   $('cp-custo').addEventListener('click', () => executar(() => preencherDoModelo({ nome: $('cp-nome').value || `Copo ${id}`, pesoG: volume() / 1000 * densidadeDoModelo('PETG'), detalhe: 'Estimativa maciça; confira o peso no fatiador.' })));
   $('cp-salvar').addEventListener('click', () => executar(async () => {
     const canvas = $('cp-3d').querySelector('canvas'); const thumb = document.createElement('canvas'); thumb.width = 320; thumb.height = 240; thumb.getContext('2d').drawImage(canvas, 0, 0, 320, 240);
-    atual = await salvarEmMeusModelos({ tipo: 'caneca', atual, nomePadrao: $('cp-nome').value || `Copo ${id}`, montar: () => ({ opcoes: { catalogo: id, cores: [...cores] }, miniatura: thumb.toDataURL('image/png') }) }) ?? atual;
+    atual = await salvarEmMeusModelos({ tipo: 'caneca', atual, nomePadrao: $('cp-nome').value || `Copo ${id}`, montar: () => ({
+      opcoes: { catalogo: id, cores: [...cores], ...(logo ? { logo: { opcoes: logo.salvo.opcoes, copias: logo.copias } } : {}) },
+      miniatura: thumb.toDataURL('image/png'),
+      ...(logo ? { imagem: logo.salvo.imagem, correcoes: logo.salvo.correcoes } : {}),
+    }) }) ?? atual;
   }));
   $('cp-stl').addEventListener('click', () => executar(async () => {
     const r = await window.modelos.lerCopo(id, true);
     if (!r.ok) throw Error(r.erro);
-    await salvarArquivoModelo(gerarStlNativoCopo(r.dados), $('cp-nome').value || `Copo ${id}`, 'stl');
+    await salvarArquivoModelo(stlComLogos(gerarStlNativoCopo(r.dados), logosParaMesa(), centroNaMesa()), $('cp-nome').value || `Copo ${id}`, 'stl');
   }));
+  $('cp-logo-adicionar').addEventListener('click', editarLogo);
+  $('cp-logo-editar').addEventListener('click', editarLogo);
+  $('cp-logo-clonar').addEventListener('click', clonarLogo);
+  $('cp-logo-remover').addEventListener('click', removerLogo);
+  $('cp-logo-remover-esta').addEventListener('click', removerEsta);
+  ligarArrasto();
   $('cp-3mf').addEventListener('click', () => executar(() => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   $('cp-multipartes').addEventListener('click', () => executar(async () => {
     if (id !== 1) return;
+    if (logo) mostrarAviso('A logo não vai no arquivo em multipartes. Para levar a logo, use Salvar 3MF.');
     const escolhidas = [...cores], nome = ($('cp-nome').value || 'Copo 1') + ' - multipartes';
     const r = await window.modelos.lerCopoMultipartes(id);
     if (!r.ok) throw Error(r.erro);
@@ -98,8 +253,18 @@ export function iniciarCopos() {
   }));
   $('cp-fatiador').addEventListener('click', () => executar(() => enviarModeloAoFatiador(aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });
+  window.__coposTeste = { logo: () => logo, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p) };
   registrarAbridor('caneca', async p => {
     if (!p.opcoes.catalogo) { irPara('caneca-legado'); return legado(p); }
-    atual = { id: p.id, nome: p.nome }; await carregar(p.opcoes.catalogo, p.opcoes.cores);
+    atual = { id: p.id, nome: p.nome };
+    logo = null;
+    await carregar(p.opcoes.catalogo, p.opcoes.cores);
+    if (p.opcoes.logo && p.imagem) {
+      $('cp-status').textContent = 'Refazendo a logo…';
+      const r = await abrirLogoNoCopo({ opcoes: p.opcoes.logo.opcoes, imagem: p.imagem, correcoes: p.correcoes }, { invisivel: true });
+      $('cp-status').textContent = '';
+      if (r) usarLogo(r, p.opcoes.logo.copias);
+      else mostrarAviso('Não foi possível refazer a logo deste copo.');
+    }
   });
 }

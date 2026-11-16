@@ -3,15 +3,17 @@ import { it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 const estado = vi.hoisted(() => ({ abrir: null, verBase: vi.fn() }));
 beforeEach(() => { vi.resetModules(); estado.verBase.mockClear(); });
-vi.mock('../src/renderer/shell.js', () => ({ registrarAoAbrir: (_id, fn) => { estado.abrir = fn; }, irPara: vi.fn(), mostrarAviso: vi.fn() }));
-vi.mock('../src/renderer/modelos/previa3d.js', () => ({ criarPrevia: () => ({ mostrar: vi.fn(), colorir: vi.fn(), enquadrar: vi.fn(), verBase: estado.verBase }) }));
+vi.mock('../src/renderer/shell.js', () => ({ registrarAoAbrir: (_id, fn) => { estado.abrir = fn; }, irPara: vi.fn(), mostrarAviso: vi.fn(), confirmar: vi.fn() }));
+vi.mock('../src/renderer/modelos/previa3d.js', () => ({ criarPrevia: () => ({ mostrar: vi.fn(), colorir: vi.fn(), enquadrar: vi.fn(), verBase: estado.verBase, extras: vi.fn(), realcarExtra: vi.fn() }) }));
+vi.mock('../src/renderer/logo-tela.js', () => ({ abrirLogoNoCopo: vi.fn() }));
+vi.mock('../src/renderer/modelos/logo-copo.js', () => ({ medirTubo: () => ({ centro: [0, 0], z0: 30, z1: 120, raios: [40] }), limitarAltura: (z) => z, anguloDaNovaCopia: vi.fn(), caixaDaLogo: vi.fn(), logoMaiorQueOTubo: vi.fn(), logoNaCurva: vi.fn(), logosNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), raioEm: vi.fn() }));
 vi.mock('../src/renderer/modelos-ui.js', () => ({ abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn() }));
 vi.mock('../src/renderer/modelos-acoes.js', () => ({ salvarArquivoModelo: vi.fn(), salvarModeloComo: vi.fn(), enviarModeloAoFatiador: vi.fn(), densidadeDoModelo: vi.fn() }));
-vi.mock('../src/renderer/modelos/copos-exportar.js', () => ({ colorir3mf: vi.fn(), gerarStlNativoCopo: vi.fn(), colorir3mfMultipartes: vi.fn(() => new Uint8Array([7])) }));
+vi.mock('../src/renderer/modelos/copos-exportar.js', () => ({ colorir3mf: vi.fn(), gerarStlNativoCopo: vi.fn(), colorir3mfMultipartes: vi.fn(() => new Uint8Array([7])), stlComLogos: vi.fn() }));
 vi.mock('../src/renderer/calculadora-tela.js', () => ({ preencherDoModelo: vi.fn() }));
 
 it('permite escolher outro copo depois de uma falha de leitura, sem habilitar exportação incompleta', async () => {
-  const ids = ['catalogo', 'cores', '3d', 'status', 'nome', 'medidas', 'restaurar', 'grade', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar', 'multipartes'];
+  const ids = ['catalogo', 'cores', '3d', 'status', 'nome', 'medidas', 'restaurar', 'grade', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar', 'logo-secao', 'logo-vazio', 'logo-com', 'logo-adicionar', 'logo-editar', 'logo-clonar', 'logo-remover', 'logo-remover-esta', 'logo-miniatura', 'logo-info', 'logo-aviso', 'multipartes'];
   document.body.innerHTML = ids.map(id => `<button id="cp-${id}"></button>`).join('');
   const lerCopo = vi.fn().mockResolvedValue({ ok: false, erro: 'Arquivo indisponível.' });
   window.modelos = { lerCopo };
@@ -25,7 +27,7 @@ it('permite escolher outro copo depois de uma falha de leitura, sem habilitar ex
 });
 
 it('abre a vista da assinatura somente depois que o copo terminou de carregar', async () => {
-  const ids = ['catalogo', 'cores', '3d', 'status', 'nome', 'medidas', 'restaurar', 'grade', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar'];
+  const ids = ['catalogo', 'cores', '3d', 'status', 'nome', 'medidas', 'restaurar', 'grade', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar', 'logo-secao', 'logo-vazio', 'logo-com', 'logo-adicionar', 'logo-editar', 'logo-clonar', 'logo-remover', 'logo-remover-esta', 'logo-miniatura', 'logo-info', 'logo-aviso'];
   document.body.innerHTML = ids.map(id => `<button id="cp-${id}" disabled></button>`).join('');
   const rodape = readFileSync('src/renderer/index.html', 'utf8').match(/<footer class="copos-rodape">[\s\S]*?<\/footer>/)[0];
   const html = new DOMParser().parseFromString(rodape, 'text/html');
@@ -49,7 +51,7 @@ it('abre a vista da assinatura somente depois que o copo terminou de carregar', 
 });
 
 it('exporta multipartes só do Copo 1, com cores atuais, e bloqueia a opção nos demais copos', async()=>{
- const ids=['catalogo','cores','3d','status','nome','medidas','restaurar','grade','mais','menos','ajustar','base','custo','salvar','stl','3mf','fatiador','exportar','multipartes'];
+ const ids=['catalogo','cores','3d','status','nome','medidas','restaurar','grade','mais','menos','ajustar','base','custo','salvar','stl','3mf','fatiador','exportar','multipartes','logo-secao','logo-vazio','logo-com','logo-adicionar','logo-editar','logo-clonar','logo-remover','logo-remover-esta','logo-miniatura','logo-info','logo-aviso'];
  document.body.innerHTML=ids.map(id=>`<button id="cp-${id}"></button>`).join('');
  const texto=JSON.stringify({partes:[{cor:'#000000',offset:0,count:9},{cor:'#ffffff',offset:36,count:9}]});
  const n=Math.ceil(texto.length/4)*4,bytes=new Uint8Array(4+n+72);bytes.fill(32,4,4+n);new DataView(bytes.buffer).setUint32(0,n,true);bytes.set(new TextEncoder().encode(texto),4);

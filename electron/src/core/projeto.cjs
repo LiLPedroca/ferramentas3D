@@ -36,7 +36,7 @@ function montarProjeto(valores, { id, anterior, agora = new Date().toISOString()
     // chaveiro de nome: a imagem do símbolo (opcional)
     imagem: ["logo", "caneca", "chaveiro"].includes(tipo) ? imagemDe(v.imagem, "Imagem do logo", LIMITES.imagem) : "",
     // Criador de logos: o que foi corrigido à mão, como imagem do tamanho do mapa (opcional)
-    correcoes: tipo === "logo" ? imagemDe(v.correcoes, "Correções do logo", LIMITES.correcoes) : "",
+    correcoes: ["logo", "caneca"].includes(tipo) ? imagemDe(v.correcoes, "Correções do logo", LIMITES.correcoes) : "",
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
   };
