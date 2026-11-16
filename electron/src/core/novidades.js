@@ -211,6 +211,26 @@ export const NOVIDADES = [
     itens: ["Cada parte da imagem vira um volume, lado a lado", "Clique numa parte para trocar a cor ou a altura", "No 3D, a peça aparece na mesa com as medidas"],
     botao: "Experimentar",
   },
+  {
+    id: "2d-para-3d-topo",
+    versao: "0.54.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Menos trocas de filamento",
+    texto: "Com AMS, a peça sobe inteira na cor principal e as outras cores entram só nas 3 últimas camadas.",
+    itens: ["Imprime mais rápido e gasta menos na limpeza", "A aba Personalizar tem a borracha e a varinha", "Cada cor vai para a posição do rolo cadastrada no Estoque"],
+    botao: "Entendi",
+  },
+  {
+    id: "calculadora-mao-de-obra",
+    versao: "0.54.0",
+    tela: "calculadora",
+    icone: "calculadora",
+    titulo: "Lucro e mão de obra",
+    texto: "Escolha se o lucro vale também sobre a mão de obra. A conta do preço aparece completa.",
+    itens: ["Padrão: a mão de obra entra sem lucro", "Embaixo do custo: lucro e preço do lote"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

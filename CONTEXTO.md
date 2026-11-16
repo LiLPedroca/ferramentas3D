@@ -670,3 +670,21 @@ Desenho: `docs/superpowers/specs/2026-11-16-2d-para-3d-design.md`; plano: `docs/
   de comando: com AMS T0–T3 sem M600; sem AMS 3 M600 em 3,2/4,2/5,2 mm.
 - Não conferido: impressão real; clique no 3D para abrir o balão (só no 2D por roteiro); ordem das cores sem AMS
   não é escolhida na tela (sempre maior área embaixo).
+
+## Trabalho do Claude Code (16/11/2026) — Cores só no topo, abas, filamento pela posição e calculadora (v0.54.0, só no PC do Pedro)
+
+- 2D para 3D com AMS: a cor de maior área é a base e sobe por baixo de todas as partes; as outras cores ficam só
+  nas últimas 3 camadas (`TOPO = 0,6` em `modelos/relevo.js`). Santos fatiado: trocas só a partir de Z 2,6 (antes
+  46 comandos T, agora 10). Sem AMS continua com degraus + M600.
+- Abas "Peça" e "Personalizar" no painel do 2D para 3D. Saíram o link "Corrigir na peça", a barra de ferramentas
+  de cima da prévia e o "Concluir". Abrir Personalizar liga a correção; Esc ou "Peça" desliga.
+- Filamento de cada cor no 3MF = posição do rolo daquela cor em Estoque > Na impressora (`slotsDaImpressora` em
+  `modelos-acoes.js`); cor sem rolo vai para uma posição livre. Motivo: o fatiador mostrava o branco em verde (a
+  cor que o filamento 2 tinha no perfil dele). Gravar `filament_colour` no 3MF foi descartado: o Anycubic só lê a
+  configuração de projeto de 3MF dele/Bambu e isso arriscaria trocar impressora e processo. Sem posições
+  cadastradas, nada muda. Vale para o 2D para 3D, a caneca e os modelos que usam `salvarModeloComo`.
+- Calculadora: caixinha "Lucro também sobre a mão de obra" (desligada por padrão, lembra a última escolha no
+  navegador da tela). Painel mostra "Lucro (X% sobre R$ Y)" e "Preço do lote". Cálculo guardado leva
+  `lucroNaMaoDeObra`; os antigos (sem o campo) eram com lucro sobre tudo.
+- Não conferido: a janela do Anycubic abrindo com as cores certas (depende das posições do Estoque baterem com os
+  filamentos do perfil do fatiador); impressão real das cores no topo.
