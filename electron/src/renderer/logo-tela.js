@@ -608,7 +608,7 @@ const pincel = (() => {
 
   function escolher(nova) {
     ferramenta = nova;
-    for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.setAttribute("aria-pressed", String(b.dataset.ferramenta === nova));
+    for (const b of document.querySelectorAll("#tela-logo [data-ferramenta]")) b.setAttribute("aria-pressed", String(b.dataset.ferramenta === nova));
     $("lg-tamanho-campo").hidden = !usaDisco();
     palco().classList.toggle("mira", !usaDisco());
     desenhar();
@@ -616,9 +616,6 @@ const pincel = (() => {
 
   function ligar(sim) {
     ligado = sim;
-    $("lg-ferramentas").hidden = !sim;
-    $("lg-corrigir").setAttribute("aria-pressed", String(sim));
-    $("lg-corrigir").textContent = sim ? "Corrigindo na peça… (Concluir)" : "Corrigir na peça";
     palco().classList.toggle("corrigindo", sim);
     previa3d?.modoPintura?.(sim && modo === "3d");
     mostrarDica();
@@ -628,7 +625,7 @@ const pincel = (() => {
   }
 
   function iniciar() {
-    for (const b of document.querySelectorAll("#lg-ferramentas [data-ferramenta]")) b.addEventListener("click", () => escolher(b.dataset.ferramenta));
+    for (const b of document.querySelectorAll("#tela-logo [data-ferramenta]")) b.addEventListener("click", () => escolher(b.dataset.ferramenta));
     escolher("borracha");
     $("lg-pincel").addEventListener("input", desenhar);
 
@@ -720,6 +717,13 @@ const pincel = (() => {
     },
   };
 })();
+
+function mostrarAba(aba) {
+  for (const b of document.querySelectorAll("#tela-logo [data-lg-aba]")) b.setAttribute("aria-selected", String(b.dataset.lgAba === aba));
+  for (const s of document.querySelectorAll("#tela-logo [data-lg-secao]")) s.hidden = s.dataset.lgSecao !== aba;
+  fecharBalao();
+  pincel.ligar(aba === "personalizar");
+}
 
 function mostrarDica() {
   const dica = $("lg-dica");
@@ -815,6 +819,7 @@ async function carregar([arquivo], salvo = null) {
 // info: { nome, w, h, svg } da imagem original. salvo: modelo de Meus modelos (opcional).
 async function usarImagem(pixels, info, salvo = null) {
   versaoMapa += 1;
+  if (pincel.ligado()) mostrarAba("peca");
   imagem = { ...pixels, nome: info.nome };
   tamanhoOriginal = { w: info.w, h: info.h, svg: info.svg === true };
   $("lg-trabalho").hidden = false;
@@ -1032,8 +1037,8 @@ export function iniciarLogo() {
     mostrarCores();
   });
 
-  $("lg-corrigir").addEventListener("click", () => pincel.ligar(!pincel.ligado()));
-  $("lg-concluir").addEventListener("click", () => pincel.ligar(false));
+  // abas do painel: "Personalizar" liga a correção na peça; "Peça" desliga
+  for (const b of document.querySelectorAll("#tela-logo [data-lg-aba]")) b.addEventListener("click", () => mostrarAba(b.dataset.lgAba));
 
   // desfazer / refazer (botões e Ctrl+Z / Ctrl+Y nesta tela); Esc sai da correção
   $("lg-desfazer").addEventListener("click", () => voltarEdicao(historico, refazer));
@@ -1042,7 +1047,7 @@ export function iniciarLogo() {
     if ($("tela-logo").classList.contains("oculta") || !mapa) return;
     if (ev.target.closest?.("input, textarea, select") || document.querySelector("dialog[open]")) return;
     if (ev.key === "Escape" && pincel.ligado()) {
-      pincel.ligar(false);
+      mostrarAba("peca");
       return;
     }
     if (ev.key === "Escape" && balao) {
@@ -1123,7 +1128,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, versaoMapa: () => versaoMapa, balao: () => balao, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, corrigindo: () => pincel.ligado(), versaoMapa: () => versaoMapa, balao: () => balao, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {

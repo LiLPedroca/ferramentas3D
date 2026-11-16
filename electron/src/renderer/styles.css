@@ -5836,7 +5836,8 @@ textarea:focus {
 
 .lg-abas {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 8px;
   gap: 4px;
   padding: 4px;
   border-radius: 12px;
@@ -5878,6 +5879,56 @@ textarea:focus {
 .lg-abas button[aria-selected="true"] span {
   background: var(--acento);
   color: var(--acento-texto);
+}
+
+.lg-rolagem[hidden] {
+  display: none;
+}
+
+/* aba Personalizar: ferramentas grandes, com o que cada uma faz */
+.lg-personalizar .ajuda {
+  margin: 10px 0 12px;
+}
+
+.lg-ferramentas-lista {
+  display: grid;
+  gap: 8px;
+}
+
+.lg-ferramentas-lista button {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lg-ferramentas-lista button span {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.lg-ferramentas-lista button[aria-pressed="true"] {
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 16%, var(--superficie-2));
+}
+
+.lg-personalizar .lg-tamanho-pincel {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.lg-desfazer-linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .lg-rolagem {

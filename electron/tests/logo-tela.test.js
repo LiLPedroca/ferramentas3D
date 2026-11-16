@@ -206,3 +206,25 @@ describe("2D para 3D: correções da revisão", () => {
     else expect($("lg-balao").hidden).toBe(true);
   }, 30000);
 });
+
+describe("2D para 3D: abas Peça e Personalizar", () => {
+  it("sem o link Corrigir, a barra de cima e o Concluir; duas abas no painel", () => {
+    for (const id of ["lg-corrigir", "lg-concluir", "lg-ferramentas"]) expect($(id), id).toBeNull();
+    const abas = [...document.querySelectorAll("#tela-logo [data-lg-aba]")].map((b) => b.textContent.trim());
+    expect(abas).toEqual(["Peça", "Personalizar"]);
+  });
+
+  it("aba Personalizar mostra as ferramentas e liga a correção; voltar para Peça desliga", () => {
+    const aba = (nome) => document.querySelector(`#tela-logo [data-lg-aba="${nome}"]`);
+    aba("personalizar").click();
+    const secao = document.querySelector('#tela-logo [data-lg-secao="personalizar"]');
+    expect(secao.hidden).toBe(false);
+    expect(secao.querySelector('[data-ferramenta="borracha"]')).not.toBeNull();
+    expect(secao.querySelector('[data-ferramenta="varinha"]')).not.toBeNull();
+    expect(document.querySelector('#tela-logo [data-lg-secao="peca"]').hidden).toBe(true);
+    expect(window.__logoTeste.corrigindo()).toBe(true);
+    aba("peca").click();
+    expect(window.__logoTeste.corrigindo()).toBe(false);
+    expect(secao.hidden).toBe(true);
+  });
+});

@@ -1712,7 +1712,11 @@
 
         <div class="lg-corpo">
           <aside class="lg-painel">
-            <div class="lg-rolagem">
+            <nav class="lg-abas" role="tablist" aria-label="Partes do painel">
+              <button type="button" role="tab" data-lg-aba="peca" aria-selected="true">Peça</button>
+              <button type="button" role="tab" data-lg-aba="personalizar" aria-selected="false">Personalizar</button>
+            </nav>
+            <div class="lg-rolagem" data-lg-secao="peca">
               <div class="lg-imagem">
                 <img id="lg-miniatura" alt="" />
                 <div class="lg-imagem-info">
@@ -1731,7 +1735,6 @@
                 </div>
                 <div class="lg-bolinhas" id="lg-cores-novas"></div>
               </div>
-              <button type="button" class="lg-link" id="lg-corrigir">Corrigir na peça</button>
 
               <h3 class="lg-sub">Medidas</h3>
               <div class="lg-tamanhos">
@@ -1751,6 +1754,19 @@
               </label>
               <label class="chave-linha lg-chave"><span>Argola</span><input type="checkbox" class="chave" role="switch" id="lg-com-argola" /></label>
             </div>
+            <div class="lg-rolagem lg-personalizar" data-lg-secao="personalizar" hidden>
+              <p class="ajuda">Clique ou passe na peça para tirar o que sobrou do fundo.</p>
+              <div class="lg-ferramentas-lista" role="group" aria-label="Ferramenta">
+                <button type="button" data-ferramenta="borracha"><strong>Borracha</strong><span>Apaga por onde passa</span></button>
+                <button type="button" data-ferramenta="varinha"><strong>Varinha</strong><span>Um clique apaga a mancha inteira</span></button>
+                <button type="button" data-ferramenta="restaurar"><strong>Restaurar</strong><span>Devolve o que foi apagado</span></button>
+              </div>
+              <label class="campo lg-tamanho-pincel" id="lg-tamanho-campo"><span>Tamanho do pincel</span><input type="range" id="lg-pincel" min="4" max="80" value="18" /></label>
+              <div class="lg-desfazer-linha">
+                <button type="button" class="botao-secundario" id="lg-desfazer" title="Desfazer (Ctrl+Z)" disabled>Desfazer</button>
+                <button type="button" class="botao-secundario" id="lg-refazer" title="Refazer (Ctrl+Y)" disabled>Refazer</button>
+              </div>
+            </div>
           </aside>
 
           <section class="lg-area">
@@ -1758,19 +1774,6 @@
             <div class="lg-ver" role="group" aria-label="Tipo de prévia">
               <button type="button" id="lg-ver-2d" aria-pressed="true">2D</button>
               <button type="button" id="lg-ver-3d" aria-pressed="false">3D</button>
-            </div>
-            <div class="lg-ferramentas" id="lg-ferramentas" role="toolbar" aria-label="Corrigir a peça à mão" hidden>
-              <div class="lg-grupo" role="group" aria-label="Ferramenta">
-                <button type="button" data-ferramenta="borracha" title="Apaga por onde passa (tira restos do fundo)">Borracha</button>
-                <button type="button" data-ferramenta="restaurar" title="Devolve o recorte automático por onde passa">Restaurar</button>
-                <button type="button" data-ferramenta="varinha" title="Um clique apaga a mancha inteira">Varinha</button>
-              </div>
-              <label class="lg-tamanho-pincel" id="lg-tamanho-campo">Tamanho <input type="range" id="lg-pincel" min="4" max="80" value="18" /></label>
-              <div class="lg-grupo">
-                <button type="button" id="lg-desfazer" title="Desfazer (Ctrl+Z)" disabled>Desfazer</button>
-                <button type="button" id="lg-refazer" title="Refazer (Ctrl+Y)" disabled>Refazer</button>
-              </div>
-              <button type="button" class="botao-primario lg-concluir" id="lg-concluir">Concluir</button>
             </div>
             <div class="lg-palco" id="lg-palco">
               <canvas id="lg-2d" class="ch-canvas"></canvas>
