@@ -8,8 +8,12 @@ Hoje ele faz a logo à parte. Quer criar no 2D para 3D (que é melhor que o embl
 como fica e imprimir tudo num só 3MF.
 
 ## Como funciona
-1. **Copos personalizados** ganha o botão **"Adicionar logo"**. Ele abre o 2D para 3D em "modo copo":
-   sem a seção Chaveiro e, no lugar de Exportar, o botão **"Usar no copo"**.
+1. **Copos personalizados** ganha, no painel da esquerda abaixo de Personalização, o item
+   **"Logo personalizada"** (ícone de imagem, borda azul só enquanto não houver logo). Ele abre como os
+   outros itens: sem logo, o botão **"Adicionar logo"**; com logo, miniatura + Editar/Clonar/Remover.
+   "Adicionar logo" abre o 2D para 3D numa **janela grande por cima da página do copo** (≈90% da tela,
+   copo escurecido atrás; não troca de página), sem a seção Chaveiro e com **"Cancelar"** e
+   **"Usar no copo"** no lugar de Exportar.
 2. De volta ao copo, a logo aparece **dobrada na curva do tubo** (raio medido do próprio copo naquela
    altura), centralizada na frente. Arrastar na prévia move para cima/baixo e em volta, **sempre dentro
    do tubo** (nunca sobre a borda de cima nem a base). Logo mais alta que o tubo: aviso.

@@ -23,3 +23,14 @@ Abaixo de "Com AMS / Sem AMS": **Material: PLA | PETG**.
 - Um material para todas as cores. Lembra a última escolha; padrão PLA, nos Copos PETG.
 - O 3MF usa o perfil Anycubic do material para a Kobra X 0.4.
 - Peso estimado usa a densidade do material (PLA 1,24; PETG 1,27 g/cm³).
+
+## 4. Calculadora: "Valor da peça"
+3º quadradinho do resultado, em azul, depois de "Custo por peça" e "Lucro por peça":
+**Valor da peça** = (custo do lote − mão de obra) ÷ quantidade = filamento + energia + impressora, por peça.
+Exemplo do Pedro: custo R$ 60,45, mão de obra R$ 15,00 → R$ 45,45.
+
+## 5. Calculadora: conjunto (kit)
+Botão **"+ Adicionar peça ao conjunto"** em "Dados do lote". Cada peça: nome, peso, tempo, quantidade
+(pode vir de Meus produtos) e mostra o seu valor sem mão de obra. Tempos são somados (impressões
+separadas; quem imprimir junto põe o tempo total numa peça e 0 nas outras). Mão de obra e lucro entram
+uma vez, sobre o conjunto. Resultado: **Preço do conjunto**. Com 1 peça, a calculadora fica como hoje.
