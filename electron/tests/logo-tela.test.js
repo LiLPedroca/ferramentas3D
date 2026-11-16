@@ -132,3 +132,31 @@ describe("2D para 3D: balão da parte", () => {
     expect(window.__logoTeste.escolhas().length).toBe(total);
   }, 30000);
 });
+
+describe("2D para 3D: Meus modelos e impressão", () => {
+  it("modelo antigo (versão 2, com base) abre sem base, com a argola e a largura dele", async () => {
+    const { opcoesDoSalvo } = await import("../src/renderer/logo-tela.js");
+    const o = opcoesDoSalvo({ versao: 2, largura: 60, base: 2.4, relevo: 1.2, estilo: "contorno", comArgola: true, argola: 0.3, corBase: "#f4f4f4" });
+    expect(o).toMatchObject({ largura: 60, altura: 3, comArgola: true, argola: 0.3 });
+    expect(o).not.toHaveProperty("base");
+    expect(opcoesDoSalvo({ versao: 3, largura: 80, altura: 5.4, comArgola: false })).toMatchObject({ largura: 80, altura: 5.4, comArgola: false });
+    expect(opcoesDoSalvo({ largura: 999 }).largura).toBe(100);
+  });
+
+  it("sem AMS: 3MF com faixas no filamento 1 e uma pausa por troca", async () => {
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const arq = await window.__logoTeste.pecaParaImprimir({ ams: false, camada: 0.2, primeira: 0.2 });
+    const n = window.__logoTeste.modelo().cores.length;
+    expect(arq.partes).toHaveLength(n);
+    expect(arq.partes.every((p) => p.slot === 1)).toBe(true);
+    expect(arq.pausas).toHaveLength(n - 1);
+    expect(arq.pausas[0]).toBeCloseTo(3.2, 5);
+    expect(arq.aviso).toMatch(/^ Comece com/);
+  }, 30000);
+
+  it("com AMS: as partes da peça, sem pausas", async () => {
+    const arq = await window.__logoTeste.pecaParaImprimir({ ams: true });
+    expect(arq.pausas).toEqual([]);
+    expect(arq.partes.length).toBe(window.__logoTeste.modelo().cores.length);
+  });
+});

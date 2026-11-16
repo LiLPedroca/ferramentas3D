@@ -5,11 +5,12 @@
 // "+ Cor" põe outra (pega os pixels mais perto dela). O que foi corrigido à mão fica guardado na máscara
 // "manual" e não muda quando as cores ou a limpeza mudam.
 import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
-import { registrarAbridor } from "./modelos-ui.js";
+import { perguntarImpressao, registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
 import { coresDoSvg } from "./modelos/logo.js";
-import { gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro } from "./modelos/relevo.js";
+import { faixasDoRelevo, gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro, trocasDoRelevo } from "./modelos/relevo.js";
+import { gerar3mf } from "./modelos/exportar.js";
 import {
   CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
   mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
@@ -57,6 +58,7 @@ let previa2d = null;
 let previa3d = null;
 let temporizador = null;
 let geracao = 0;
+let entrada = null; // { cores, naArte } da última peça (refaz a peça sem AMS na hora de exportar)
 let projetoAtual = null; // { id, nome } quando está em Meus modelos
 let nomeProjeto = "";
 let sujo = false;
@@ -325,6 +327,7 @@ async function gerar() {
     posicionarNaOrigem(novasPartes.map((p) => p.geometria));
     modelo = novo;
     partes = novasPartes;
+    entrada = { cores, naArte };
     // escolhas cujo ponto não cai mais em nenhuma parte (a parte sumiu) são descartadas
     escolhas = escolhas.filter((e, i) => {
       const [x, y] = naArte[i].ponto;
@@ -697,7 +700,7 @@ function atualizarZoom() {
 function mudarModo(novo) {
   modo = novo;
   if (novo === "3d" && !previa3d) {
-    previa3d = criarPrevia($("lg-3d"), { luzExtra: true });
+    previa3d = criarPrevia($("lg-3d"), { luzExtra: true, mesa: [260, 260], cotas: true });
     previa3d.aoMudarVista = atualizarZoom;
   }
   previa3d = mudarPrevia("lg", modo, previa2d, previa3d, partes);
@@ -843,11 +846,37 @@ export function opcoesDoSalvo(o = {}) {
 }
 
 const nomeArquivo = () => nomeProjeto || "Peça";
+const nomeDaCor = (hex) => CORES_LOGO.find((c) => c.hex.toLowerCase() === hex)?.nome.toLowerCase() ?? hex;
+
+// Peça para o 3MF. Com AMS: as partes de sempre. Sem AMS: degraus por cor (uma faixa por cor), tudo no
+// filamento 1, com uma pausa no começo de cada faixa.
+async function pecaParaImprimir(escolha) {
+  if (escolha.ams || !modelo || modelo.cores.length < 2) return { partes, pausas: [], aviso: "" };
+  const M = await motorDaTela();
+  const r = gerarRelevo(M, entrada.cores, { ...modelo.opcoes, semAms: true }, entrada.naArte);
+  const pecas = r.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m), slot: 1 }));
+  posicionarNaOrigem(pecas.map((p) => p.geometria));
+  const trocas = trocasDoRelevo(r.faixas, escolha.camada, escolha.primeira);
+  const passos = trocas.map((t, i) => `camada ${t.numero} → ${nomeDaCor(r.faixas[i + 1].cor)}`).join("; ");
+  return { partes: pecas, pausas: trocas.map((t) => t.z), aviso: ` Comece com ${nomeDaCor(r.faixas[0].cor)}. Trocas: ${passos}.` };
+}
+
+// 3MF perguntando antes se a impressão é com AMS. null = cancelado.
+async function montar3mf() {
+  let escolha = { ams: true };
+  if (modelo.cores.length > 1) {
+    const faixas = faixasDoRelevo(modelo.partes, modelo.opcoes.altura);
+    escolha = await perguntarImpressao((camada, primeira) => trocasDoRelevo(faixas, camada, primeira));
+    if (!escolha) return null;
+  }
+  const a = await pecaParaImprimir(escolha);
+  return { bytes: gerar3mf(a.partes, { titulo: nomeArquivo(), pausas: a.pausas }), aviso: a.aviso };
+}
 
 async function salvar(extensao) {
   fecharMenuExportar();
   if (!partes) return;
-  await salvarModeloComo(extensao, partes, nomeArquivo());
+  await salvarModeloComo(extensao, partes, nomeArquivo(), montar3mf);
 }
 
 function fecharMenuExportar() {
@@ -1049,7 +1078,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem, abrirBalao, gerar, adicionarEscolha: (e) => escolhas.push(e) };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {
@@ -1057,7 +1086,7 @@ export function iniciarLogo() {
     calcularCustoModelo(modelo, nomeArquivo());
   });
   $("lg-fatiador").addEventListener("click", () => {
-    if (partes) enviarModeloAoFatiador(partes, nomeArquivo());
+    if (partes) enviarModeloAoFatiador(partes, nomeArquivo(), montar3mf);
   });
   registrarAoAbrir("logo", () => {
     mostrarDados();

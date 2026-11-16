@@ -9,6 +9,18 @@ const PREVIA_SEM_3D = {
   pontoNaPeca: () => null, paraTela: () => null, mmPorPixel: () => 1, modoPintura() {}, nivel: () => 1, aoMudarVista: null,
 };
 
+const mm2 = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Linhas das cotas X (na frente da peça) e Y (ao lado), em mm, a partir da caixa { min, max }.
+export function cotasDaCaixa({ min, max }, afastamento = 8) {
+  return {
+    x: { de: [min[0], min[1] - afastamento, 0], ate: [max[0], min[1] - afastamento, 0], valor: `X: ${mm2(max[0] - min[0])} mm` },
+    y: { de: [max[0] + afastamento, min[1], 0], ate: [max[0] + afastamento, max[1], 0], valor: `Y: ${mm2(max[1] - min[1])} mm` },
+  };
+}
+
+// opcoes.mesa: [x, y] em mm, desenha a mesa da impressora (placa + grade de 10 mm) em volta da peça.
+// opcoes.cotas: linhas X (vermelha) e Y (verde) com a medida escrita junto.
 export function criarPrevia(container, opcoes = {}) {
   const renderizador = criarRenderizador();
   if (!renderizador) {
@@ -37,7 +49,16 @@ export function criarPrevia(container, opcoes = {}) {
   luzFundo.visible = false;
   cena.add(luzFundo);
 
-  const grade = new THREE.GridHelper(300, 30, 0x4d4d4d, 0x2b2b2b);
+  const ladoMesa = opcoes.mesa ? Math.max(...opcoes.mesa) : 300;
+  const grade = new THREE.GridHelper(ladoMesa, Math.round(ladoMesa / 10), 0x4d4d4d, 0x2b2b2b);
+  if (opcoes.mesa) grade.scale.set(opcoes.mesa[0] / ladoMesa, 1, opcoes.mesa[1] / ladoMesa);
+  let placa = null;
+  if (opcoes.mesa) {
+    placa = new THREE.Mesh(new THREE.PlaneGeometry(opcoes.mesa[0], opcoes.mesa[1]), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 }));
+    placa.position.z = -0.05;
+    cena.add(placa);
+  }
+  const cotas = opcoes.cotas ? criarCotas(cena, container) : null;
   grade.rotation.x = Math.PI / 2;
   grade.material.transparent = true;
   grade.material.opacity = opcoes.gradeSuave ? 0.18 : 0.45;
@@ -70,6 +91,7 @@ export function criarPrevia(container, opcoes = {}) {
   const animar = () => {
     controles.update();
     renderizador.render(cena, camera);
+    cotas?.posicionar(camera, renderizador.domElement);
     requestAnimationFrame(animar);
   };
   animar();
@@ -104,6 +126,8 @@ export function criarPrevia(container, opcoes = {}) {
       centro = caixa.getCenter(new THREE.Vector3());
       tamanho = caixa.getSize(new THREE.Vector3());
       grade.position.set(centro.x, centro.y, 0);
+      placa?.position.set(centro.x, centro.y, -0.05);
+      if (malhas.length) cotas?.mostrar(cotasDaCaixa({ min: caixa.min.toArray(), max: caixa.max.toArray() }));
       if (primeiraVez) {
         this.enquadrar();
         primeiraVez = false;
@@ -173,4 +197,51 @@ export function criarPrevia(container, opcoes = {}) {
   };
   controles.addEventListener("change", () => api.aoMudarVista?.());
   return api;
+}
+
+// Linhas e rótulos das cotas. Os rótulos são elementos da página por cima do canvas, reposicionados a
+// cada quadro (o texto fica sempre legível, de frente para a tela).
+function criarCotas(cena, container) {
+  const linhas = {};
+  const rotulos = {};
+  let atual = null;
+  for (const [eixo, cor] of [["x", 0xe5484d], ["y", 0x30a46c]]) {
+    const linha = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: cor, depthTest: false }));
+    linha.renderOrder = 10;
+    linha.visible = false;
+    cena.add(linha);
+    linhas[eixo] = linha;
+    const r = document.createElement("span");
+    r.className = `previa-cota previa-cota-${eixo}`;
+    r.hidden = true;
+    container.append(r);
+    rotulos[eixo] = r;
+  }
+  return {
+    mostrar(novas) {
+      atual = novas;
+      for (const eixo of ["x", "y"]) {
+        const { de, ate, valor } = novas[eixo];
+        // linha da medida e dois tracinhos nas pontas (perpendiculares, 4 mm)
+        const n = eixo === "x" ? [0, 2, 0] : [2, 0, 0];
+        const pts = [de, ate, [de[0] - n[0], de[1] - n[1], 0], [de[0] + n[0], de[1] + n[1], 0], [ate[0] - n[0], ate[1] - n[1], 0], [ate[0] + n[0], ate[1] + n[1], 0]];
+        linhas[eixo].geometry.setFromPoints(pts.map((p) => new THREE.Vector3(...p)));
+        linhas[eixo].visible = true;
+        rotulos[eixo].textContent = valor;
+        rotulos[eixo].hidden = false;
+      }
+    },
+    posicionar(camera, canvas) {
+      if (!atual) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      for (const eixo of ["x", "y"]) {
+        const { de, ate } = atual[eixo];
+        const meio = new THREE.Vector3((de[0] + ate[0]) / 2 + (eixo === "y" ? 6 : 0), (de[1] + ate[1]) / 2 - (eixo === "x" ? 6 : 0), 0).project(camera);
+        const r = rotulos[eixo];
+        r.hidden = meio.z > 1;
+        r.style.transform = `translate(${((meio.x + 1) / 2) * w}px, ${((1 - meio.y) / 2) * h}px) translate(-50%, -50%)`;
+      }
+    },
+  };
 }

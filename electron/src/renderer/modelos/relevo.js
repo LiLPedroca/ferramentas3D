@@ -181,11 +181,8 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
     if (o.semAms) {
       // sem AMS: cada cor numa faixa de altura própria, uma acima da outra. A faixa k cobre todas as
       // partes das cores k em diante; assim, de cima, cada parte mostra a cor da sua faixa.
-      const area = new Map(coresUsadas.map((c) => [c, 0]));
-      for (const p of partes) area.set(p.cor, area.get(p.cor) + p.area);
-      const pedida = (o.ordem ?? []).filter((c) => area.has(c));
-      coresUsadas = [...new Set([...pedida, ...[...area].sort((a, b) => b[1] - a[1]).map(([c]) => c)])];
-      faixas = coresUsadas.map((cor, k) => ({ cor, de: k ? o.altura + k - 1 : 0, ate: o.altura + k }));
+      faixas = faixasDoRelevo(partes, o.altura, o.ordem);
+      coresUsadas = faixas.map((f) => f.cor);
       malhas = faixas.map((f, k) => {
         const secoes = partes.filter((p) => coresUsadas.indexOf(p.cor) >= k).map(formaDa);
         const secao = secoes.length === 1 ? secoes[0] : guardar(C.union(secoes));
@@ -216,6 +213,16 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
       opcoes: o,
     };
   });
+}
+
+// Sem AMS: uma faixa de altura por cor, a de maior área embaixo (ou na ordem pedida). A primeira faixa vai
+// de 0 até a altura das partes; cada uma das seguintes tem 1 mm.
+export function faixasDoRelevo(partes, altura, ordem = null) {
+  const area = new Map();
+  for (const p of partes) area.set(p.cor, (area.get(p.cor) ?? 0) + p.area);
+  const pedida = (ordem ?? []).filter((c) => area.has(c));
+  const cores = [...new Set([...pedida, ...[...area].sort((a, b) => b[1] - a[1]).map(([c]) => c)])];
+  return cores.map((cor, k) => ({ cor, de: k ? altura + k - 1 : 0, ate: altura + k }));
 }
 
 // Pausas para trocar o filamento (sem AMS): uma no começo de cada faixa, a partir da segunda.

@@ -6199,6 +6199,29 @@ textarea:focus {
   bottom: 12px;
 }
 
+/* Prévia 3D: rótulos das cotas (X vermelho, Y verde) */
+.previa-cota {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--superficie) 85%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.previa-cota-x {
+  color: #e5484d;
+}
+
+.previa-cota-y {
+  color: #30a46c;
+}
+
 /* 2D para 3D: balão da parte escolhida (cor e altura) */
 .lg-balao {
   position: absolute;
