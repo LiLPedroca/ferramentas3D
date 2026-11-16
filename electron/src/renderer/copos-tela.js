@@ -10,7 +10,7 @@ import { preencherDoModelo } from './calculadora-tela.js';
 
 const $ = id => document.getElementById(id);
 let pacote, cores = [], previa, id = 1, pedido = 0, atual = null, ocupado = false, pronto = false;
-const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base', 'cp-logo-adicionar', 'cp-logo-editar', 'cp-logo-clonar', 'cp-logo-remover', 'cp-logo-remover-esta'];
+const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base', 'cp-logo-adicionar', 'cp-logo-meus', 'cp-logo-editar', 'cp-logo-clonar', 'cp-logo-remover', 'cp-logo-remover-esta'];
 function bloquear(sim) {
   ocupado = sim;
   [...acoes, 'cp-restaurar'].forEach(id => { $(id).disabled = sim || !pronto; });
@@ -123,6 +123,35 @@ async function editarLogo() {
   const r = await abrirLogoNoCopo(logo?.salvo ?? null);
   if (!r) return;
   usarLogo(r, logo?.copias);
+}
+
+// Logos salvas do 2D para 3D (Meus modelos): a escolhida abre na janela para ajustar. O copo fica com uma
+// cópia; o modelo salvo não muda.
+async function listarLogosSalvas() {
+  const caixa = $('cp-logo-salvos');
+  if (!caixa.hidden) { caixa.hidden = true; return; }
+  const r = await window.dados.projetos.listar();
+  const salvas = r.ok ? r.dados.filter(p => p.tipo === 'logo' && p.imagem) : [];
+  if (!salvas.length) { mostrarAviso('Você ainda não tem logos salvas no 2D para 3D.'); return; }
+  caixa.replaceChildren(...salvas.map(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'listitem');
+    const img = document.createElement('img');
+    img.src = p.miniatura || p.imagem;
+    img.alt = '';
+    const nome = document.createElement('span');
+    nome.textContent = p.nome;
+    b.append(img, nome);
+    b.addEventListener('click', async () => {
+      if (ocupado || !pronto) return;
+      caixa.hidden = true;
+      const res = await abrirLogoNoCopo({ opcoes: p.opcoes, imagem: p.imagem, correcoes: p.correcoes });
+      if (res) usarLogo(res);
+    });
+    return b;
+  }));
+  caixa.hidden = false;
 }
 
 function usarLogo(r, copias) {
@@ -238,6 +267,7 @@ export function iniciarCopos() {
   }));
   $('cp-logo-adicionar').addEventListener('click', editarLogo);
   $('cp-logo-editar').addEventListener('click', editarLogo);
+  $('cp-logo-meus').addEventListener('click', listarLogosSalvas);
   $('cp-logo-clonar').addEventListener('click', clonarLogo);
   $('cp-logo-remover').addEventListener('click', removerLogo);
   $('cp-logo-remover-esta').addEventListener('click', removerEsta);

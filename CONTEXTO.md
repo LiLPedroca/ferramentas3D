@@ -739,3 +739,10 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Conferido: 472 testes; telas no modo de captura; fatiamento pela linha de comando (cores, PLA/PETG, M600 sem
   AMS, copo + 2 logos). Não conferido: abrir na JANELA do Anycubic (cores e bolinhas), arrastar a logo com o mouse
   de verdade.
+
+## Trabalho do Claude Code (16/11/2026) — Logo do copo: Meus modelos e altura livre (v0.58.0, só no PC do Pedro)
+
+- "Usar de Meus modelos" na Logo personalizada: lista as logos salvas do 2D para 3D; a escolhida abre na janela
+  para ajustar (sem chaveiro: argola/furo saem) e o copo guarda uma cópia (o modelo salvo não muda).
+- Altura livre: a logo sobe e desce pelo copo inteiro (`limitarNoCopo`); fora do tubo só o aviso "A logo está
+  passando do tubo". Fora do tubo a curva usa o maior raio das partes (a logo fica por cima da borda/base).

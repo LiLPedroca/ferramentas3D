@@ -1080,8 +1080,16 @@ export async function abrirLogoNoCopo(salvo = null, { invisivel = false } = {}) 
   const resultado = new Promise((r) => {
     noCopo.resolver = r;
   });
-  if (salvo?.imagem) await carregar([arquivoDeTexto(salvo.imagem, salvo.opcoes?.nomeImagem || "logo.png")], { ...salvo, id: undefined, nome: "Logo do copo" });
-  else {
+  if (salvo?.imagem) {
+    await carregar([arquivoDeTexto(salvo.imagem, salvo.opcoes?.nomeImagem || "logo.png")], { ...salvo, id: undefined, nome: "Logo do copo" });
+    // no copo não tem chaveiro (a logo salva pode ter argola ou furo)
+    if ((opcoes.chaveiro ?? "nenhum") !== "nenhum") {
+      opcoes = { ...opcoes, chaveiro: "nenhum", argola: null };
+      preencherCampos();
+      clearTimeout(temporizador);
+      await gerar();
+    }
+  } else {
     imagem = null;
     modelo = null;
     partes = null;

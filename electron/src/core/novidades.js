@@ -291,6 +291,16 @@ export const NOVIDADES = [
     itens: ["Produto com o mesmo nome: você escolhe atualizar ou manter os dois"],
     botao: "Ver",
   },
+  {
+    id: "copos-logo-meus-modelos",
+    versao: "0.58.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Logo do copo mais livre",
+    texto: "Use uma logo que você já salvou no 2D para 3D e posicione onde quiser no copo.",
+    itens: ["Usar de Meus modelos: escolha uma logo salva", "A logo sobe e desce pelo copo inteiro"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"
