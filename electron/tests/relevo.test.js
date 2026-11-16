@@ -153,13 +153,22 @@ describe("2D para 3D: peça sem base", () => {
     expect(r.partes.every((p) => p.altura === 3)).toBe(true);
   });
 
-  it("ilha menor que 1,5 mm² some ou vira a vizinha", () => {
+  it("detalhe pequeno de verdade fica como na imagem (não some nem vira vizinho), com aviso", () => {
     const r = gerarRelevo(M, comIlhas, { largura: 100 });
-    // o quadradinho colado vira preto; o solto some; sobram o preto e o vermelho de 10 × 10
+    // preto, os dois quadradinhos vermelhos de 1 mm² (colado e solto) e o vermelho de 10 × 10
+    expect(r.partes).toHaveLength(4);
+    expect(r.partes.filter((p) => p.cor === "#e53935" && p.area < 1.5)).toHaveLength(2);
+    expect(r.avisos.join(" ")).toMatch(/2 detalhes pequenos/);
+  });
+
+  it("lasca fina entre cores (erro de conta, não desenho) vai para a vizinha", () => {
+    const comLasca = [
+      { cor: "#111111", formas: [[quadrado(0, 0, 80)]] },
+      { cor: "#e53935", formas: [[[[80, 0], [80.05, 0], [80.05, 20], [80, 20]]], [quadrado(85, 40, 10)]] },
+    ];
+    const r = gerarRelevo(M, comLasca, { largura: 100 });
     expect(r.partes).toHaveLength(2);
-    expect(r.partes.every((p) => p.area >= 1.5)).toBe(true);
-    const preto = r.partes.find((p) => p.cor === "#111111");
-    expect(preto.area).toBeCloseTo(6401 * (100 / 95) ** 2, 0);
+    expect(r.avisos.join(" ")).not.toMatch(/detalhes pequenos/);
   });
 
   it("largura pedida é respeitada (±0,05 mm)", () => {

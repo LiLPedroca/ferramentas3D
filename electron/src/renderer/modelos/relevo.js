@@ -146,13 +146,23 @@ function partesNaEscala(M, guardar, secoes, s) {
       if (area >= RESIDUO) pecas.push({ cor, ordemCor, secao: p, area });
     }
   });
-  const pequenas = pecas.filter((p) => p.area < ILHA_MINIMA);
-  const grandes = pecas.filter((p) => p.area >= ILHA_MINIMA);
+  // Parte pequena de verdade (estrelinha, pingo) fica como está na imagem: só conta para o aviso. Lasca fina
+  // entre duas cores (largura média < 0,15 mm: erro de conta, não desenho) vai para a vizinha.
+  const perimetro = (secao) => secao.toPolygons().reduce((t, l) => t + l.reduce((u, a, i) => u + Math.hypot(l[(i + 1) % l.length][0] - a[0], l[(i + 1) % l.length][1] - a[1]), 0), 0);
+  let detalhes = 0;
+  for (const p of pecas) {
+    if (p.area >= 30) continue; // parte grande não é lasca
+    p.lasca = (2 * p.area) / Math.max(1e-9, perimetro(p.secao)) < 0.15;
+    if (!p.lasca && p.area < ILHA_MINIMA) detalhes++;
+  }
+  const pequenas = pecas.filter((p) => p.lasca);
+  const grandes = pecas.filter((p) => !p.lasca);
   for (const g of grandes) {
     g.caixa = g.secao.bounds();
     g.lacos = g.secao.toPolygons();
     g.juntar = [];
   }
+  const soltas = [];
   for (const ilha of pequenas) {
     const b = ilha.secao.bounds();
     const lacos = ilha.secao.toPolygons();
@@ -164,8 +174,10 @@ function partesNaEscala(M, guardar, secoes, s) {
       const n = contato(lacos, b, g);
       if (n > maior) (maior = n), (melhor = g);
     }
-    melhor?.juntar.push(ilha.secao);
+    if (melhor) melhor.juntar.push(ilha.secao);
+    else soltas.push(ilha); // sem vizinha achada: fica como está (nunca vira buraco)
   }
+  for (const ilha of soltas) grandes.push({ ...ilha, juntar: [] });
   for (const g of grandes) {
     if (g.juntar.length) {
       g.secao = guardar(C.union([g.secao, ...g.juntar]));
@@ -175,7 +187,9 @@ function partesNaEscala(M, guardar, secoes, s) {
     delete g.lacos;
     delete g.juntar;
   }
-  return grandes.sort((a, b) => a.ordemCor - b.ordemCor || b.area - a.area);
+  const lista = grandes.sort((a, b) => a.ordemCor - b.ordemCor || b.area - a.area);
+  lista.detalhes = detalhes;
+  return lista;
 }
 
 // Argola presa na borda do contorno externo da peça; o anel é só a parte fora do desenho e se junta à
@@ -299,7 +313,8 @@ function calcularParticao(M, C, cores, o) {
       if (furo) partes = furo.partes;
       const total = presa ? guardar(arte.add(presa.secao)) : arte;
       const b = total.bounds();
-      return { s, partes, presa, furo, caixa: { min: b.min, max: b.max }, dimensoes: [b.max[0] - b.min[0], b.max[1] - b.min[1], 0] };
+      const detalhes = partes.detalhes ?? 0;
+      return { s, partes, presa, furo, detalhes, caixa: { min: b.min, max: b.max }, dimensoes: [b.max[0] - b.min[0], b.max[1] - b.min[1], 0] };
     };
     // a arte pode não ocupar os 100 de largura (o fundo saiu): o chute já desconta isso
     let x0 = Infinity;
@@ -318,7 +333,10 @@ function calcularParticao(M, C, cores, o) {
       partes: r.partes.map((p, id) => ({ id, cor: p.cor, area: p.area, lacos: lacosDe(p.secao), anel: r.presa?.alvo === id ? lacosDe(r.presa.secao) : null })),
       argola: r.presa?.argola ?? r.furo?.furo ?? null,
       perimetro: r.presa?.perimetro ?? r.furo?.perimetro ?? null,
-      avisos: r.furo?.aviso ? [r.furo.aviso] : [],
+      avisos: [
+        ...(r.detalhes ? [`${r.detalhes} ${r.detalhes === 1 ? "detalhe pequeno" : "detalhes pequenos"} para ${String(Math.round(o.largura * 10) / 10).replace(".", ",")} mm podem não sair nítidos. Se quiser, aumente a largura.`] : []),
+        ...(r.furo?.aviso ? [r.furo.aviso] : []),
+      ],
     };
   });
   for (const p of dados.partes) p.ponto = pontoInterno(p.lacos).map((v) => v / dados.s);
