@@ -55,6 +55,12 @@ describe("calcular (paridade com o Python)", () => {
     iguais(r.precoUnitario, r.precoLote.divide(R(4)));
   });
 
+  it("valor da peça: custo sem a mão de obra, por peça", () => {
+    const r = calcular(entrada({ quantidade: 4 }));
+    iguais(r.valorUnitario, r.custoLote.subtrai(r.maoDeObra).divide(R(4)));
+    iguais(r.valorUnitario, r.filamento.soma(r.energia).soma(r.impressora).divide(R(4)));
+  });
+
   it("lucro unitário", () => {
     const r = calcular(entrada({ quantidade: 2 }));
     iguais(r.lucroUnitario, r.precoUnitario.subtrai(r.custoUnitario));

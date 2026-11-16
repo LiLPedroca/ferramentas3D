@@ -548,7 +548,7 @@ input[type="range"] {
 
 .metricas {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin: 18px 0;
   padding: 16px 0;
@@ -567,6 +567,11 @@ input[type="range"] {
 .metricas strong {
   font-size: 17px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Valor da peça: custo sem a mão de obra, em destaque */
+.metricas .metrica-valor strong {
+  color: var(--acento-forte);
 }
 
 .destaque {

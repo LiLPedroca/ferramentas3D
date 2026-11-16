@@ -37,4 +37,10 @@ describe("Calculadora: mão de obra e conta do preço", () => {
     expect(texto("lucro-lote")).toBe("+ R$ 15,00");
     expect(texto("preco-lote")).toBe("R$ 30,00");
   });
+
+  it("Valor da peça: o custo sem a mão de obra (R$ 20 de custo e R$ 15 de mão de obra = R$ 5)", () => {
+    for (const [id, v] of [["peso", "50"], ["preco-kg", "100"], ["horas", "0"], ["minutos", "0"], ["mao-obra", "15"], ["quantidade", "1"]]) digitar(id, v);
+    expect(texto("custo-unitario")).toBe("R$ 20,00");
+    expect(texto("valor-unitario")).toBe("R$ 5,00");
+  });
 });

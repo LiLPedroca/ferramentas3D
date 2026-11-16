@@ -146,6 +146,7 @@ function atualizarResultado() {
       `por peça · lote de ${entrada.quantidade} peça(s): ${formatarReais(resultado.precoLote)}`;
     $("custo-unitario").textContent = formatarReais(resultado.custoUnitario);
     $("lucro-unitario").textContent = formatarReais(resultado.lucroUnitario);
+    $("valor-unitario").textContent = formatarReais(resultado.valorUnitario);
     $("pecas-pagar").textContent = pecas;
     $("custo-lote").textContent = formatarReais(resultado.custoLote);
     const pct = comoNumero(entrada.lucroPct).toLocaleString("pt-BR", { maximumFractionDigits: 2 });

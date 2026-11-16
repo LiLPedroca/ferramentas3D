@@ -62,6 +62,8 @@ export function calcular(entrada) {
     lucroLote,
     precoLote,
     custoUnitario: custoLote.divide(qtd),
+    // valor da peça: o que ela custa em material e máquina (sem a mão de obra), por peça
+    valorUnitario: custoLote.subtrai(entrada.maoDeObra).divide(qtd),
     precoUnitario: precoLote.divide(qtd),
     lucroUnitario: precoLote.divide(qtd).subtrai(custoLote.divide(qtd)),
   };
