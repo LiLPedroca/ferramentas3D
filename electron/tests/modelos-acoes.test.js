@@ -60,3 +60,28 @@ describe("ações comuns dos modelos", () => {
     expect(densidadeDoModelo()).toBe(1.24);
   });
 });
+
+describe("filamento de cada cor = posição do rolo na impressora", () => {
+  it("cada cor vai para a posição do rolo daquela cor; sem rolo, para uma posição livre", async () => {
+    const { slotsDaImpressora } = await import("../src/renderer/modelos-acoes.js");
+    const rolos = [
+      { cor: "preto", posicao: 1 },
+      { cor: "verde", posicao: 2 },
+      { cor: "branco", posicao: 3 },
+      { cor: "amarelo", posicao: null },
+    ];
+    const partes = [
+      { nome: "Cor 1", cor: "#1b1b1b" },
+      { nome: "Cor 2", cor: "#f4f4f4" },
+      { nome: "Cor 3", cor: "#c9a23a" },
+    ];
+    expect(slotsDaImpressora(partes, rolos).map((p) => p.slot)).toEqual([1, 3, 4]);
+  });
+
+  it("sem posições cadastradas fica como estava; slot já escolhido (sem AMS) não muda", async () => {
+    const { slotsDaImpressora } = await import("../src/renderer/modelos-acoes.js");
+    const partes = [{ cor: "#f4f4f4" }, { cor: "#1b1b1b", slot: 1 }];
+    expect(slotsDaImpressora(partes, [{ cor: "branco", posicao: null }])).toEqual(partes);
+    expect(slotsDaImpressora(partes, [{ cor: "branco", posicao: 3 }]).map((p) => p.slot)).toEqual([3, 1]);
+  });
+});

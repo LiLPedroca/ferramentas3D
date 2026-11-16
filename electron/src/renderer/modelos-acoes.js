@@ -3,7 +3,7 @@ import { preencherDoModelo } from "./calculadora-tela.js";
 import { abrirNoFatiador } from "./fatiador-ui.js";
 import modeloFilamento from "../core/filamento.cjs";
 import modeloImpressao from "../core/impressao.cjs";
-import { estoquePorCor, listaDeRolos } from "./filamentos-tela.js";
+import { carregarFilamentos, estoquePorCor, listaDeRolos } from "./filamentos-tela.js";
 import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso, volumeDaGeometria } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { criarPrevia } from "./modelos/previa3d.js";
@@ -57,17 +57,50 @@ export async function salvarArquivoModelo(bytes, nome, extensao, aviso = "") {
   else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
 }
 
+// Filamento de cada parte no 3MF = posição do rolo daquela cor na impressora (Estoque > Na impressora).
+// Assim o fatiador mostra a cor certa e o AMS/ACE puxa o rolo certo. Cor sem rolo na impressora vai para
+// uma posição livre. Parte com slot já escolhido (sem AMS: tudo no 1) não muda. Sem posições: nada muda.
+export function slotsDaImpressora(partes, rolos = listaDeRolos()) {
+  const naImpressora = new Map();
+  for (const r of rolos ?? []) if (r.posicao && !naImpressora.has(r.cor)) naImpressora.set(r.cor, r.posicao);
+  if (!naImpressora.size) return partes;
+  const usadas = new Set(naImpressora.values());
+  const livre = () => {
+    let n = 1;
+    while (usadas.has(n)) n++;
+    usadas.add(n);
+    return n;
+  };
+  const porCor = new Map();
+  return partes.map((p) => {
+    if (Number.isInteger(p.slot)) return p;
+    const cor = modeloFilamento.corProntaDoHex(p.cor);
+    if (!porCor.has(cor)) porCor.set(cor, naImpressora.get(cor) ?? livre());
+    return { ...p, slot: porCor.get(cor) };
+  });
+}
+
+// Lê o estoque (posições da impressora) e devolve as partes com o filamento certo.
+export async function comSlotsDaImpressora(partes) {
+  try {
+    await carregarFilamentos();
+  } catch {
+    return partes; // sem estoque: fica como estava
+  }
+  return slotsDaImpressora(partes);
+}
+
 export async function salvarModeloComo(extensao, partes, nome, montar3mf) {
   if (!partes) return;
   const arquivo = extensao === "3mf"
-    ? await (montar3mf ? montar3mf() : { bytes: gerar3mf(partes, { titulo: nome }) })
+    ? await (montar3mf ? montar3mf() : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: nome }) })
     : { bytes: gerarStl(partes) };
   if (arquivo) await salvarArquivoModelo(arquivo.bytes, nome, extensao, arquivo.aviso);
 }
 
 export async function enviarModeloAoFatiador(partes, nome, montar3mf) {
   if (!partes) return;
-  const arquivo = await (montar3mf ? montar3mf() : { bytes: gerar3mf(partes, { titulo: nome }) });
+  const arquivo = await (montar3mf ? montar3mf() : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: nome }) });
   if (!arquivo) return;
   await abrirNoFatiador(arquivo.bytes, nome, "3mf");
   const falta = await faltaDeFilamento(partes);

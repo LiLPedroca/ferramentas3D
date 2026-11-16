@@ -1,4 +1,4 @@
-import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
+import { comSlotsDaImpressora, conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, zoomPrevia, ajustarPrevia } from "./modelos-acoes.js";
 // Tela da Caneca de chopp: medidas (padrão = copo showroom), emblema, faixas e cores à esquerda,
 // prévia 3D à direita.
 import { capacidadeMl, COPO_SHOWROOM, FAIXAS, gerarCaneca, LIMITES_CANECA, PADRAO_CANECA, trocaDoEmblema, trocasDeCor } from "./modelos/caneca.js";
@@ -259,7 +259,7 @@ async function arquivoCaneca() {
   const o = modelo.opcoes;
   const escolha = await perguntarImpressao((camada, primeira) => trocasDeCor(o, camada, primeira));
   if (!escolha) return null;
-  if (escolha.ams) return { bytes: gerar3mf(partes, { titulo: nomeArquivo() }), aviso: "" };
+  if (escolha.ams) return { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: nomeArquivo() }), aviso: "" };
   const trocas = escolha.trocas;
   const caneca = partes.filter((p) => p.peca === "caneca").map((p) => ({ ...p, slot: 1 }));
   const primeiraCor = modelo.regioes[0].cor;
@@ -276,7 +276,7 @@ async function arquivoEmblema() {
   if (!escolha) return null;
   const pecas = partes.filter((p) => p.peca === "emblema");
   const titulo = `${nomeArquivo()} - emblema`;
-  if (escolha.ams) return { bytes: gerar3mf(pecas, { titulo }), titulo, aviso: "" };
+  if (escolha.ams) return { bytes: gerar3mf(await comSlotsDaImpressora(pecas), { titulo }), titulo, aviso: "" };
   return {
     bytes: gerar3mf(
       pecas.map((p) => ({ ...p, slot: 1 })),

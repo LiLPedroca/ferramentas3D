@@ -4,7 +4,7 @@
 // As "cores do logo" são cores-alvo (mapa-logo.js): "×" tira uma (os pixels vão para a mais parecida),
 // "+ Cor" põe outra (pega os pixels mais perto dela). O que foi corrigido à mão fica guardado na máscara
 // "manual" e não muda quando as cores ou a limpeza mudam.
-import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
+import { comSlotsDaImpressora, conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto } from "./modelos-acoes.js";
 import { perguntarImpressao, registrarAbridor } from "./modelos-ui.js";
 import { pesoCurto } from "./modelos/estimativa.js";
 import { geometriaDaMalha, posicionarNaOrigem } from "./modelos/geometria.js";
@@ -896,7 +896,7 @@ const nomeDaCor = (hex) => CORES_LOGO.find((c) => c.hex.toLowerCase() === hex)?.
 // Peça para o 3MF. Com AMS: as partes de sempre. Sem AMS: degraus por cor (uma faixa por cor), tudo no
 // filamento 1, com uma pausa no começo de cada faixa.
 async function pecaParaImprimir(escolha) {
-  if (escolha.ams || !modelo || modelo.cores.length < 2) return { partes, pausas: [], aviso: "" };
+  if (escolha.ams || !modelo || modelo.cores.length < 2) return { partes: await comSlotsDaImpressora(partes), pausas: [], aviso: "" };
   const M = await motorDaTela();
   const r = gerarRelevo(M, entrada.cores, { ...modelo.opcoes, semAms: true }, entrada.naArte);
   const pecas = r.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m), slot: 1 }));
