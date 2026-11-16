@@ -715,3 +715,27 @@ Desenho: `docs/superpowers/specs/2026-11-16-2d-para-3d-design.md`; plano: `docs/
   com − e + (0,5 mm).
 - Pedro aprovou publicar ("pode publicar a versão para todos"): v0.56.0 publicada no GitHub com todas as
   versões locais desde a v0.50.0 (Criador de logos → 2D para 3D, estoque de filamentos, calculadora).
+
+## Trabalho do Claude Code (16/11/2026) — Logo nos copos, cores no fatiador, calculadora e produtos (v0.57.0, só no PC do Pedro)
+
+Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-relevo-cores-material-design.md`.
+- Relevo com AMS: só a cor aumentada sobe. Embaixo de parte de outra cor, a base vai até
+  `min(altura da parte, altura das partes) − 0,6`; a cor ocupa daí até o topo.
+- Cores certas no Anycubic: todo 3MF leva `Metadata/project_settings.config` completo (Kobra X 0.4, 0.20mm
+  Standard), montado de `assets/fatiador/projeto-kobra-x.json` (base do arquivo que o Pedro testou + perfis
+  oficiais PLA/PETG do Anycubic, sem dados pessoais) e marca de formato BambuStudio no 3dmodel.model.
+  `filament_colour_info` = as cores (é dela que vinham as bolinhas verdes na lista de filamentos).
+- PLA | PETG em "Como você vai imprimir?" (lembra a última escolha; peso estimado usa a densidade).
+- Calculadora: "Valor da peça" (custo sem mão de obra, por peça) e "+ Adicionar peça ao conjunto" (soma peso e
+  tempo; mão de obra e lucro uma vez; pode puxar de Meus produtos).
+- Produtos: Exportar/Importar (`core/produtos-transporte.cjs`): junta e nunca apaga; mesmo id → fica o mais
+  recente; mesmo nome com id diferente → pergunta "Atualizar com os importados" / "Manter os dois".
+- Copos: "Logo personalizada" abre o 2D para 3D numa janela grande (a `#tela-logo` vai para dentro do diálogo e
+  volta; o que estava aberto no 2D para 3D é reaberto). Prévia dobrada no tubo (`modelos/logo-copo.js`, tubo
+  medido da malha: Copo 1 ≈ 82–127 mm, 2 ≈ 25–125, 3 ≈ 55–95), arrastar, Clonar (1ª cópia a 180°), Remover.
+  No 3MF/STL a logo sai reta à direita do copo (`comLogos` dentro do `colorir3mf`); cor quase igual à do copo usa
+  o mesmo filamento. Meus modelos guarda a logo e as posições; ao reabrir, a logo é refeita sem mostrar a janela.
+  Multipartes não leva a logo (aviso).
+- Conferido: 472 testes; telas no modo de captura; fatiamento pela linha de comando (cores, PLA/PETG, M600 sem
+  AMS, copo + 2 logos). Não conferido: abrir na JANELA do Anycubic (cores e bolinhas), arrastar a logo com o mouse
+  de verdade.
