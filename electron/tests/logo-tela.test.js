@@ -101,13 +101,13 @@ describe("2D para 3D: balão da parte", () => {
     await vi.waitFor(() => expect(window.__logoTeste.modelo().partes.find((p) => p.id === alvo.id).altura).toBe(6), { timeout: 20000 });
   }, 60000);
 
-  it("altura fora de 2 a 10 mostra erro e não muda a peça", () => {
+  it("altura fora de 1 a 10 mostra erro e não muda a peça", () => {
     const alvo = window.__logoTeste.modelo().partes[0];
     window.__logoTeste.abrirBalao(alvo.id, 100, 100);
     const antes = window.__logoTeste.escolhas().length;
     $("lg-balao-altura").value = "12";
     $("lg-balao-altura").dispatchEvent(new Event("change"));
-    expect($("lg-balao-erro").textContent).toMatch(/2 a 10/);
+    expect($("lg-balao-erro").textContent).toMatch(/1 a 10/);
     expect(window.__logoTeste.escolhas().length).toBe(antes);
   });
 

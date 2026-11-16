@@ -6,7 +6,7 @@ import { areaComSinal, comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolid
 
 export const PADRAO_RELEVO = { largura: 100, altura: 3, chaveiro: "nenhum", argola: null, furo: 4, parede: 2, relevos: {} };
 export const CHAVEIROS = ["nenhum", "argola", "furo"]; // argola para fora da peça ou furo atravessando a peça
-export const LIMITES_RELEVO = { largura: [20, 250], altura: [2, 10], furo: [3, 8], parede: [1.6, 5] };
+export const LIMITES_RELEVO = { largura: [20, 250], altura: [1, 10], furo: [3, 8], parede: [1.6, 5] };
 const NOMES = { largura: "Largura", altura: "Altura das partes", furo: "Tamanho do furo", parede: "Parede da argola" };
 const TOPO = 0.6; // mm (3 camadas de 0,2): com AMS, as cores que não são a base ficam só nessa espessura de cima
 const ILHA_MINIMA = 1.5;

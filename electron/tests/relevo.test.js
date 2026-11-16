@@ -175,9 +175,16 @@ describe("2D para 3D: peça sem base", () => {
     for (const largura of [40, 100, 180]) expect(gerarRelevo(M, cores, { largura }).dimensoes[0]).toBeCloseTo(largura, 1);
   });
 
-  it("altura fora de 2 a 10 dá erro em pt-BR", () => {
+  it("altura das partes vai de 1 a 10 mm", () => {
     expect(() => validarOpcoesRelevo({ altura: 12 })).toThrow("Altura");
-    expect(() => validarOpcoesRelevo({ altura: 1 })).toThrow("Altura");
+    expect(() => validarOpcoesRelevo({ altura: 0.8 })).toThrow("Altura");
+    expect(validarOpcoesRelevo({ altura: 1 }).altura).toBe(1);
+  });
+
+  it("peça de 1 mm com AMS: cores só no topo continuam fechadas", () => {
+    const r = gerarRelevo(M, cores, { altura: 1 });
+    for (const m of r.malhas) expect(fechada(m), m.nome).toBe(true);
+    expect(r.dimensoes[2]).toBeCloseTo(1, 6);
   });
 
   it("arte vazia dá erro em pt-BR", () => {
