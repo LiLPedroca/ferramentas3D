@@ -688,3 +688,20 @@ Desenho: `docs/superpowers/specs/2026-11-16-2d-para-3d-design.md`; plano: `docs/
   `lucroNaMaoDeObra`; os antigos (sem o campo) eram com lucro sobre tudo.
 - Não conferido: a janela do Anycubic abrindo com as cores certas (depende das posições do Estoque baterem com os
   filamentos do perfil do fatiador); impressão real das cores no topo.
+
+## Trabalho do Claude Code (16/11/2026) — Relevo por cor, chaveiro, Trazer de volta (v0.55.0, só no PC do Pedro)
+
+- Relevo por cor: em Cores, cada chip com "Relevo [−] N [+]" e o resultado em mm. `opcoes.relevos` =
+  `{ "#hex": camadas }` (0 a 10, 0,2 mm cada); soma na altura das partes daquela cor depois das escolhas.
+- Chaveiro: "Nenhum / Argola para chaveiro / Furo para chaveiro" (`opcoes.chaveiro`; `comArgola` antigo vira
+  "argola"). "Tamanho do furo" (3 a 8 mm) vale para os dois; a parede da argola = max(2, furo/2). O furo atravessa
+  a peça a 2 mm da borda (`furoEm`), procura outro ponto se não couber e pode ser arrastado como a argola; aviso se
+  encostar em mais de uma parte.
+- Partes pequenas: detalhe de verdade (largura média ≥ 0,15 mm) fica como na imagem, só com aviso "N detalhes
+  pequenos para X mm"; lasca fina entre cores (< 0,15 mm) vai para a vizinha; nada vira buraco por não achar
+  vizinha. (Pedro: "quero manter original".)
+- "Restaurar" virou "Trazer de volta": pinta com `mapaOriginal` (a imagem sem tirar o fundo, nas cores do logo) e
+  marca como correção à mão.
+- Palmeiras (estrelas que sumiram) não foi testado com o arquivo dele: ele não chegou na pasta `dev/fotos-teste`.
+- Cores no fatiador: arquivo de teste `dev/teste-cores/Santos - teste de cores.3mf` (config completa de projeto,
+  como os 3MF do Anycubic) esperando o Pedro abrir na janela do Anycubic.

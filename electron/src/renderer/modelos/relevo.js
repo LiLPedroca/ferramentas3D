@@ -241,9 +241,15 @@ function furoEm(M, guardar, arte, partes, o, posicao) {
   return { partes: novas, furo: { t: posicao, centro, raio: raio + 0.6, furo: raio, afastamento }, perimetro, aviso };
 }
 
+// Ponto bem acima do meio da peça: a argola e o furo começam no meio da borda de cima.
+function emCima(arte) {
+  const b = arte.bounds();
+  return [(b.min[0] + b.max[0]) / 2, b.max[1] + 1]; // perto: em borda côncava (escudo) cai no meio, não na ponta
+}
+
 function prenderFuro(M, guardar, arte, partes, o) {
   if (o.argola !== null) return furoEm(M, guardar, arte, partes, o, o.argola);
-  const inicio = maisPertoNoLaco(contornoExterno(arte), [0, 1e4]).t; // padrão: em cima
+  const inicio = maisPertoNoLaco(contornoExterno(arte), emCima(arte)).t; // padrão: em cima
   let erro = null;
   for (let k = 0; k <= 30; k++)
     for (const sinal of k ? [1, -1] : [1]) {
@@ -259,7 +265,7 @@ function prenderFuro(M, guardar, arte, partes, o) {
 function prenderArgola(M, guardar, arte, partes, o) {
   if (o.argola !== null) return argolaEm(M, guardar, arte, partes, o, o.argola);
   const perimetro = contornoExterno(arte);
-  const inicio = maisPertoNoLaco(perimetro, [0, 1e4]).t; // padrão: em cima
+  const inicio = maisPertoNoLaco(perimetro, emCima(arte)).t; // padrão: em cima
   let erro = null;
   for (let k = 0; k <= 24; k++)
     for (const sinal of k ? [1, -1] : [1]) {

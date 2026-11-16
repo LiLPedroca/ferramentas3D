@@ -231,6 +231,16 @@ export const NOVIDADES = [
     itens: ["Padrão: a mão de obra entra sem lucro", "Embaixo do custo: lucro e preço do lote"],
     botao: "Entendi",
   },
+  {
+    id: "2d-para-3d-relevo-chaveiro",
+    versao: "0.55.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "Relevo, chaveiro e Trazer de volta",
+    texto: "Cada cor pode subir algumas camadas, a peça pode ter argola ou furo de chaveiro, e o que o programa tirar volta com um pincel.",
+    itens: ["Em Cores: Relevo [−] [+] em cada cor", "Chaveiro: argola ou furo, com o tamanho do furo", "Personalizar > Trazer de volta: igual à imagem original", "Detalhes pequenos não somem mais sozinhos"],
+    botao: "Experimentar",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

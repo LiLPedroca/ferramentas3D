@@ -306,3 +306,10 @@ function pontoDentroDe(parte, [x, y]) {
     }
   return dentro;
 }
+
+describe("2D para 3D: furo e argola começam no meio de cima", () => {
+  it("furo automático fica perto do meio da largura", () => {
+    const r = gerarRelevo(M, cores, { largura: 60, chaveiro: "furo" });
+    expect(Math.abs(r.argola.centro[0] - (r.caixa.min[0] + r.caixa.max[0]) / 2)).toBeLessThan(15);
+  });
+});
