@@ -6,12 +6,13 @@ import modeloImpressao from "../core/impressao.cjs";
 import { carregarFilamentos, estoquePorCor, listaDeRolos } from "./filamentos-tela.js";
 import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso, volumeDaGeometria } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
+import { materialAtual } from "./modelos/projeto-fatiador.js";
 import { criarPrevia } from "./modelos/previa3d.js";
 import { mostrarAviso } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
-export function materialDoModelo(padrao = "PLA") {
+export function materialDoModelo(padrao = materialAtual()) {
   const id = $("rolo-calc")?.value;
   return listaDeRolos().find((rolo) => rolo.id === id)?.material ?? padrao;
 }

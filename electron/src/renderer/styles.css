@@ -5839,6 +5839,42 @@ textarea:focus {
   font-size: 17px;
 }
 
+/* Como você vai imprimir?: material (PLA | PETG) */
+.imp-material {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-weight: 600;
+}
+
+.imp-material-opcoes {
+  display: grid;
+  grid-template-columns: repeat(2, 96px);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.imp-material-opcoes button {
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.imp-material-opcoes button[aria-checked="true"] {
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
 .lg-abas {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

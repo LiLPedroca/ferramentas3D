@@ -1,6 +1,7 @@
 // Exportação de modelos: STL binário e 3MF com uma peça por cor (para impressão multicolorida).
 import { BufferGeometry } from "three";
 import { zipSync, strToU8 } from "three/examples/jsm/libs/fflate.module.js";
+import { materialAtual, projetoDoFatiador } from "./projeto-fatiador.js";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 // partes: [{ nome, cor: "#rrggbb", geometria: THREE.BufferGeometry }]
@@ -135,7 +136,8 @@ function malhaXml(geometria) {
 
 // Um objeto 3MF com uma parte por cor: os fatiadores abrem como peça única com partes separadas.
 // pausas (opcional): alturas em mm onde a impressão para para trocar o filamento à mão (sem AMS).
-export function gerar3mf(partes, { titulo = "Modelo", pausas = [] } = {}) {
+// material: "PLA" | "PETG" (padrão: o último escolhido em "Como você vai imprimir?").
+export function gerar3mf(partes, { titulo = "Modelo", pausas = [], material = materialAtual() } = {}) {
   const materiais = partes
     .map((p) => `<base name="${escaparXml(p.nome)}" displaycolor="${escaparXml(p.cor.toUpperCase())}FF"/>`)
     .join("");
@@ -148,7 +150,7 @@ export function gerar3mf(partes, { titulo = "Modelo", pausas = [] } = {}) {
     `<?xml version="1.0" encoding="UTF-8"?>` +
     `<model unit="millimeter" xml:lang="pt-BR" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">` +
     `<metadata name="Title">${escaparXml(titulo)}</metadata>` +
-    `<metadata name="Application">Programa Ferramentas 3D</metadata>` +
+    APLICACAO +
     `<resources><basematerials id="1">${materiais}</basematerials>${objetos}` +
     `<object id="${idConjunto}" type="model" name="${escaparXml(titulo)}"><components>${componentes}</components></object>` +
     `</resources><build><item objectid="${idConjunto}"/></build></model>`;
@@ -169,9 +171,21 @@ export function gerar3mf(partes, { titulo = "Modelo", pausas = [] } = {}) {
     "_rels/.rels": strToU8(relacoes),
     "3D/3dmodel.model": strToU8(modelo),
     "Metadata/model_settings.config": strToU8(configuracaoDasPartes(partes, titulo, idConjunto)),
+    "Metadata/project_settings.config": strToU8(JSON.stringify(projetoDoFatiador(coresDosSlots(partes, slotsDasPartes(partes)), material))),
   };
   if (pausas.length) arquivos["Metadata/custom_gcode_per_layer.xml"] = strToU8(pausasXml(pausas));
   return zipSync(arquivos);
+}
+
+// O Anycubic Slicer Next só lê o projeto completo (cores dos filamentos) de arquivos no formato do Bambu
+// Studio. O nome do programa continua no título do arquivo do usuário; aqui vai só a marca do formato.
+const APLICACAO = `<metadata name="Application">BambuStudio-2.0.0.3</metadata><metadata name="BambuStudio:3mfVersion">1</metadata>`;
+
+// Cor de cada filamento (posição 1, 2, 3…): a da primeira parte naquela posição; posição sem parte, cinza.
+export function coresDosSlots(partes, slots) {
+  const cores = Array.from({ length: Math.max(1, ...slots) }, () => "#808080");
+  for (let i = partes.length - 1; i >= 0; i--) cores[slots[i] - 1] = partes[i].cor;
+  return cores;
 }
 
 // ---------- Vários objetos em placas (ex.: um chaveiro por nome) ----------
@@ -220,7 +234,7 @@ export function origemDaPlaca(indice, total, mesa = [260, 260]) {
 // objetos: [{ nome, partes: [{ nome, cor, geometria, slot }], placa, posicao: [x, y] }]
 // Placas sem nome: o Anycubic Slicer Next fecha sozinho ao abrir um 3MF com plater_name preenchido.
 // As geometrias já começam em (0, 0, 0) (posicionarNaOrigem). pausas: alturas (mm) iguais em todas as placas.
-export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa = [260, 260] } = {}) {
+export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa = [260, 260], material = materialAtual() } = {}) {
   const totalPlacas = Math.max(...objetos.map((o) => o.placa)) + 1;
   // materiais: um por cor/slot de parte, na ordem em que aparecem
   const materiais = [];
@@ -236,7 +250,9 @@ export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa 
   const config = [];
   const placas = Array.from({ length: totalPlacas }, () => []);
   const slots = [];
+  const todasPartes = [];
   for (const o of objetos) {
+    todasPartes.push(...o.partes);
     const slotsDoObjeto = slotsDasPartes(o.partes);
     const ids = o.partes.map((p) => {
       const id = proximoId++;
@@ -258,7 +274,7 @@ export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa 
     `<?xml version="1.0" encoding="UTF-8"?>` +
     `<model unit="millimeter" xml:lang="pt-BR" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">` +
     `<metadata name="Title">${escaparXml(titulo)}</metadata>` +
-    `<metadata name="Application">Programa Ferramentas 3D</metadata>` +
+    APLICACAO +
     `<resources><basematerials id="1">${materiais.map((m) => `<base name="${escaparXml(m.nome)}" displaycolor="${escaparXml(m.cor.toUpperCase())}FF"/>`).join("")}</basematerials>${recursos.join("")}</resources>` +
     `<build>${itens.join("")}</build></model>`;
   const placasXml = placas
@@ -282,6 +298,7 @@ export function gerar3mfVarios(objetos, { titulo = "Modelos", pausas = [], mesa 
     ),
     "3D/3dmodel.model": strToU8(modelo),
     "Metadata/model_settings.config": strToU8(`<?xml version="1.0" encoding="UTF-8"?><config>${config.join("")}${placasXml}</config>`),
+    "Metadata/project_settings.config": strToU8(JSON.stringify(projetoDoFatiador(coresDosSlots(todasPartes, slots), material))),
   };
   if (pausas.length) arquivos["Metadata/custom_gcode_per_layer.xml"] = strToU8(pausasXml(pausas, totalPlacas));
   return zipSync(arquivos);

@@ -1,6 +1,7 @@
 // Peças de tela comuns aos modelos personalizados (chaveiros e palavras): paleta de cores e
 // janela de escolha de fonte.
 import { CATEGORIAS_FONTES, familiaCss, FONTES } from "./modelos/fontes.js";
+import { guardarMaterial, materialAtual } from "./modelos/projeto-fatiador.js";
 import { el } from "./util-tela.js";
 
 const $ = (id) => document.getElementById(id);
@@ -132,7 +133,16 @@ function resumoImpressao() {
   return { ams: false, camada, primeira, ...troca };
 }
 
+const materialEscolhido = () => document.querySelector(".imp-material-opcoes [aria-checked='true']")?.dataset.material ?? "PLA";
+function marcarMaterial(material) {
+  for (const b of document.querySelectorAll(".imp-material-opcoes button")) b.setAttribute("aria-checked", String(b.dataset.material === material));
+}
+
 function responder(valor) {
+  if (valor) {
+    guardarMaterial(materialEscolhido());
+    valor = { ...valor, material: materialEscolhido() };
+  }
   if ($("dialogo-impressao").open) $("dialogo-impressao").close();
   const r = responderImpressao;
   responderImpressao = null;
@@ -144,6 +154,7 @@ function responder(valor) {
 export function perguntarImpressao(calcular) {
   responder(null);
   calcularTroca = calcular;
+  marcarMaterial(materialAtual());
   resumoImpressao();
   $("dialogo-impressao").showModal();
   return new Promise((r) => {
@@ -221,6 +232,7 @@ export function iniciarModelosUi() {
   });
   for (const el of document.querySelectorAll('input[name="imp-modo"], #imp-camada, #imp-primeira')) el.addEventListener("input", resumoImpressao);
   $("imp-cancelar").addEventListener("click", () => responder(null));
+  for (const b of document.querySelectorAll(".imp-material-opcoes button")) b.addEventListener("click", () => marcarMaterial(b.dataset.material));
   $("dialogo-impressao").addEventListener("close", () => responder(null));
   $("imp-continuar").addEventListener("click", () => {
     const escolha = resumoImpressao();

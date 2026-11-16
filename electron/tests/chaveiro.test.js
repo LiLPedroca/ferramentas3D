@@ -203,7 +203,7 @@ describe("exportação", () => {
 
   it("3MF com duas partes, cores e o filamento de cada parte (model_settings.config)", () => {
     const arquivos = unzipSync(gerar3mf(partes.map((p, i) => ({ ...p, slot: i ? 4 : 1 })), { titulo: "Chaveiro Ana" }));
-    expect(Object.keys(arquivos).sort()).toEqual(["3D/3dmodel.model", "Metadata/model_settings.config", "[Content_Types].xml", "_rels/.rels"]);
+    expect(Object.keys(arquivos).sort()).toEqual(["3D/3dmodel.model", "Metadata/model_settings.config", "Metadata/project_settings.config", "[Content_Types].xml", "_rels/.rels"]);
     const xml = strFromU8(arquivos["3D/3dmodel.model"]);
     expect(xml.match(/<object /g)).toHaveLength(3);
     expect(xml).toContain('displaycolor="#112233FF"');
