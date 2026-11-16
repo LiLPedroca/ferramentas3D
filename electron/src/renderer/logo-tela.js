@@ -241,9 +241,20 @@ function trocarCor(de, para) {
   mapaMudou();
 }
 
+// Cores que ainda têm pelo menos um pixel no mapa (rápido: sem Set por pixel).
+function coresNoMapa(m) {
+  const tem = new Uint8Array(CORES_LOGO.length);
+  for (let p = 0; p < m.idx.length; p++) if (m.idx[p] >= 0) tem[m.idx[p]] = 1;
+  return new Set([...tem.keys()].filter((c) => tem[c]));
+}
+
 function mostrarCores() {
   const lista = $("lg-cores-lista");
-  const chips = alvos.map((a) => {
+  // cor que não sobrou em lugar nenhum (apagada com a varinha ou a borracha) sai da lista; volta sozinha se
+  // "Trazer de volta" ou Desfazer devolverem os pixels dela
+  const presentes = mapa ? coresNoMapa(mapa) : null;
+  const visiveis = presentes ? alvos.filter((a) => presentes.has(a.cor)) : alvos;
+  const chips = visiveis.map((a) => {
     const c = CORES_LOGO[a.cor];
     const chip = el("span", `lg-chip${painelCor === a.cor ? " trocando" : ""}`);
     const nome = el("button", "lg-chip-nome");
@@ -258,8 +269,8 @@ function mostrarCores() {
     });
     const tirar = el("button", "lg-chip-tirar", "×");
     tirar.type = "button";
-    tirar.disabled = alvos.length <= 1;
-    tirar.title = alvos.length <= 1 ? "O logo precisa de pelo menos uma cor" : `Tirar ${c.nome}`;
+    tirar.disabled = visiveis.length <= 1;
+    tirar.title = visiveis.length <= 1 ? "O logo precisa de pelo menos uma cor" : `Tirar ${c.nome}`;
     tirar.setAttribute("aria-label", `Tirar ${c.nome}`);
     tirar.addEventListener("click", () => tirarCor(a.cor));
     chip.append(nome, tirar);
@@ -283,7 +294,7 @@ function mostrarCores() {
   if (painelCor === null) return;
   const trocando = painelCor !== "adicionar";
   $("lg-adicionar-titulo").textContent = trocando ? `Trocar ${CORES_LOGO[painelCor].nome} por` : "Adicionar cor";
-  const usadas = new Set(alvos.map((a) => a.cor));
+  const usadas = new Set(visiveis.map((a) => a.cor));
   $("lg-cores-novas").replaceChildren(
     ...CORES_LOGO.map((c, i) => {
       const b = botaoCor(c, () => (trocando ? trocarCor(painelCor, i) : porCor(i)));
@@ -1179,7 +1190,7 @@ export function iniciarLogo() {
 
   // acesso para os roteiros do modo de captura (como window.__visualizadorTeste)
   const abrirSalvo = (p) => carregar([arquivoDeTexto(p.imagem, p.opcoes.nomeImagem || `${p.nome}.png`)], p);
-  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, corrigindo: () => pincel.ligado(), versaoMapa: () => versaoMapa, balao: () => balao, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, gerar, adicionarEscolha: (e) => escolhas.push(e) };
+  window.__logoTeste = { previa2d: () => previa2d, previa3d: () => previa3d, vinculo: () => vinculo, mapa: () => mapa, manual: () => manual, alvos: () => alvos, modelo: () => modelo, escolhas: () => escolhas, corrigindo: () => pincel.ligado(), versaoMapa: () => versaoMapa, balao: () => balao, abrirSalvo, usarImagem, abrirBalao, pecaParaImprimir, mapaMudou: () => mapaMudou({ espera: 0 }), gerar, adicionarEscolha: (e) => escolhas.push(e) };
 
   registrarAbridor("logo", abrirSalvo);
   $("lg-custo").addEventListener("click", () => {

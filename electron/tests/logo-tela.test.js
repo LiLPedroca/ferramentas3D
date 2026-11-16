@@ -273,3 +273,19 @@ describe("2D para 3D: Trazer de volta", () => {
     expect(document.querySelector('#tela-logo [data-ferramenta="restaurar"]')).toBeNull();
   });
 });
+
+describe("2D para 3D: cor apagada sai de Cores", () => {
+  it("quando não sobra nenhum pixel de uma cor, o chip dela some", async () => {
+    const t = window.__logoTeste;
+    document.querySelector('#tela-logo [data-lg-aba="peca"]').click();
+    await vi.waitFor(() => expect($("lg-3mf").disabled).toBe(false), { timeout: 20000 });
+    const nomes = () => [...document.querySelectorAll("#lg-cores-lista .lg-chip-nome")].map((b) => b.textContent.trim());
+    const alvo = t.alvos().find((a) => t.mapa().idx.includes(a.cor));
+    const mapa = t.mapa();
+    const manual = t.manual();
+    const antes = nomes().length;
+    for (let p = 0; p < mapa.idx.length; p++) if (mapa.idx[p] === alvo.cor) (mapa.idx[p] = -1), (manual[p] = 1);
+    t.mapaMudou();
+    expect(nomes().length).toBe(antes - 1);
+  }, 40000);
+});
