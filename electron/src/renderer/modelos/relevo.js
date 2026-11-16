@@ -1,6 +1,7 @@
 // 2D para 3D: a imagem vetorizada por cores vira uma peça SEM BASE. Cada parte (região ligada de uma cor)
 // é um volume próprio, lado a lado com as vizinhas, todas começando na mesa. Cada parte pode ter a sua
 // cor e a sua altura. As partes formam uma partição exata da silhueta: vizinhas dividem a mesma borda.
+import { camadaDaTroca } from "./chaveiro.js";
 import { areaComSinal, comEscopo, contornoExterno, maisPertoNoLaco, malhaDoSolido, pontoNoLaco, resolverLargura } from "./manifold.js";
 
 export const PADRAO_RELEVO = { largura: 100, altura: 3, comArgola: false, argola: null, furo: 4, parede: 2 };
@@ -173,24 +174,39 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
     }
     if (r.presa) r.partes[r.presa.alvo].anel = r.presa.secao;
 
-    const coresUsadas = [...new Set(partes.map((p) => p.cor))];
-    const malhas = coresUsadas.map((cor, i) => {
+    const formaDa = (p) => (r.partes[p.id].anel ? guardar(p.secao.add(r.partes[p.id].anel)) : p.secao);
+    let coresUsadas = [...new Set(partes.map((p) => p.cor))];
+    let faixas = null;
+    let malhas;
+    if (o.semAms) {
+      // sem AMS: cada cor numa faixa de altura própria, uma acima da outra. A faixa k cobre todas as
+      // partes das cores k em diante; assim, de cima, cada parte mostra a cor da sua faixa.
+      const area = new Map(coresUsadas.map((c) => [c, 0]));
+      for (const p of partes) area.set(p.cor, area.get(p.cor) + p.area);
+      const pedida = (o.ordem ?? []).filter((c) => area.has(c));
+      coresUsadas = [...new Set([...pedida, ...[...area].sort((a, b) => b[1] - a[1]).map(([c]) => c)])];
+      faixas = coresUsadas.map((cor, k) => ({ cor, de: k ? o.altura + k - 1 : 0, ate: o.altura + k }));
+      malhas = faixas.map((f, k) => {
+        const secoes = partes.filter((p) => coresUsadas.indexOf(p.cor) >= k).map(formaDa);
+        const secao = secoes.length === 1 ? secoes[0] : guardar(C.union(secoes));
+        const solido = guardar(guardar(secao.extrude(f.ate - f.de)).translate([0, 0, f.de]));
+        return { nome: `Cor ${k + 1}`, cor: f.cor, ...malhaDoSolido(solido, `cor ${k + 1}`) };
+      });
+    } else malhas = coresUsadas.map((cor, i) => {
       const solidos = partes
         .filter((p) => p.cor === cor)
-        .map((p) => {
-          const forma = r.partes[p.id].anel ? guardar(p.secao.add(r.partes[p.id].anel)) : p.secao;
-          return guardar(forma.extrude(p.altura));
-        });
+        .map((p) => guardar(formaDa(p).extrude(p.altura)));
       const solido = solidos.length === 1 ? solidos[0] : guardar(M.Manifold.union(solidos));
       return { nome: `Cor ${i + 1}`, cor, ...malhaDoSolido(solido, `cor ${i + 1}`) };
     });
-    const alturaMax = Math.max(...partes.map((p) => p.altura));
+    const alturaMax = faixas ? faixas[faixas.length - 1].ate : Math.max(...partes.map((p) => p.altura));
     const avisos = [];
     return {
       malhas,
       partes: partes.map(({ secao: _s, ...p }) => p),
       camadas: partes.map((p) => ({ lacos: p.lacos, cor: p.cor, id: p.id })),
       cores: coresUsadas,
+      faixas,
       caixa: r.caixa,
       escalaArte: r.s,
       dimensoes: [r.dimensoes[0], r.dimensoes[1], alturaMax],
@@ -200,4 +216,10 @@ export function gerarRelevo(M, cores, entrada = {}, escolhas = []) {
       opcoes: o,
     };
   });
+}
+
+// Pausas para trocar o filamento (sem AMS): uma no começo de cada faixa, a partir da segunda.
+// camada/primeira: altura de camada e da primeira camada no fatiador (mm).
+export function trocasDoRelevo(faixas, camada = 0.2, primeira = 0.2) {
+  return (faixas ?? []).slice(1).map((f) => camadaDaTroca(f.de, camada, primeira));
 }

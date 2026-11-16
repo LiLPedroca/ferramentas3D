@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { coresDoSvg } from "../src/renderer/modelos/logo.js";
 import { carregarManifold } from "../src/renderer/modelos/manifold.js";
-import { gerarRelevo, PADRAO_RELEVO, validarOpcoesRelevo } from "../src/renderer/modelos/relevo.js";
+import { gerarRelevo, PADRAO_RELEVO, trocasDoRelevo, validarOpcoesRelevo } from "../src/renderer/modelos/relevo.js";
 
 // SVG real gerado pelo Conversor SVG (logo de teste: círculo azul, triângulo laranja, "3D" vazado).
 const svg = readFileSync(join(__dirname, "dados", "logo-teste.svg"), "utf8");
@@ -150,3 +150,39 @@ describe("2D para 3D: peça sem base", () => {
     expect(r.malhas.length).toBe(sem.malhas.length);
   });
 });
+
+describe("2D para 3D: degraus por cor sem AMS", () => {
+  it("uma faixa por cor, empilhadas de 1 em 1 mm, cor de maior área embaixo", () => {
+    const comum = gerarRelevo(M, cores, {});
+    const areas = new Map();
+    for (const p of comum.partes) areas.set(p.cor, (areas.get(p.cor) ?? 0) + p.area);
+    const maior = [...areas].sort((a, b) => b[1] - a[1])[0][0];
+    const r = gerarRelevo(M, cores, { semAms: true });
+    expect(r.faixas).toHaveLength(areas.size);
+    expect(r.faixas.map((f) => [f.de, f.ate])).toEqual(r.faixas.map((_, k) => [k ? 3 + (k - 1) : 0, 3 + k]));
+    expect(r.faixas[0].cor).toBe(maior);
+    expect(r.malhas.map((m) => m.cor)).toEqual(r.faixas.map((f) => f.cor));
+    expect(r.dimensoes[2]).toBeCloseTo(3 + areas.size - 1, 5);
+  });
+
+  it("ordem escolhida é respeitada", () => {
+    const comum = gerarRelevo(M, cores, {});
+    const ordem = [...new Set(comum.partes.map((p) => p.cor))].reverse();
+    const r = gerarRelevo(M, cores, { semAms: true, ordem });
+    expect(r.faixas.map((f) => f.cor)).toEqual(ordem);
+  });
+
+  it("trocas na primeira camada de cada faixa", () => {
+    const faixas = [{ cor: "#111111", de: 0, ate: 3 }, { cor: "#ffffff", de: 3, ate: 4 }, { cor: "#ffd600", de: 4, ate: 5 }];
+    expect(trocasDoRelevo(faixas, 0.2, 0.2)).toEqual([{ z: 3.2, numero: 16 }, { z: 4.2, numero: 21 }]);
+  });
+
+  it("malhas fechadas e começando onde a faixa começa", () => {
+    const r = gerarRelevo(M, cores, { semAms: true });
+    r.malhas.forEach((m, k) => {
+      expect(fechada(m), m.nome).toBe(true);
+      expect(zMin(m)).toBeCloseTo(r.faixas[k].de, 5);
+    });
+  });
+});
+
