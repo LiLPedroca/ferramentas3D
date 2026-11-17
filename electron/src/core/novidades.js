@@ -321,6 +321,16 @@ export const NOVIDADES = [
     itens: ["Orçamentos, Etiquetas, Modelos 3D, Backups e Produtos", "Abra cada pasta em Minhas pastas ou pelo botão Abrir pastas no Explorador"],
     botao: "Ver",
   },
+  {
+    id: "logo-stl-3mf",
+    versao: "0.61.0",
+    tela: "logo",
+    icone: "logo",
+    titulo: "2D para 3D também abre STL e 3MF",
+    texto: "A peça é vista de cima e vira a imagem do modelo, já com a largura dela.",
+    itens: ["3MF: usa as cores do arquivo", "STL: cada altura vira uma cor (a base numa, o relevo em outra)"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

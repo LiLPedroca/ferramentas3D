@@ -12,7 +12,7 @@ import { coresDoSvg } from "./modelos/logo.js";
 import { CAMADA, RELEVO_MAXIMO, faixasDoRelevo, gerarRelevo, LIMITES_RELEVO, PADRAO_RELEVO, pontoDentro, trocasDoRelevo } from "./modelos/relevo.js";
 import { gerar3mf } from "./modelos/exportar.js";
 import {
-  CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
+  CORES_LOGO, VAZIO, alvoDaCor, aplicarCorrecoes, corMaisProxima, coresAutomaticas, encher, juntarManual, mapaPorAlvos, mapaVazio,
   mapaOriginal, mascaraDeFuros, mascaraDoFundo, pintarTraco, rgbaDasCorrecoes, svgDoMapa,
 } from "./modelos/mapa-logo.js";
 import { motorDaTela } from "./modelos/manifold.js";
@@ -21,6 +21,9 @@ import { criarPrevia } from "./modelos/previa3d.js";
 import { estado, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el, ligarZonaArquivos } from "./util-tela.js";
 import { abrirImagem } from "./imagem-arquivo.js";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { ler3mf } from "./modelos/ler3mf.js";
+import { vistaDeCima } from "./modelos/vista-de-cima.js";
 
 const $ = (id) => document.getElementById(id);
 const LADO = 2000; // resolução máxima do mapa (lado maior); a borda sai com fração de pixel pelo meio-tom
@@ -853,13 +856,49 @@ export function escalaDoMapa(w, h, { svg = false, salvo = false } = {}) {
   return svg ? LADO / maior : Math.min(LADO, AMPLIAR * maior) / maior;
 }
 
+// STL ou 3MF: a peça vista de cima vira a imagem (3MF com as cores do arquivo; STL com uma cor por altura).
+const ehModelo3d = (arquivo) => /\.(stl|3mf)$/i.test(arquivo.name || "");
+
+async function carregarModelo3d(arquivo) {
+  let vista;
+  try {
+    const bytes = new Uint8Array(await arquivo.arrayBuffer());
+    const pecas = /\.3mf$/i.test(arquivo.name)
+      ? ler3mf(bytes).pecas
+      : [{ posicoes: new STLLoader().parse(bytes.buffer).attributes.position.array, cor: null }];
+    vista = vistaDeCima(pecas, { lado: LADO });
+  } catch (erro) {
+    mostrarAviso(`Não foi possível abrir esse arquivo 3D. ${erro?.message ?? ""}`.trim());
+    return;
+  }
+  const canvas = new OffscreenCanvas(vista.width, vista.height);
+  canvas.getContext("2d").putImageData(new ImageData(vista.data, vista.width, vista.height), 0, 0);
+  $("lg-miniatura").src = await imagemComoTexto(canvas);
+  const extensao = arquivo.name.split(".").pop().toUpperCase();
+  await usarImagem(
+    { width: vista.width, height: vista.height, data: vista.data },
+    {
+      nome: arquivo.name,
+      w: vista.width,
+      h: vista.height,
+      modelo: `${extensao} · ${formatar(vista.larguraMm)} × ${formatar(vista.alturaMm)} mm`,
+      larguraMm: vista.larguraMm,
+      coresDoArquivo: vista.cores,
+    },
+  );
+}
+
 // salvo (opcional): modelo de Meus modelos sendo reaberto ({ id, nome, opcoes, correcoes }).
 async function carregar([arquivo], salvo = null) {
+  if (!salvo && ehModelo3d(arquivo)) {
+    await carregarModelo3d(arquivo);
+    return;
+  }
   let aberta;
   try {
     aberta = await abrirDesenhavel(arquivo);
   } catch {
-    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP, HEIC ou SVG.");
+    mostrarAviso("Não foi possível abrir essa imagem. Use PNG, JPEG, WebP, HEIC, SVG, STL ou 3MF.");
     return;
   }
   try {
@@ -885,7 +924,7 @@ async function usarImagem(pixels, info, salvo = null) {
   versaoMapa += 1;
   if (pincel.ligado()) mostrarAba("peca");
   imagem = { ...pixels, nome: info.nome };
-  tamanhoOriginal = { w: info.w, h: info.h, svg: info.svg === true };
+  tamanhoOriginal = { w: info.w, h: info.h, svg: info.svg === true, modelo: info.modelo ?? null };
   $("lg-trabalho").hidden = false;
   $("lg-zona").hidden = true;
   painelCor = null;
@@ -898,8 +937,10 @@ async function usarImagem(pixels, info, salvo = null) {
   const o = salvo?.opcoes ?? {};
   const nomeImagem = o.nomeImagem || info.nome;
   $("lg-nome").textContent = nomeImagem;
-  const pequena = !tamanhoOriginal.svg && Math.max(tamanhoOriginal.w, tamanhoOriginal.h) < PEQUENA;
-  $("lg-tamanho-imagem").textContent = tamanhoOriginal.svg
+  const pequena = !tamanhoOriginal.svg && !tamanhoOriginal.modelo && Math.max(tamanhoOriginal.w, tamanhoOriginal.h) < PEQUENA;
+  $("lg-tamanho-imagem").textContent = tamanhoOriginal.modelo
+    ? tamanhoOriginal.modelo
+    : tamanhoOriginal.svg
     ? "SVG (vetor)"
     : `${tamanhoOriginal.w} × ${tamanhoOriginal.h} px${pequena ? " · pequena: se tiver, use uma maior ou SVG" : ""}`;
   $("lg-tamanho-imagem").classList.toggle("aviso", pequena);
@@ -916,9 +957,20 @@ async function usarImagem(pixels, info, salvo = null) {
     projetoAtual = { id: salvo.id, nome: salvo.nome };
     nomeProjeto = salvo.nome;
   } else {
-    opcoes = { ...PADRAO_RELEVO, largura: opcoes.largura, altura: opcoes.altura };
+    // STL/3MF: começa com a largura da peça original
+    const [min, max] = LIMITES_RELEVO.largura;
+    const largura = info.larguraMm ? Math.min(max, Math.max(min, Math.round(info.larguraMm * 10) / 10)) : opcoes.largura;
+    opcoes = { ...PADRAO_RELEVO, largura, altura: opcoes.altura };
     projetoAtual = null;
     nomeProjeto = nomeImagem.replace(/\.[^.]+$/, "").slice(0, 80) || "Logo";
+  }
+  // STL/3MF: as cores da peça já são conhecidas (cada uma vira a cor pronta mais próxima)
+  if (!salvo && info.coresDoArquivo?.length) {
+    for (const hex of info.coresDoArquivo) {
+      const ref = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+      const cor = corMaisProxima(ref);
+      if (!alvos.some((a) => a.cor === cor)) alvos.push({ cor, ref });
+    }
   }
   preencherCampos();
   refazerAutomatico({ achar: !alvos.length });

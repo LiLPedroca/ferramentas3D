@@ -773,3 +773,15 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Os dados internos (`AppData\...\dados`) não mudaram de lugar. Nenhum arquivo antigo foi movido.
 - Testes: `FERRAMENTAS_PASTAS` troca a pasta principal. No modo de captura, `pastas:abrir` não abre o Explorador.
 
+## Trabalho do Claude Code (17/11/2026) — 2D para 3D abre STL e 3MF (v0.61.0, PUBLICADA)
+
+- Pedido do Pedro, com a publicação já autorizada.
+- `modelos/vista-de-cima.js` olha a peça de cima com um z-buffer próprio, sem WebGL, e transforma o que vê numa imagem RGBA de até 2000 px, com o fundo transparente:
+  - 3MF com 2 cores ou mais: cada pixel recebe a cor do pedaço mais alto. Só contam as cores que aparecem de cima;
+  - STL ou 3MF sem cor: cada altura vira uma cor, na ordem preto, branco, vermelho... Alturas a menos de 0,3 mm uma da outra contam como uma só, e alturas com menos de 0,5% dos pixels são ignoradas.
+- `logo-tela.js` (`carregarModeloArquivo`): a imagem entra pelo `usarImagem` de sempre.
+  - A largura começa com a da peça, dentro do limite de 20 a 250 mm.
+  - As cores do arquivo viram as cores das partes (as cores prontas mais próximas).
+  - A ficha mostra "STL · L × C mm".
+- Conferido no modo de captura: um STL de chaveiro (placa e letras em relevo) saiu em preto e branco, e o 3MF exportado pelo próprio 2D para 3D manteve azul e laranja. Furos aparecem como furos.
+
