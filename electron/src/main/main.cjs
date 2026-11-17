@@ -10,6 +10,7 @@ const { criarServicoPrintables } = require("./printables.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
 const { Documento } = require("./armazenamento.cjs");
+const { criarPdfsOrcamentos, gravarPdf } = require("./pdfs-orcamentos.cjs");
 const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const backupZip = require("./backup-zip.cjs");
@@ -470,8 +471,12 @@ function registrarDados() {
         if (!orcamento) throw new ErroValidacao("Este orçamento não existe mais.");
         const config = await configuracoes.ler();
         const nome = nomeArquivoPdf(orcamento, { hoje: new Date() });
-        let destino;
-        if (process.env.FERRAMENTAS_PDF_DESTINO) {
+        // Orçamento editado: atualiza o mesmo PDF gerado antes (se o arquivo ainda existe).
+        let destino = await pdfsOrcamentos.caminhoExistente(id);
+        const atualizado = Boolean(destino);
+        if (destino) {
+          // mesmo arquivo de antes: não pergunta onde salvar
+        } else if (process.env.FERRAMENTAS_PDF_DESTINO) {
           destino = path.join(process.env.FERRAMENTAS_PDF_DESTINO, nome);
         } else {
           const escolha = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
@@ -487,9 +492,10 @@ function registrarDados() {
           headerTemplate: "<span></span>",
           footerTemplate: RODAPE_PDF,
         });
-        await require("node:fs/promises").writeFile(destino, pdf);
+        await gravarPdf(destino, pdf);
+        await pdfsOrcamentos.lembrar(id, destino);
         if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
-        return destino;
+        return { caminho: destino, atualizado };
       })(),
     );
   });
@@ -548,6 +554,7 @@ function registrarDados() {
   ipcMain.handle("financeiro:excluir-despesa", comTela((_e, id) => financeiro.excluirDespesa(String(id))));
   // Rascunho do orçamento em andamento (estado do formulário). Fica na pasta de dados.
   const rascunho = new Documento(pasta, "rascunho-orcamento");
+  const pdfsOrcamentos = criarPdfsOrcamentos(pasta);
   ipcMain.handle("rascunho:ler", comTela(() => rascunho.ler()));
   ipcMain.handle(
     "rascunho:salvar",

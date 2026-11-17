@@ -746,3 +746,17 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
   para ajustar (sem chaveiro: argola/furo saem) e o copo guarda uma cópia (o modelo salvo não muda).
 - Altura livre: a logo sobe e desce pelo copo inteiro (`limitarNoCopo`); fora do tubo só o aviso "A logo está
   passando do tubo". Fora do tubo a curva usa o maior raio das partes (a logo fica por cima da borda/base).
+
+## Trabalho do Claude Code (17/11/2026) — Editar orçamento e atualizar o PDF (v0.59.0, PUBLICADA)
+
+- Pedido urgente do Pedro, com publicação já autorizada. A v0.59.0 leva junto o que estava só no PC dele (v0.57.0 e v0.58.0).
+- O orçamento já podia ser aberto pelo histórico. Agora isso fica claro na tela:
+  - o título mostra "Editando orçamento #N";
+  - os botões passam a ser "Salvar alterações" e "Salvar e atualizar PDF".
+- O PDF lembra onde foi salvo (`main/pdfs-orcamentos.cjs`, dados em `pdfs-orcamentos.json`):
+  - ao gerar de novo, sobrescreve o mesmo arquivo sem perguntar;
+  - se o arquivo sumiu, pergunta o lugar outra vez;
+  - se o PDF está aberto e travado em outro programa, pede para fechar.
+- Orçamentos de antes desta versão não têm caminho guardado: na primeira vez, o programa pergunta onde salvar.
+- Conferido no modo de captura: o desconto foi aplicado e o mesmo arquivo foi atualizado, com 1 orçamento só. 476 testes passando.
+

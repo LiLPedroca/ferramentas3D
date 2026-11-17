@@ -301,6 +301,16 @@ export const NOVIDADES = [
     itens: ["Usar de Meus modelos: escolha uma logo salva", "A logo sobe e desce pelo copo inteiro"],
     botao: "Ver",
   },
+  {
+    id: "orcamentos-editar-pdf",
+    versao: "0.59.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Edite um orçamento já feito",
+    texto: "Abra o orçamento no histórico, mude o que quiser (como o desconto) e salve.",
+    itens: ["Salvar e atualizar PDF troca o mesmo arquivo, sem perguntar onde salvar"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -250,6 +250,9 @@ function preencherTudo() {
   $("o-arquivo-nome").value = f.nomeArquivo;
   $("o-arquivo-nome-campo").hidden = f.nomeArquivoModo !== "manual";
   $("o-excluir").hidden = !f.editandoId;
+  // Editando um orçamento já salvo: os botões salvam as alterações e atualizam o mesmo PDF.
+  $("o-finalizar").textContent = f.editandoId ? "Salvar alterações" : "Finalizar orçamento";
+  $("o-finalizar-pdf").textContent = f.editandoId ? "Salvar e atualizar PDF" : "Finalizar e gerar PDF";
   $("erro-orcamento").textContent = "";
   renderizarItens();
   atualizarCabecalho();
@@ -506,7 +509,7 @@ function atualizarPrevia() {
 
 function atualizarCabecalho() {
   const n = f.numero ? `${ehTeste() ? "de teste " : ""}#${f.numero}` : "";
-  $("o-titulo").textContent = f.editandoId ? `Orçamento ${n}` : `Orçamento ${n}`.trim();
+  $("o-titulo").textContent = f.editandoId ? `Editando orçamento ${n}` : `Orçamento ${n}`.trim();
 }
 
 // ---------- Histórico ----------
@@ -517,7 +520,8 @@ function chipSituacao(situacao) {
 function linhaOrcamento(o) {
   const linha = el("button", "linha-orcamento");
   linha.type = "button";
-  linha.setAttribute("aria-label", `Abrir orçamento ${numeroOrcamento(o.numero, o.teste)}`);
+  linha.setAttribute("aria-label", `Abrir orçamento ${numeroOrcamento(o.numero, o.teste)} para editar`);
+  linha.title = "Abrir para editar";
   linha.append(
     el("span", "orc-numero", numeroOrcamento(o.numero, o.teste)),
     el("span", "orc-cliente", o.cliente?.nome ?? "Sem cliente"),
@@ -653,11 +657,12 @@ async function finalizar({ pdf }) {
       return;
     }
     const salvo = resposta.dados;
+    const editado = Boolean(f.editandoId);
     $("erro-orcamento").textContent = "";
     if (pdf) {
       const r = await window.dados.orcamentos.pdf(salvo.id);
       if (!r.ok) mostrarAviso(r.erro);
-      else if (r.dados) mostrarAviso("PDF salvo e aberto.");
+      else if (r.dados) mostrarAviso(r.dados.atualizado ? "PDF atualizado e aberto." : "PDF salvo e aberto.");
     }
     // Pergunta do pagamento: cria (ou atualiza) a venda no financeiro.
     await abrirPagamentoOrcamento(salvo);
@@ -669,7 +674,7 @@ async function finalizar({ pdf }) {
     irEtapa(1);
     aoMudar();
     atualizarAvisoRevisao();
-    mostrarAviso(`Orçamento ${numeroOrcamento(salvo.numero, salvo.teste)} finalizado.`);
+    mostrarAviso(`Orçamento ${numeroOrcamento(salvo.numero, salvo.teste)} ${editado ? "atualizado" : "finalizado"}.`);
   } finally {
     botoes.forEach((b) => (b.disabled = false));
   }
