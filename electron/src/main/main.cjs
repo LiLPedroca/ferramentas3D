@@ -11,6 +11,7 @@ const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
 const { Documento } = require("./armazenamento.cjs");
 const { criarPdfsOrcamentos, gravarPdf } = require("./pdfs-orcamentos.cjs");
+const { NOME_RAIZ, criarPastasUsuario } = require("./pastas-usuario.cjs");
 const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const backupZip = require("./backup-zip.cjs");
@@ -235,7 +236,7 @@ function registrarDados() {
       else {
         const escolha = await dialog.showSaveDialog(janelaDe(e), {
           title: "Salvar backup",
-          defaultPath: path.join(app.getPath("documents"), nome),
+          defaultPath: path.join(await pastasUsuario.garantir("backups"), nome),
           filters: [{ name: "Backup", extensions: ["zip"] }],
         });
         if (escolha.canceled || !escolha.filePath) return null;
@@ -397,7 +398,7 @@ function registrarDados() {
       else {
         const escolha = await dialog.showSaveDialog(janelaDe(e), {
           title: "Salvar modelo",
-          defaultPath: path.join(app.getPath("documents"), arquivo),
+          defaultPath: path.join(await pastasUsuario.garantir("modelos"), arquivo),
           filters: [{ name: extensao.toUpperCase(), extensions: [extensao] }],
         });
         if (escolha.canceled || !escolha.filePath) return null;
@@ -481,7 +482,7 @@ function registrarDados() {
         } else {
           const escolha = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
             title: "Salvar orçamento em PDF",
-            defaultPath: path.join(app.getPath("documents"), nome),
+            defaultPath: path.join(await pastasUsuario.garantir("orcamentos"), nome),
             filters: [{ name: "PDF", extensions: ["pdf"] }],
           });
           if (escolha.canceled || !escolha.filePath) return null;
@@ -528,7 +529,7 @@ function registrarDados() {
         } else {
           const escolha = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
             title: "Salvar etiquetas em PDF",
-            defaultPath: path.join(app.getPath("documents"), nome),
+            defaultPath: path.join(await pastasUsuario.garantir("etiquetas"), nome),
             filters: [{ name: "PDF", extensions: ["pdf"] }],
           });
           if (escolha.canceled || !escolha.filePath) return null;
@@ -554,6 +555,8 @@ function registrarDados() {
   ipcMain.handle("financeiro:excluir-despesa", comTela((_e, id) => financeiro.excluirDespesa(String(id))));
   // Rascunho do orçamento em andamento (estado do formulário). Fica na pasta de dados.
   const rascunho = new Documento(pasta, "rascunho-orcamento");
+  // FERRAMENTAS_PASTAS (testes) troca Documentos\Programa Ferramentas 3D por outra pasta.
+  const pastasUsuario = criarPastasUsuario(process.env.FERRAMENTAS_PASTAS || path.join(app.getPath("documents"), NOME_RAIZ));
   const pdfsOrcamentos = criarPdfsOrcamentos(pasta);
   ipcMain.handle("rascunho:ler", comTela(() => rascunho.ler()));
   ipcMain.handle(
@@ -594,6 +597,24 @@ function registrarDados() {
   ipcMain.handle("config:salvar", (e, alteracao) =>
     daTela(e) ? responderConfig(configuracoes.salvar(alteracao)) : negado,
   );
+  // Minhas pastas (Configurações): lista e abre no Explorador. "raiz" abre a pasta principal.
+  ipcMain.handle("pastas:listar", comTela(() => ({ raiz: pastasUsuario.raiz, pastas: pastasUsuario.listar(), dados: pasta })));
+  ipcMain.handle(
+    "pastas:abrir",
+    comTela(async (_e, tipo) => {
+      let alvo;
+      if (tipo === "dados") {
+        await require("node:fs/promises").mkdir(pasta, { recursive: true });
+        alvo = pasta;
+      } else if (tipo === "raiz") alvo = await pastasUsuario.garantirTodas();
+      else if (typeof tipo === "string" && pastasUsuario.listar().some((p) => p.tipo === tipo)) alvo = await pastasUsuario.garantir(tipo);
+      else throw new ErroValidacao("Pasta inválida.");
+      if (process.env.FERRAMENTAS_CAPTURA) return alvo; // testes: não abre o Explorador
+      const erro = await shell.openPath(alvo);
+      if (erro) throw new ErroValidacao(`Não foi possível abrir a pasta: ${erro}`);
+      return alvo;
+    }),
+  );
   ipcMain.handle("dados:abrir-pasta", async (e) => {
     if (!daTela(e)) return negado;
     await require("node:fs/promises").mkdir(pasta, { recursive: true });
@@ -624,7 +645,7 @@ function registrarDados() {
       else {
         const escolha = await dialog.showSaveDialog(janelaDe(e), {
           title: "Exportar produtos",
-          defaultPath: path.join(app.getPath("documents"), nome),
+          defaultPath: path.join(await pastasUsuario.garantir("produtos"), nome),
           filters: [{ name: "Produtos", extensions: ["json"] }],
         });
         if (escolha.canceled || !escolha.filePath) return null;

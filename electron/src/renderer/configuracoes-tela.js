@@ -232,9 +232,40 @@ function mostrarFatiador(config) {
     : "Nenhum fatiador escolhido ainda.";
 }
 
-async function abrirPasta() {
-  const resposta = await window.dados.abrirPasta();
+// ---------- Minhas pastas: cada tipo de arquivo na sua pasta, com botão para abrir no Explorador ----------
+async function abrirPastaDo(tipo) {
+  const resposta = await window.dados.pastas.abrir(tipo);
   if (!resposta.ok) mostrarAviso(resposta.erro);
+}
+
+async function mostrarPastas() {
+  const r = await window.dados.pastas.listar();
+  if (!r.ok) return;
+  $("c-pastas-raiz").textContent = `Tudo o que você salva fica em ${r.dados.raiz}, separado por tipo.`;
+  const linha = (nome, descricao, caminho, tipo) => {
+    const item = document.createElement("div");
+    item.className = "pasta-item";
+    const texto = document.createElement("div");
+    const forte = document.createElement("strong");
+    forte.textContent = nome;
+    const sub = document.createElement("span");
+    sub.className = "ajuda";
+    sub.textContent = descricao;
+    sub.title = caminho;
+    texto.append(forte, sub);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "botao-secundario";
+    b.textContent = "Abrir";
+    b.setAttribute("aria-label", `Abrir a pasta ${nome}`);
+    b.addEventListener("click", () => abrirPastaDo(tipo));
+    item.append(texto, b);
+    return item;
+  };
+  $("c-pastas").replaceChildren(
+    ...r.dados.pastas.map((p) => linha(p.nome, p.descricao, p.caminho, p.tipo)),
+    linha("Dados do programa", "Produtos, clientes, orçamentos e configurações (com cópia automática)", r.dados.dados, "dados"),
+  );
 }
 
 export function iniciarConfiguracoes() {
@@ -250,12 +281,13 @@ export function iniciarConfiguracoes() {
     logoAtual = "";
     mostrarLogo();
   });
-  $("abrir-pasta-dados").addEventListener("click", abrirPasta);
+  $("c-abrir-explorador").addEventListener("click", () => abrirPastaDo("raiz"));
   $("c-teste-recriar").addEventListener("click", recriarTeste);
   $("c-teste-limpar").addEventListener("click", limparTestes);
   $("c-escolher-fatiador").addEventListener("click", () => abrirSeletorFatiador());
   aoMudarConfig(mostrarFatiador);
   registrarAoAbrir("configuracoes", () => {
+    mostrarPastas();
     preencher();
     mostrarSecao(secaoAtual);
   });

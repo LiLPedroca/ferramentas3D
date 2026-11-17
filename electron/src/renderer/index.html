@@ -2207,15 +2207,25 @@
 
     <main class="tela oculta pagina" id="tela-configuracoes">
       <div class="pagina-conteudo largo">
-        <h1 class="titulo-pagina">Configurações</h1>
+        <div class="config-topo">
+          <h1 class="titulo-pagina">Configurações</h1>
+          <button type="button" class="botao-secundario" id="c-abrir-explorador">Abrir pastas no Explorador</button>
+        </div>
         <div class="config-layout">
           <nav class="painel config-nav" aria-label="Seções das configurações">
             <button type="button" class="config-aba" data-secao="cfg-calculadora">Dados da calculadora</button>
             <button type="button" class="config-aba" data-secao="cfg-orcamento">Dados do orçamento</button>
+            <button type="button" class="config-aba" data-secao="cfg-pastas">Minhas pastas</button>
             <button type="button" class="config-aba" data-secao="cfg-geral">Geral</button>
           </nav>
 
           <div class="config-secoes">
+            <section class="painel cartao-config config-secao" id="cfg-pastas" hidden>
+              <h2>Minhas pastas</h2>
+              <p class="ajuda" id="c-pastas-raiz"></p>
+              <div class="lista-pastas" id="c-pastas"></div>
+            </section>
+
             <form class="painel cartao-config config-secao" id="cfg-calculadora" novalidate hidden>
               <h2>Dados da calculadora</h2>
               <p class="ajuda">Defina seus custos habituais. Eles preenchem um novo cálculo e podem ser ajustados em cada impressão.</p>
@@ -2316,14 +2326,6 @@
                 <p class="ajuda" id="c-fatiador-atual"></p>
                 <div class="acoes-form">
                   <button class="botao-secundario" type="button" id="c-escolher-fatiador">Gerenciar fatiadores…</button>
-                </div>
-              </section>
-
-              <section class="painel cartao-config">
-                <h2>Seus dados</h2>
-                <p class="ajuda">Produtos e configurações ficam salvos neste computador, com cópia de segurança automática a cada alteração.</p>
-                <div class="acoes-form">
-                  <button class="botao-secundario" type="button" id="abrir-pasta-dados">Abrir pasta de dados</button>
                 </div>
               </section>
 

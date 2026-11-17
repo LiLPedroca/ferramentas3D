@@ -311,6 +311,16 @@ export const NOVIDADES = [
     itens: ["Salvar e atualizar PDF troca o mesmo arquivo, sem perguntar onde salvar"],
     botao: "Ver",
   },
+  {
+    id: "configuracoes-minhas-pastas",
+    versao: "0.60.0",
+    tela: "configuracoes",
+    icone: "configuracoes",
+    titulo: "Seus arquivos organizados em pastas",
+    texto: "Tudo fica em Documentos\\Programa Ferramentas 3D, uma pasta para cada tipo.",
+    itens: ["Orçamentos, Etiquetas, Modelos 3D, Backups e Produtos", "Abra cada pasta em Minhas pastas ou pelo botão Abrir pastas no Explorador"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

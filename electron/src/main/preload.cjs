@@ -96,6 +96,10 @@ contextBridge.exposeInMainWorld("dados", {
     excluirDespesa: (id) => ipcRenderer.invoke("financeiro:excluir-despesa", id),
   },
   abrirPasta: () => ipcRenderer.invoke("dados:abrir-pasta"),
+  pastas: {
+    listar: () => ipcRenderer.invoke("pastas:listar"),
+    abrir: (tipo) => ipcRenderer.invoke("pastas:abrir", tipo),
+  },
   config: {
     ler: () => ipcRenderer.invoke("config:ler"),
     salvar: (alteracao) => ipcRenderer.invoke("config:salvar", alteracao),

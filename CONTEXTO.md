@@ -760,3 +760,16 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Orçamentos de antes desta versão não têm caminho guardado: na primeira vez, o programa pergunta onde salvar.
 - Conferido no modo de captura: o desconto foi aplicado e o mesmo arquivo foi atualizado, com 1 orçamento só. 476 testes passando.
 
+## Trabalho do Claude Code (17/11/2026) — Minhas pastas (v0.60.0, PUBLICADA)
+
+- Pedido do Pedro: separar o que o programa salva, que antes ia tudo solto em Documentos, e conseguir abrir as pastas com facilidade. A publicação já estava autorizada.
+- `main/pastas-usuario.cjs` cria `Documentos\Programa Ferramentas 3D` com as pastas Orçamentos, Etiquetas, Modelos 3D, Backups e Produtos.
+- Cada "Salvar" (backup, modelo, PDF de orçamento, PDF de etiquetas, exportar produtos) já abre na pasta certa. O usuário pode escolher outro lugar.
+- Configurações:
+  - o botão "Abrir pastas no Explorador" fica no topo e cria todas as pastas;
+  - a nova seção "Minhas pastas" tem um "Abrir" para cada pasta e outro para "Dados do programa";
+  - o cartão "Seus dados" saiu de Geral, porque virou a última linha de Minhas pastas.
+- IPC: `pastas:listar` e `pastas:abrir(tipo)`, com tipo `raiz`, `dados` ou um dos tipos acima. Qualquer outro tipo é recusado.
+- Os dados internos (`AppData\...\dados`) não mudaram de lugar. Nenhum arquivo antigo foi movido.
+- Testes: `FERRAMENTAS_PASTAS` troca a pasta principal. No modo de captura, `pastas:abrir` não abre o Explorador.
+

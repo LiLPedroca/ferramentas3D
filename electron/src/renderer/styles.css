@@ -7158,3 +7158,34 @@ textarea:focus {
 #dialogo-fe-rolo .entrada em:first-child {
   margin-right: 6px;
 }
+
+/* Configurações: botão do Explorador no topo e lista de Minhas pastas */
+.config-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lista-pastas {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pasta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.pasta-item strong,
+.pasta-item .ajuda {
+  display: block;
+  margin: 0;
+}
