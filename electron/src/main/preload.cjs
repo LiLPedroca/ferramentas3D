@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld("dados", {
   orcamentos: {
     ...cadastro("orcamentos"),
     pdf: (id) => ipcRenderer.invoke("orcamentos:pdf", id),
+    pdfVersoes: (id) => ipcRenderer.invoke("orcamentos:pdf-versoes", id),
     situacao: (id, situacao) => ipcRenderer.invoke("orcamentos:situacao", id, situacao),
   },
   impressoes: {

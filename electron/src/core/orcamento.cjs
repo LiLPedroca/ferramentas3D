@@ -54,10 +54,46 @@ function montarItem(v, i) {
     item.custoUnitarioCentavos = custo;
   }
   if (v?.calculo) item.calculo = validarCalculo(v.calculo);
+  // Duas versões do item (Calculadora gravação a laser: frente / frente e verso).
+  if (v?.opcoes !== undefined && v.opcoes !== null) {
+    item.opcoes = opcoesDe(v.opcoes, n);
+    item.opcao = v.opcao === 1 ? 1 : 0;
+  }
   // Dimensões do produto (para a coluna do PDF), em mm.
   const dims = ["alturaMm", "larguraMm", "comprimentoMm"].map((k) => medidaDeTexto(v?.[k], "Dimensão"));
   if (dims.some(Boolean)) [item.alturaMm, item.larguraMm, item.comprimentoMm] = dims;
   return item;
+}
+
+function opcoesDe(lista, n) {
+  if (!Array.isArray(lista) || lista.length !== 2) throw new ErroValidacao(`Item ${n}: versões inválidas.`);
+  return lista.map((o) => {
+    if (!o || typeof o !== "object" || !DIGITOS.test(String(o.precoUnitarioCentavos))) throw new ErroValidacao(`Item ${n}: versões inválidas.`);
+    return {
+      rotulo: texto(o.rotulo, `Versão do item ${n}`, 40, { obrigatorio: true }),
+      descricao: texto(o.descricao, `Descrição do item ${n}`, LIMITES.descricao, { obrigatorio: true }),
+      precoUnitarioCentavos: String(o.precoUnitarioCentavos),
+    };
+  });
+}
+
+// Troca todos os itens com duas versões para a versão "indice" (0 ou 1). Devolve itens novos.
+// Funciona com itens do formulário (preco em texto) e com itens gravados (precoUnitarioCentavos).
+function itensNaVersao(itens, indice) {
+  return itens.map((i) => {
+    if (!Array.isArray(i.opcoes) || !i.opcoes[indice]) return i;
+    const o = i.opcoes[indice];
+    const novo = { ...i, opcao: indice, descricao: o.descricao };
+    if ("preco" in i) novo.preco = centavosParaTexto(o.precoUnitarioCentavos);
+    if ("precoUnitarioCentavos" in i) novo.precoUnitarioCentavos = o.precoUnitarioCentavos;
+    return novo;
+  });
+}
+
+// Rótulos das duas versões do orçamento (do primeiro item que tem versões), ou null.
+function versoesDo(itens) {
+  const i = itens.find((x) => Array.isArray(x.opcoes) && x.opcoes.length === 2);
+  return i ? i.opcoes.map((o) => o.rotulo) : null;
 }
 
 // Sinal: { tipo: "reais" | "percentual", valor } — reais em centavos; percentual em centésimos de % ("3000" = 30%).
@@ -265,6 +301,8 @@ module.exports = {
   ROTULOS_SITUACAO,
   SITUACOES,
   exibirPdfDe,
+  itensNaVersao,
+  versoesDo,
   sinalDeFormulario,
   sinalParaTexto,
   valorSinal,

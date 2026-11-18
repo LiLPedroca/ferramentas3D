@@ -12,6 +12,7 @@ const TELAS = {
   inicio: { elemento: "tela-inicio", titulo: "Início", pai: null },
   configuracoes: { elemento: "tela-configuracoes", titulo: "Configurações", pai: "inicio" },
   calculadora: { elemento: "tela-calculadora" },
+  laser: { elemento: "tela-laser" },
   visualizador: { elemento: "tela-visualizador" },
   impressoes: { elemento: "tela-impressoes" },
   filamentos: { elemento: "tela-filamentos" },

@@ -46,6 +46,15 @@ export const FERRAMENTAS = [
     tela: "calculadora",
   },
   {
+    id: "laser",
+    grupo: "financeiro",
+    titulo: "Calculadora gravação a laser",
+    descricao: "Produto mais gravação: frente ou frente e verso.",
+    categoria: "Gestão financeira",
+    disponivel: true,
+    tela: "laser",
+  },
+  {
     id: "orcamentos",
     grupo: "financeiro",
     titulo: "Orçamentos",

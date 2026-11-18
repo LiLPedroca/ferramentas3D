@@ -355,6 +355,26 @@ export const NOVIDADES = [
     itens: ["As peças saem do estoque do produto nessa hora", "Orçamento cancelado devolve as peças"],
     botao: "Ver",
   },
+  {
+    id: "laser-calculadora",
+    versao: "0.63.0",
+    tela: "laser",
+    icone: "laser",
+    titulo: "Calculadora gravação a laser",
+    texto: "Produto mais gravação, frente ou frente e verso, direto para o orçamento.",
+    itens: ["Escolha um dos seus produtos ou digite", "Com os dois valores, o orçamento tem duas versões do PDF"],
+    botao: "Ver",
+  },
+  {
+    id: "orcamentos-versoes",
+    versao: "0.63.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Orçamento com duas versões",
+    texto: "Itens da gravação a laser com frente e frente e verso trocam na prévia do PDF.",
+    itens: ["Troque a versão em cima da prévia", "Salve as duas versões em PDF para o cliente escolher"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

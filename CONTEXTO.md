@@ -796,3 +796,12 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Histórico:** janela "Histórico do estoque" (menu ⋯ do cartão ou "Ver histórico" no editor).
 - Testes: `tests/estoque-produtos.test.js`. Conferido no modo de captura (lista, editor, histórico, Entregue e cancelamento pelos canais reais).
 - **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
+
+## Trabalho do Claude Code (18/11/2026) — Calculadora gravação a laser (v0.63.0, só no PC do Pedro)
+
+- **Nova ferramenta** `laser` (Gestão financeira, abaixo da Calculadora 3D): produto (digitado ou escolhido em Meus produtos), quantidade, valor do produto, valor frente e valor frente e verso (opcionais, sempre digitados, não ficam guardados) e botões "Área de gravação" que alternam qual valor entra na conta. Botão do campo vazio fica apagado.
+- Conta em `core/laser.cjs` (`calcularLaser`, `itemDoOrcamento`): produto + gravação = valor por peça; × quantidade = total.
+- **Duas versões no orçamento:** com os dois valores, o item leva `opcoes` (2: rótulo, descrição, preço) e `opcao` (escolhida) — validado em `core/orcamento.cjs` (`itensNaVersao`, `versoesDo`). Na prévia do PDF aparecem os botões Frente / Frente e verso; no Finalizar, "Finalizar e salvar as duas versões em PDF" (canal `orcamentos:pdf-versoes`) grava "… - Frente.pdf" e "… - Frente e verso.pdf" na pasta Orçamentos. O orçamento grava a versão marcada.
+- Produto escolhido dos salvos vai com `produtoId` (reserva estoque, regras da v0.62.0).
+- Testes: `tests/laser.test.js`. Conferido no modo de captura (tela, envio ao orçamento com troca na prévia, os dois PDFs).
+- **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.

@@ -7259,3 +7259,90 @@ textarea:focus {
   display: block;
   margin: 0;
 }
+
+/* ---------- Calculadora gravação a laser ---------- */
+.laser-produto {
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.laser-area-titulo {
+  margin: 4px 0 8px;
+  font-weight: 650;
+}
+
+.laser-areas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.laser-areas .fatiador-opcao:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.laser-linhas {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--borda);
+}
+
+.laser-linhas div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.laser-linhas span {
+  color: var(--texto-suave);
+}
+
+.laser-linhas strong,
+.laser-total strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.laser-total strong {
+  color: var(--acento-forte);
+  font-size: 22px;
+}
+
+/* Orçamento com duas versões (gravação a laser) */
+.orc-versoes {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 3px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie);
+}
+
+.orc-versoes button {
+  flex: 1;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.orc-versoes button[aria-pressed="true"] {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+#o-pdf-versoes {
+  width: 100%;
+  margin-top: 10px;
+}
+
+#tela-laser .calc-acoes {
+  display: grid;
+  grid-template-columns: 1fr;
+}

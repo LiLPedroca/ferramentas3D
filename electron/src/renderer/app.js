@@ -1,5 +1,6 @@
 // Ponto de entrada da tela: liga os módulos e abre o início.
 import { iniciarCalculadora } from "./calculadora-tela.js";
+import { iniciarLaser } from "./laser-tela.js";
 import { carregarClientes, iniciarClientes } from "./clientes.js";
 import { iniciarOrcamentos } from "./orcamentos.js";
 import { iniciarBackup } from "./backup-tela.js";
@@ -26,6 +27,7 @@ import { iniciarVisualizador } from "./viewer3d.js";
 iniciarShell();
 iniciarInicio();
 iniciarCalculadora();
+iniciarLaser();
 iniciarConfiguracoes();
 iniciarFinanceiro();
 iniciarProdutos({ avisar: mostrarAviso, irPara });

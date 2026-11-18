@@ -504,6 +504,35 @@ function registrarDados() {
       })(),
     );
   });
+  // As duas versões do orçamento (gravação a laser: frente / frente e verso), uma em cada PDF,
+  // na pasta Orçamentos. O cliente escolhe; o orçamento continua com a versão marcada.
+  ipcMain.handle(
+    "orcamentos:pdf-versoes",
+    comTela(async (_e, id) => {
+      const { itensNaVersao, versoesDo } = require("../core/orcamento.cjs");
+      const orcamento = (await orcamentos.listar()).find((o) => o.id === String(id));
+      if (!orcamento) throw new ErroValidacao("Este orçamento não existe mais.");
+      const rotulos = versoesDo(orcamento.itens);
+      if (!rotulos) throw new ErroValidacao("Este orçamento não tem duas versões.");
+      const config = await configuracoes.ler();
+      const pasta = process.env.FERRAMENTAS_PDF_DESTINO || (await pastasUsuario.garantir("orcamentos"));
+      const base = nomeArquivoPdf(orcamento, { hoje: new Date() }).replace(/\.pdf$/i, "");
+      const caminhos = [];
+      for (const [indice, rotulo] of rotulos.entries()) {
+        const versao = { ...orcamento, itens: itensNaVersao(orcamento.itens, indice) };
+        const pdf = await htmlParaPdf(gerarHtmlOrcamento(versao, config.empresa), {
+          displayHeaderFooter: true,
+          headerTemplate: "<span></span>",
+          footerTemplate: RODAPE_PDF,
+        });
+        const destino = path.join(pasta, `${base} - ${rotulo}.pdf`);
+        await gravarPdf(destino, pdf);
+        caminhos.push(destino);
+      }
+      if (!process.env.FERRAMENTAS_PDF_DESTINO) for (const c of caminhos) shell.openPath(c);
+      return { caminhos };
+    }),
+  );
   // Etiquetas em PDF: a tela manda só ids e cópias; o conteúdo vem dos dados gravados.
   ipcMain.handle("etiquetas:pdf", async (e, pedidoTela) => {
     if (!daTela(e)) return negado;

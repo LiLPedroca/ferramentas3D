@@ -221,6 +221,80 @@
       </section>
     </main>
 
+    <!-- Tela: calculadora gravação a laser -->
+
+    <main class="tela oculta" id="tela-laser">
+      <section class="painel formulario" aria-labelledby="titulo-laser">
+        <div class="calc-topo">
+          <h2 id="titulo-laser">Dados do produto</h2>
+          <div class="calc-topo-acoes">
+            <button class="botao-secundario" id="laser-novo" type="button">Novo cálculo</button>
+          </div>
+        </div>
+        <div class="linha laser-produto">
+          <label class="campo">
+            <span>Produto</span>
+            <div class="entrada"><input id="laser-nome" maxlength="120" autocomplete="off" placeholder="Ex.: Copo térmico personalizado" /></div>
+          </label>
+          <label class="campo">
+            <span>Meus produtos</span>
+            <select id="laser-produto" class="seletor"></select>
+          </label>
+        </div>
+        <div class="linha">
+          <label class="campo">
+            <span>Quantidade</span>
+            <div class="entrada"><input id="laser-quantidade" inputmode="numeric" autocomplete="off" value="1" /><em>peças</em></div>
+          </label>
+          <label class="campo">
+            <span>Valor do produto</span>
+            <div class="entrada"><input id="laser-valor" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div>
+          </label>
+        </div>
+
+        <fieldset class="grupo">
+          <legend>Gravação</legend>
+          <div class="linha">
+            <label class="campo">
+              <span>Valor frente</span>
+              <div class="entrada"><input id="laser-frente" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div>
+            </label>
+            <label class="campo">
+              <span>Valor frente e verso</span>
+              <div class="entrada"><input id="laser-frente-verso" inputmode="decimal" autocomplete="off" placeholder="0,00" /><em>R$</em></div>
+            </label>
+          </div>
+          <p class="ajuda">Informe os valores da gravação. Com os dois preenchidos, o orçamento mostra as duas versões do PDF e você escolhe qual enviar, ou envia as duas.</p>
+          <p class="laser-area-titulo">Área de gravação</p>
+          <div class="laser-areas" role="radiogroup" aria-label="Área de gravação">
+            <label class="fatiador-opcao"><input type="radio" name="laser-area" value="frente" /> <span class="fatiador-texto"><strong>Frente</strong></span></label>
+            <label class="fatiador-opcao"><input type="radio" name="laser-area" value="frenteVerso" /> <span class="fatiador-texto"><strong>Frente e verso</strong></span></label>
+          </div>
+        </fieldset>
+
+        <p class="erro" id="laser-erro" role="alert"></p>
+      </section>
+
+      <section class="painel resultado" aria-labelledby="titulo-laser-res">
+        <p class="rotulo" id="titulo-laser-res">Resumo do cálculo</p>
+        <p class="preco-grande" id="laser-por-peca">R$ 0,00</p>
+        <p class="ajuda">Valor por peça</p>
+        <div class="laser-linhas">
+          <div><span>Produto por peça</span><strong id="laser-r-produto">R$ 0,00</strong></div>
+          <div><span id="laser-r-gravacao-rotulo">Gravação</span><strong id="laser-r-gravacao">R$ 0,00</strong></div>
+          <div><span>Valor por peça</span><strong id="laser-r-peca">R$ 0,00</strong></div>
+          <div><span>Quantidade</span><strong id="laser-r-quantidade">0</strong></div>
+        </div>
+        <div class="total laser-total">
+          <span>Valor total</span>
+          <strong id="laser-total">R$ 0,00</strong>
+        </div>
+        <div class="calc-acoes">
+          <button class="botao-primario" id="laser-orcamento" type="button">Adicionar ao orçamento →</button>
+        </div>
+      </section>
+    </main>
+
     <!-- Tela: visualizador -->
 
     <main class="tela oculta vz-tela" id="tela-visualizador">
@@ -985,12 +1059,17 @@
                 <button type="button" class="botao-secundario" id="o-finalizar">Finalizar orçamento</button>
                 <button type="button" class="botao-primario" id="o-finalizar-pdf">Finalizar e gerar PDF</button>
               </div>
+              <button type="button" class="botao-secundario largo" id="o-pdf-versoes" hidden>Finalizar e salvar as duas versões em PDF</button>
               <div class="orc-navegacao"><button type="button" class="botao-secundario" data-ir="3">← Voltar para Condições</button></div>
             </section>
           </div>
 
           <aside class="painel orc-previa" id="o-previa-painel">
             <h2>Prévia do PDF</h2>
+            <div class="orc-versoes" id="o-versoes" role="group" aria-label="Versão do orçamento" hidden>
+              <button type="button" data-versao="0" aria-pressed="true">Frente</button>
+              <button type="button" data-versao="1" aria-pressed="false">Frente e verso</button>
+            </div>
             <div class="orc-previa-vazia" id="o-previa-vazia">
               <strong>Seu orçamento aparece aqui</strong>
               <p id="o-previa-falta">Preencha o nome do cliente.</p>

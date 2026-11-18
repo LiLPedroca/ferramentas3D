@@ -10,7 +10,7 @@ import { abrirPagamentoOrcamento, contarRevisoes, abrirRevisao } from "./finance
 import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
 
-const { ROTULOS_SITUACAO, calcularTotais, centavosParaTexto, sinalDeFormulario, sinalParaTexto, valorSinal } = modeloOrcamento;
+const { ROTULOS_SITUACAO, calcularTotais, centavosParaTexto, itensNaVersao, sinalDeFormulario, sinalParaTexto, valorSinal, versoesDo } = modeloOrcamento;
 const { centavosDeTexto } = modeloProduto;
 const { CSS_ORCAMENTO, corpoOrcamento } = modeloPdf;
 
@@ -99,6 +99,8 @@ function formularioDe(o) {
       alturaMm: i.alturaMm,
       larguraMm: i.larguraMm,
       comprimentoMm: i.comprimentoMm,
+      opcoes: i.opcoes,
+      opcao: i.opcao,
     })),
     desconto: o.descontoCentavos !== "0" ? centavosParaTexto(o.descontoCentavos) : "",
     frete: o.freteCentavos !== "0" ? centavosParaTexto(o.freteCentavos) : "",
@@ -135,6 +137,8 @@ function valoresParaSalvar(situacao) {
       alturaMm: i.alturaMm ?? "",
       larguraMm: i.larguraMm ?? "",
       comprimentoMm: i.comprimentoMm ?? "",
+      opcoes: i.opcoes,
+      opcao: i.opcao,
     })),
     desconto: f.desconto,
     frete: f.frete,
@@ -414,9 +418,17 @@ function adicionarProduto(p) {
 }
 
 // Chamado pela Calculadora ("Adicionar ao orçamento").
-export async function adicionarItemDoCalculo({ descricao, quantidade, precoUnitarioCentavos, custoUnitarioCentavos, calculo }) {
+// Também pela Calculadora gravação a laser (com produtoId e as duas versões, quando houver).
+export async function adicionarItemDoCalculo({ descricao, quantidade, precoUnitarioCentavos, custoUnitarioCentavos, calculo, produtoId, opcoes, opcao }) {
   if (!f) await prepararFormulario();
-  f.itens.push({ descricao, quantidade: String(quantidade), preco: centavosParaTexto(precoUnitarioCentavos), custoUnitarioCentavos, calculo });
+  const item = { descricao, quantidade: String(quantidade), preco: centavosParaTexto(precoUnitarioCentavos), custoUnitarioCentavos, calculo };
+  if (produtoId) {
+    item.produtoId = produtoId;
+    const p = produtos.find((x) => x.id === produtoId);
+    if (p) Object.assign(item, { alturaMm: p.alturaMm || undefined, larguraMm: p.larguraMm || undefined, comprimentoMm: p.comprimentoMm || undefined });
+  }
+  if (opcoes) Object.assign(item, { opcoes, opcao });
+  f.itens.push(item);
   irPara("orcamentos");
   renderizarItens();
   irEtapa(2);
@@ -487,7 +499,28 @@ function agendarPrevia() {
   timerPrevia = setTimeout(atualizarPrevia, 150);
 }
 
+// Orçamento com duas versões (gravação a laser): botões para trocar e "Salvar as duas versões".
+function atualizarVersoes() {
+  const rotulos = versoesDo(f.itens);
+  $("o-versoes").hidden = !rotulos;
+  $("o-pdf-versoes").hidden = !rotulos;
+  if (!rotulos) return;
+  const atual = f.itens.find((i) => Array.isArray(i.opcoes))?.opcao ?? 0;
+  for (const b of $("o-versoes").querySelectorAll("button")) {
+    const k = Number(b.dataset.versao);
+    b.textContent = rotulos[k];
+    b.setAttribute("aria-pressed", String(k === atual));
+  }
+}
+
+function trocarVersao(indice) {
+  f.itens = itensNaVersao(f.itens, indice);
+  renderizarItens();
+  aoMudar();
+}
+
 function atualizarPrevia() {
+  atualizarVersoes();
   const mostrar = $("o-mostrar-previa").checked;
   $("o-previa-painel").hidden = !mostrar;
   $("o-layout").classList.toggle("sem-previa", !mostrar);
@@ -641,6 +674,7 @@ async function novoOrcamento() {
   aoMudar();
 }
 
+// pdf: false | true | "versoes" (as duas versões, uma em cada PDF)
 async function finalizar({ pdf }) {
   const p = pendencias();
   if (p.length) {
@@ -648,7 +682,7 @@ async function finalizar({ pdf }) {
     irEtapa(p[0][0]);
     return;
   }
-  const botoes = [$("o-finalizar"), $("o-finalizar-pdf")];
+  const botoes = [$("o-finalizar"), $("o-finalizar-pdf"), $("o-pdf-versoes")];
   botoes.forEach((b) => (b.disabled = true));
   try {
     const resposta = await window.dados.orcamentos.salvar(valoresParaSalvar("finalizado"), f.editandoId ?? undefined);
@@ -659,7 +693,11 @@ async function finalizar({ pdf }) {
     const salvo = resposta.dados;
     const editado = Boolean(f.editandoId);
     $("erro-orcamento").textContent = "";
-    if (pdf) {
+    if (pdf === "versoes") {
+      const r = await window.dados.orcamentos.pdfVersoes(salvo.id);
+      if (!r.ok) mostrarAviso(r.erro);
+      else mostrarAviso(`As duas versões foram salvas em PDF na pasta Orçamentos.`);
+    } else if (pdf) {
       const r = await window.dados.orcamentos.pdf(salvo.id);
       if (!r.ok) mostrarAviso(r.erro);
       else if (r.dados) mostrarAviso(r.dados.atualizado ? "PDF atualizado e aberto." : "PDF salvo e aberto.");
@@ -791,6 +829,8 @@ export function iniciarOrcamentos() {
   });
   $("o-finalizar").addEventListener("click", () => finalizar({ pdf: false }));
   $("o-finalizar-pdf").addEventListener("click", () => finalizar({ pdf: true }));
+  $("o-pdf-versoes").addEventListener("click", () => finalizar({ pdf: "versoes" }));
+  for (const b of $("o-versoes").querySelectorAll("button")) b.addEventListener("click", () => trocarVersao(Number(b.dataset.versao)));
   $("o-excluir").addEventListener("click", excluir);
   $("o-revisar").addEventListener("click", async () => {
     await abrirRevisao();
