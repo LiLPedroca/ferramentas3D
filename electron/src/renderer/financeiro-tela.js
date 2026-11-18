@@ -9,6 +9,7 @@ import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./she
 import { el } from "./util-tela.js";
 import { criarDivisao } from "./divisao-pagamento.js";
 import { centavosDeTexto } from "../core/produto.cjs";
+import modeloEstoque from "../core/estoque-produtos.cjs";
 
 const { ROTULOS_FORMA, ROTULOS_PRODUCAO, ROTULOS_SITUACAO, diaLocal, lucroVenda, orcamentosSemVenda, periodoDe, recebido, restante, resumoFinanceiro, situacaoVenda } = fin;
 const { calcularTotais, valorSinal, centavosParaTexto } = modeloOrcamento;
@@ -369,6 +370,7 @@ function renderizarVenda(v) {
     const r = await window.dados.financeiro.producao(v.id, prod.value);
     if (!r.ok) return mostrarAviso(r.erro);
     mostrarAviso(`Produção: ${ROTULOS_PRODUCAO[prod.value]}.`);
+    avisarAcabando(r.dados);
     await atualizarTudo();
   });
   const pagar = el("button", "botao-primario", "Registrar pagamento");
@@ -552,7 +554,7 @@ export async function abrirPagamentoOrcamento(o, { revisao = false } = {}) {
   ajustarPagamento();
   $("dialogo-pagamento").showModal();
   return new Promise((resolver) => {
-    pedidoPagamento = { orcamento: o, revisao, resolver, total, ja };
+    pedidoPagamento = { orcamento: o, revisao, resolver, total, ja, vendaId: existente?.id ?? null };
   });
 }
 
@@ -602,6 +604,7 @@ async function confirmarPagamento(ev) {
     $("erro-pagamento").textContent = "Escolha uma das opções.";
     return;
   }
+  if (["pendente", "parcial", "integral"].includes(modo) && !(await seguirSemEstoque(p))) return;
   let r;
   if (modo === "cancelar") r = await window.dados.orcamentos.situacao(p.orcamento.id, "recusado");
   else if (modo === "vincular") r = await window.dados.financeiro.vincular(p.orcamento.id, $("pagamento-venda").value);
@@ -611,7 +614,30 @@ async function confirmarPagamento(ev) {
     return;
   }
   mostrarAviso(modo === "cancelar" ? "Orçamento marcado como cancelado." : "Financeiro atualizado.");
+  avisarAcabando(r.dados);
   fecharPagamento(true);
+}
+
+// Venda nova com produto sem peças disponíveis: avisa que vai precisar imprimir e deixa escolher.
+async function seguirSemEstoque(p) {
+  const rp = await window.dados.produtos.listar();
+  if (!rp.ok) return true;
+  const faltas = modeloEstoque.faltasParaVenda(p.orcamento, rp.dados, p.vendaId);
+  if (!faltas.length) return true;
+  const lista = faltas.map((x) => `${x.nome}: faltam ${x.faltam === 1 ? "1 peça" : `${x.faltam} peças`}`).join("; ");
+  return confirmar({
+    titulo: "Sem estoque suficiente",
+    texto: `Será necessário imprimir novas peças. ${lista}. Quer continuar com o orçamento?`,
+    botao: "Continuar mesmo assim",
+    botaoNao: "Voltar",
+  });
+}
+
+// O processo principal manda os produtos que acabaram de entrar em "Acabando".
+export function avisarAcabando(dados) {
+  const nomes = dados?.estoqueAcabando;
+  if (!Array.isArray(nomes) || !nomes.length) return;
+  mostrarAviso(`Estoque acabando: ${nomes.join(", ")}.`);
 }
 
 // ---------- Revisão de orçamentos antigos ----------

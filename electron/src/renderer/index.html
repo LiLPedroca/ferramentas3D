@@ -377,6 +377,9 @@
           <select id="filtro-categoria" class="seletor" aria-label="Filtrar por categoria">
             <option value="">Todas as categorias</option>
           </select>
+          <select id="filtro-material" class="seletor" aria-label="Filtrar por material">
+            <option value="">Todos os materiais</option>
+          </select>
           <select id="ordem-produtos" class="seletor" aria-label="Ordenar produtos">
             <option value="recentes">Mais recentes</option>
             <option value="nome">Nome (A a Z)</option>
@@ -409,6 +412,19 @@
         <p class="produtos-rodape" id="produtos-mostrando"></p>
       </div>
     </main>
+
+    <!-- Diálogo: histórico do estoque de um produto -->
+    <dialog class="dialogo dialogo-medio" id="dialogo-historico-produto" aria-labelledby="titulo-historico-produto">
+      <header class="dialogo-topo">
+        <h2 id="titulo-historico-produto">Histórico do estoque</h2>
+        <button type="button" class="fechar" id="fechar-historico-produto" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <p class="historico-resumo" id="historico-resumo"></p>
+        <ol class="historico-estoque" id="historico-estoque"></ol>
+        <p class="vazio" id="historico-vazio" hidden>Nada registrado ainda.</p>
+      </div>
+    </dialog>
 
     <!-- Diálogo: produto -->
 
@@ -449,22 +465,42 @@
 
             <div class="linha">
               <label class="campo">
+                <span>Material</span>
+                <select id="p-material" class="seletor"></select>
+              </label>
+              <label class="campo">
                 <span>Peso por peça</span>
                 <div class="entrada"><input id="p-peso" inputmode="decimal" autocomplete="off" /><em>g</em></div>
               </label>
-              <div class="campo">
-                <span>Dimensões (A × L × C)</span>
-                <div class="trio">
-                  <div class="entrada"><input id="p-altura" inputmode="decimal" aria-label="Altura em mm" autocomplete="off" /><em>mm</em></div>
-                  <div class="entrada"><input id="p-largura" inputmode="decimal" aria-label="Largura em mm" autocomplete="off" /><em>mm</em></div>
-                  <div class="entrada"><input id="p-comprimento" inputmode="decimal" aria-label="Comprimento em mm" autocomplete="off" /><em>mm</em></div>
-                </div>
+            </div>
+
+            <div class="campo">
+              <span>Dimensões (A × L × C)</span>
+              <div class="trio">
+                <div class="entrada"><input id="p-altura" inputmode="decimal" aria-label="Altura em mm" autocomplete="off" /><em>mm</em></div>
+                <div class="entrada"><input id="p-largura" inputmode="decimal" aria-label="Largura em mm" autocomplete="off" /><em>mm</em></div>
+                <div class="entrada"><input id="p-comprimento" inputmode="decimal" aria-label="Comprimento em mm" autocomplete="off" /><em>mm</em></div>
               </div>
+            </div>
+
+            <div class="linha">
+              <label class="campo">
+                <span>Peças em estoque</span>
+                <div class="entrada"><input id="p-estoque" inputmode="numeric" autocomplete="off" placeholder="Não controlar" /><em>un.</em></div>
+              </label>
+              <label class="campo">
+                <span>Avisar quando sobrar</span>
+                <div class="entrada"><input id="p-estoque-minimo" inputmode="numeric" autocomplete="off" placeholder="Sem aviso" /><em>un.</em></div>
+              </label>
+            </div>
+            <div class="p-estoque-info" id="p-estoque-info" hidden>
+              <span id="p-estoque-texto"></span>
+              <button type="button" class="botao-texto" id="p-ver-historico">Ver histórico</button>
             </div>
 
             <label class="campo">
               <span>Observações</span>
-              <textarea id="p-obs" maxlength="300" rows="3" placeholder="Material, cor, acabamento…"></textarea>
+              <textarea id="p-obs" maxlength="300" rows="3" placeholder="Cor, acabamento…"></textarea>
             </label>
           </div>
         </div>

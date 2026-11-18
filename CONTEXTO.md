@@ -785,3 +785,14 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
   - A ficha mostra "STL · L × C mm".
 - Conferido no modo de captura: um STL de chaveiro (placa e letras em relevo) saiu em preto e branco, e o 3MF exportado pelo próprio 2D para 3D manteve azul e laranja. Furos aparecem como furos.
 
+
+## Trabalho do Claude Code (18/11/2026) — Material e estoque de produtos (v0.62.0, só no PC do Pedro)
+
+- **Produtos:** campo **Material** (lista PLA, PLA Silk, PETG, ABS, TPU de `core/impressao.cjs`, um por produto) e filtro "Todos os materiais".
+- **Estoque de peças prontas:** "Peças em estoque" (vazio = sem controle) e "Avisar quando sobrar" (mínimo por produto). Cartão mostra "N disponíveis · N reservadas" e o selo "Acabando" (conta só as disponíveis) ou "Faltam N".
+- **Regras (Pedro, 18/11):** a venda criada pela pergunta do pagamento **reserva**; Produção **"Entregue"** (nova, em `core/financeiro.cjs`) **tira do estoque**; orçamento cancelado **devolve**; venda excluída libera a reserva. Só contam vendas criadas depois de ligar o controle do produto (`estoqueDesde`).
+- **Como funciona:** `core/estoque-produtos.cjs` (`conciliar`) compara o que cada venda pede com o que já foi aplicado (`produto.vinculos[vendaId] = { r, s }`) e lança só a diferença, com linha no `historico` (máx. 300). `main/estoque-produtos.cjs` roda a conciliação depois de cada canal de orçamentos/financeiro que muda dados. Ajuste à mão só vale se o campo foi mexido (`estoqueVisto`).
+- **Aviso de falta:** na pergunta do pagamento, se faltar peça: "Sem estoque suficiente… Continuar mesmo assim / Voltar". Estoque pode ficar negativo (= peças a imprimir).
+- **Histórico:** janela "Histórico do estoque" (menu ⋯ do cartão ou "Ver histórico" no editor).
+- Testes: `tests/estoque-produtos.test.js`. Conferido no modo de captura (lista, editor, histórico, Entregue e cancelamento pelos canais reais).
+- **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.

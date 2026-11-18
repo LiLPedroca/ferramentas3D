@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron")
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
 const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
+const { criarEstoqueProdutos } = require("./estoque-produtos.cjs");
 const { criarServicoBackup } = require("./backup.cjs");
 const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { criarServicoPrintables } = require("./printables.cjs");
@@ -180,6 +181,9 @@ function registrarDados() {
   const filamentos = criarServicoFilamentos(pasta);
   const impressoes = criarServicoImpressoes(pasta);
   const cadastros = { clientes, orcamentos, favoritos, projetos, filamentos };
+  // Reservas e saídas do estoque de produtos acompanham orçamentos e vendas.
+  const estoque = criarEstoqueProdutos({ produtos, orcamentos, vendas: financeiro.vendas });
+  const comEstoque = (funcao) => (...args) => estoque.depois(Promise.resolve().then(() => funcao(...args)));
 
   // ---------- Dados de teste (cliente e produto fictícios) ----------
   const dadosTeste = criarServicoDadosTeste({ clientes, produtos, orcamentos, vendas: financeiro.vendas, configuracoes });
@@ -545,12 +549,12 @@ function registrarDados() {
   // ---------- Gestão financeira ----------
   const texto = (v) => typeof v === "string";
   ipcMain.handle("financeiro:listar", comTela(() => financeiro.listar()));
-  ipcMain.handle("financeiro:salvar-venda", comTela((_e, valores, id) => financeiro.salvarVenda(valores, texto(id) ? id : undefined)));
-  ipcMain.handle("financeiro:excluir-venda", comTela((_e, id) => financeiro.excluirVenda(String(id))));
+  ipcMain.handle("financeiro:salvar-venda", comTela(comEstoque((_e, valores, id) => financeiro.salvarVenda(valores, texto(id) ? id : undefined))));
+  ipcMain.handle("financeiro:excluir-venda", comTela(comEstoque((_e, id) => financeiro.excluirVenda(String(id)))));
   ipcMain.handle("financeiro:pagamento", comTela((_e, id, pagamento) => financeiro.registrarPagamento(String(id), pagamento)));
-  ipcMain.handle("financeiro:producao", comTela((_e, id, producao) => financeiro.definirProducao(String(id), producao)));
-  ipcMain.handle("financeiro:sincronizar", comTela((_e, orcamentoId, resposta) => financeiro.sincronizarOrcamento(String(orcamentoId), resposta)));
-  ipcMain.handle("financeiro:vincular", comTela((_e, orcamentoId, vendaId) => financeiro.vincularOrcamento(String(orcamentoId), String(vendaId))));
+  ipcMain.handle("financeiro:producao", comTela(comEstoque((_e, id, producao) => financeiro.definirProducao(String(id), producao))));
+  ipcMain.handle("financeiro:sincronizar", comTela(comEstoque((_e, orcamentoId, resposta) => financeiro.sincronizarOrcamento(String(orcamentoId), resposta))));
+  ipcMain.handle("financeiro:vincular", comTela(comEstoque((_e, orcamentoId, vendaId) => financeiro.vincularOrcamento(String(orcamentoId), String(vendaId)))));
   ipcMain.handle("financeiro:salvar-despesa", comTela((_e, valores, id) => financeiro.salvarDespesa(valores, texto(id) ? id : undefined)));
   ipcMain.handle("financeiro:excluir-despesa", comTela((_e, id) => financeiro.excluirDespesa(String(id))));
   // Rascunho do orçamento em andamento (estado do formulário). Fica na pasta de dados.
@@ -567,7 +571,7 @@ function registrarDados() {
       return rascunho.alterarValor(async () => ({ novo: JSON.parse(texto), resultado: new Date().toISOString() }));
     }),
   );
-  ipcMain.handle("orcamentos:situacao", comTela((_e, id, situacao) => orcamentos.definirSituacao(String(id), situacao)));
+  ipcMain.handle("orcamentos:situacao", comTela(comEstoque((_e, id, situacao) => orcamentos.definirSituacao(String(id), situacao))));
 
   ipcMain.handle("filamentos:descontar", (e, id, gramas) =>
     daTela(e) && typeof id === "string" ? responder(filamentos.descontar(id, gramas)) : negado,
@@ -585,11 +589,12 @@ function registrarDados() {
   for (const [nome, servico] of Object.entries(cadastros)) {
     // Espera a criação dos dados de teste na primeira abertura, para a lista já vir com eles.
     ipcMain.handle(`${nome}:listar`, (e) => (daTela(e) ? responder(prontoTeste.then(() => servico.listar())) : negado));
+    const acerto = nome === "orcamentos" ? estoque.depois : (p) => p;
     ipcMain.handle(`${nome}:salvar`, (e, valores, id) =>
-      daTela(e) ? responder(servico.salvar(valores, typeof id === "string" ? id : undefined)) : negado,
+      daTela(e) ? responder(acerto(servico.salvar(valores, typeof id === "string" ? id : undefined))) : negado,
     );
     ipcMain.handle(`${nome}:excluir`, (e, id) =>
-      daTela(e) && typeof id === "string" ? responder(servico.excluir(id)) : negado,
+      daTela(e) && typeof id === "string" ? responder(acerto(servico.excluir(id))) : negado,
     );
   }
 

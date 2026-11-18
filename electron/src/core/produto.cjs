@@ -15,6 +15,9 @@ const LIMITES = {
 
 const { ErroValidacao } = require("./validacao.cjs");
 const { validarCalculo } = require("./calculo-salvo.cjs");
+// impressao.cjs também usa este arquivo: busca a lista só na hora (evita a volta entre os dois).
+const materiais = () => require("./impressao.cjs").MATERIAIS;
+const { montarEstoque, validarEstoque } = require("./estoque-produtos.cjs");
 
 class ProdutoInvalido extends ErroValidacao {
   constructor(mensagem) {
@@ -109,6 +112,8 @@ function validarProduto(p) {
     throw new ProdutoInvalido("Foto inválida ou muito grande. Escolha outra imagem.");
   }
   validarCusto(p.custo);
+  if (p.material !== undefined && p.material !== "" && !materiais().includes(p.material)) throw new ProdutoInvalido("Material inválido.");
+  validarEstoque(p);
   if (p.teste !== undefined && p.teste !== true) throw new ProdutoInvalido("Produto inválido.");
   for (const data of [p.criadoEm, p.atualizadoEm]) {
     if (typeof data !== "string" || Number.isNaN(Date.parse(data))) throw new ProdutoInvalido("Data inválida.");
@@ -116,14 +121,22 @@ function validarProduto(p) {
   return p;
 }
 
+function materialDe(valor) {
+  const m = String(valor ?? "");
+  if (m && !materiais().includes(m)) throw new ProdutoInvalido("Escolha o material na lista.");
+  return m;
+}
+
 // Monta um produto a partir dos campos do formulário.
-// valores: { nome, categoria, preco, pesoG, alturaMm, larguraMm, comprimentoMm, observacoes, foto, removerFoto, custo }
+// valores: { nome, categoria, material, preco, pesoG, alturaMm, larguraMm, comprimentoMm, observacoes, foto, removerFoto, custo,
+//            estoque, estoqueVisto, estoqueMinimo }
 function montarProduto(valores, { id, anterior, agora = new Date().toISOString() }) {
   const v = valores ?? {};
   const produto = {
     id,
     nome: texto(v.nome, "Nome", LIMITES.nome, { obrigatorio: true }),
     categoria: texto(v.categoria, "Categoria", LIMITES.categoria),
+    material: materialDe(v.material),
     precoCentavos: centavosDeTexto(v.preco, "Preço de venda", { obrigatorio: true }),
     pesoG: medidaDeTexto(v.pesoG, "Peso"),
     alturaMm: medidaDeTexto(v.alturaMm, "Altura"),
@@ -132,6 +145,7 @@ function montarProduto(valores, { id, anterior, agora = new Date().toISOString()
     observacoes: texto(v.observacoes, "Observações", LIMITES.observacoes),
     criadoEm: anterior?.criadoEm ?? agora,
     atualizadoEm: agora,
+    ...montarEstoque(v, anterior, agora),
   };
 
   // Foto: nova substitui; "removerFoto" apaga; sem nada, mantém a anterior.

@@ -10,8 +10,9 @@ const { calcularTotais } = require("./orcamento.cjs");
 const LIMITES = { vendas: 50_000, despesas: 50_000, pagamentos: 500, itens: 200, descricao: 160 };
 const FORMAS = ["debito", "credito", "pix", "dinheiro"];
 const ROTULOS_FORMA = { debito: "Débito", credito: "Crédito", pix: "Pix", dinheiro: "Dinheiro" };
-const PRODUCAO = ["em-producao", "finalizado"];
-const ROTULOS_PRODUCAO = { "em-producao": "Em produção", finalizado: "Finalizado" };
+// "Entregue": a peça está com o cliente (sai do estoque de produtos).
+const PRODUCAO = ["em-producao", "finalizado", "entregue"];
+const ROTULOS_PRODUCAO = { "em-producao": "Em produção", finalizado: "Finalizado", entregue: "Entregue" };
 const DIGITOS = /^\d{1,13}$/;
 const DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 

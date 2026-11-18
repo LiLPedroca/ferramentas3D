@@ -6,6 +6,11 @@ import { normalizar } from "../core/inicio.js";
 import { icone } from "./icones.js";
 import { confirmar, estado, salvarConfig } from "./shell.js";
 import { abrirImagem } from "./imagem-arquivo.js";
+import modeloEstoque from "../core/estoque-produtos.cjs";
+import modeloImpressao from "../core/impressao.cjs";
+
+const { acabando, controlaEstoque, disponiveis, reservadas } = modeloEstoque;
+const { MATERIAIS } = modeloImpressao;
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,6 +24,7 @@ let fotoNova = null; // data URI escolhido nesta edição
 let removerFoto = false;
 let custoPendente = undefined; // custo vindo da calculadora
 let fotoAtual = null; // foto do produto em edição (para a prévia)
+let estoqueVisto = ""; // "Peças em estoque" ao abrir o editor (só muda se a pessoa mexer)
 let avisar = () => {};
 let irPara = () => {};
 
@@ -184,6 +190,7 @@ function abrirMenuProduto(p, botao) {
   for (const [texto, acao, classe] of [
     ["Editar", () => abrirEditor(p), ""],
     ["Duplicar", () => duplicar(p), ""],
+    ...(p.historico?.length ? [["Histórico do estoque", () => abrirHistorico(p), ""]] : []),
     ["Excluir", () => excluirDaLista(p), "perigo"],
   ]) {
     const b = el("button", classe, texto);
@@ -205,6 +212,7 @@ async function duplicar(p) {
   const valores = {
     nome: `${p.nome} (cópia)`.slice(0, 120),
     categoria: p.categoria ?? "",
+    material: p.material ?? "",
     preco: reais(p.precoCentavos).replace("R$", "").trim(),
     pesoG: medida(p.pesoG),
     alturaMm: medida(p.alturaMm),
@@ -271,6 +279,7 @@ function cartaoProduto(p) {
     cat.append(p.categoria);
     etiquetas.append(cat);
   }
+  if (p.material) etiquetas.append(el("span", "produto-material", p.material));
   if (p.teste) etiquetas.append(el("span", "chip chip-teste", "Teste"));
   if (etiquetas.childElementCount) nome.append(etiquetas);
   const mais = el("button", "produto-mais");
@@ -290,6 +299,7 @@ function cartaoProduto(p) {
   if (lucro !== null) valores.append(valorCartao("Lucro", reais(lucro.toString()), lucro >= 0n ? "pv-lucro" : "pv-lucro negativo"));
   info.append(cabeca, valores);
   info.append(el("p", "produto-custo", p.custo ? `Custo ${reais(p.custo.custoUnitarioCentavos)}` : "Custo não calculado"));
+  if (controlaEstoque(p)) info.append(linhaEstoque(p));
 
   cartao.append(foto, info);
   cartao.addEventListener("click", () => abrirEditor(p));
@@ -300,6 +310,47 @@ function cartaoProduto(p) {
     }
   });
   return cartao;
+}
+
+const pecas = (n) => (n === 1 ? "1 peça" : `${n} peças`);
+
+// "7 disponíveis · 3 reservadas" + selo "Acabando" / "Faltam N".
+function textoEstoque(p) {
+  const d = disponiveis(p);
+  const r = reservadas(p);
+  const partes = [d < 0 ? "0 disponíveis" : d === 1 ? "1 disponível" : `${d} disponíveis`];
+  if (r) partes.push(r === 1 ? "1 reservada" : `${r} reservadas`);
+  return partes.join(" · ");
+}
+
+function linhaEstoque(p) {
+  const linha = el("p", "produto-estoque");
+  linha.append(el("span", "", textoEstoque(p)));
+  const d = disponiveis(p);
+  if (d < 0) linha.append(el("span", "fe-selo alerta", `Faltam ${pecas(-d)}`));
+  else if (acabando(p)) linha.append(el("span", "fe-selo alerta", "Acabando"));
+  return linha;
+}
+
+// ---------- Histórico do estoque ----------
+function abrirHistorico(p) {
+  $("titulo-historico-produto").textContent = `Histórico · ${p.nome}`;
+  $("historico-resumo").textContent = controlaEstoque(p) ? `Em estoque: ${pecas(p.estoque)} · ${textoEstoque(p)}` : "Sem controle de estoque.";
+  const linhas = [...(p.historico ?? [])].reverse();
+  $("historico-estoque").replaceChildren(
+    ...linhas.map((h) => {
+      const li = el("li", `historico-linha h-${h.tipo}`);
+      const quando = new Date(h.data);
+      li.append(
+        el("time", "", `${quando.toLocaleDateString("pt-BR")} ${quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`),
+        el("span", "historico-texto", h.texto),
+        el("span", "historico-saldo", h.saldo === null ? "" : `estoque ${h.saldo}`),
+      );
+      return li;
+    }),
+  );
+  $("historico-vazio").hidden = linhas.length > 0;
+  $("dialogo-historico-produto").showModal();
 }
 
 const ORDENS = {
@@ -323,10 +374,12 @@ function mudarVista(vista) {
 function renderizar() {
   const busca = normalizar($("busca-produtos").value);
   const categoria = $("filtro-categoria").value;
+  const material = $("filtro-material").value;
   const palavras = busca.split(/\s+/).filter(Boolean);
 
   const filtrados = produtos.filter((p) => {
     if (categoria && normalizar(p.categoria) !== normalizar(categoria)) return false;
+    if (material && p.material !== material) return false;
     const texto = normalizar(`${p.nome} ${p.categoria} ${p.observacoes}`);
     return palavras.every((w) => texto.includes(w));
   });
@@ -336,8 +389,10 @@ function renderizar() {
   $("grade-produtos").replaceChildren(...filtrados.map(cartaoProduto));
   $("vazio-produtos").hidden = produtos.length > 0;
   $("sem-resultado-produtos").hidden = produtos.length === 0 || filtrados.length > 0;
+  const nAcabando = produtos.filter((p) => acabando(p) || disponiveis(p) < 0).length;
   $("produtos-resumo").textContent =
-    produtos.length === 1 ? "1 produto cadastrado" : `${produtos.length} produtos cadastrados`;
+    (produtos.length === 1 ? "1 produto cadastrado" : `${produtos.length} produtos cadastrados`) +
+    (nAcabando ? ` · ${nAcabando} acabando` : "");
   $("produtos-mostrando").hidden = produtos.length === 0;
   $("produtos-mostrando").textContent = `Mostrando ${filtrados.length} de ${produtos.length} ${produtos.length === 1 ? "produto" : "produtos"}`;
 }
@@ -391,6 +446,12 @@ export function abrirEditor(p, predefinido = {}) {
   $("titulo-dialogo-produto").textContent = p ? "Editar produto" : "Novo produto";
   $("p-nome").value = p?.nome ?? predefinido.nome ?? "";
   preencherSeletorCategoria(p?.categoria ?? "");
+  $("p-material").value = p?.material ?? "";
+  estoqueVisto = controlaEstoque(p) ? String(p.estoque) : "";
+  $("p-estoque").value = estoqueVisto;
+  $("p-estoque-minimo").value = p?.estoqueMinimo ? String(p.estoqueMinimo) : "";
+  $("p-estoque-info").hidden = !(controlaEstoque(p) || p?.historico?.length);
+  $("p-estoque-texto").textContent = controlaEstoque(p) ? textoEstoque(p) : "Sem controle de estoque";
   $("p-preco").value = p ? reais(p.precoCentavos).replace("R$ ", "") : predefinido.preco ?? "";
   $("p-peso").value = medida(p?.pesoG) || predefinido.pesoG || "";
   $("p-altura").value = medida(p?.alturaMm);
@@ -418,6 +479,10 @@ async function salvar(ev) {
     const valores = {
       nome: $("p-nome").value,
       categoria: $("p-categoria").value,
+      material: $("p-material").value,
+      estoque: $("p-estoque").value,
+      estoqueVisto,
+      estoqueMinimo: $("p-estoque-minimo").value,
       preco: $("p-preco").value,
       pesoG: $("p-peso").value,
       alturaMm: $("p-altura").value,
@@ -544,6 +609,14 @@ export function iniciarProdutos(opcoes) {
   $("vazio-calcular").addEventListener("click", () => irPara("calculadora"));
   $("busca-produtos").addEventListener("input", renderizar);
   $("filtro-categoria").addEventListener("change", renderizar);
+  $("filtro-material").append(...MATERIAIS.map((m) => new Option(m, m)));
+  $("filtro-material").addEventListener("change", renderizar);
+  $("p-material").replaceChildren(new Option("Não informado", ""), ...MATERIAIS.map((m) => new Option(m, m)));
+  $("p-ver-historico").addEventListener("click", () => {
+    const p = produtos.find((x) => x.id === editandoId);
+    if (p) abrirHistorico(p);
+  });
+  $("fechar-historico-produto").addEventListener("click", () => $("dialogo-historico-produto").close());
   $("ordem-produtos").value = lerPreferencia("produtos-ordem", "recentes");
   if (!$("ordem-produtos").value) $("ordem-produtos").value = "recentes";
   $("ordem-produtos").addEventListener("change", () => {

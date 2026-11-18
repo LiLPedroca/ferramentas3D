@@ -331,6 +331,30 @@ export const NOVIDADES = [
     itens: ["3MF: usa as cores do arquivo", "STL: cada altura vira uma cor (a base numa, o relevo em outra)"],
     botao: "Ver",
   },
+  {
+    id: "produtos-estoque",
+    versao: "0.62.0",
+    tela: "produtos",
+    icone: "produtos",
+    titulo: "Material e estoque nos produtos",
+    texto: "Cada produto agora tem material e pode ter estoque de peças prontas.",
+    itens: [
+      "Escolha o material e filtre a lista por ele",
+      "Venda fechada reserva as peças; \"Entregue\" no Financeiro tira do estoque",
+      "Aviso quando sobrar pouco e histórico de cada entrada e saída",
+    ],
+    botao: "Ver",
+  },
+  {
+    id: "financeiro-entregue",
+    versao: "0.62.0",
+    tela: "financeiro",
+    icone: "taxas",
+    titulo: "Nova etapa: Entregue",
+    texto: "Marque a venda como Entregue quando a peça chegar ao cliente.",
+    itens: ["As peças saem do estoque do produto nessa hora", "Orçamento cancelado devolve as peças"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"
