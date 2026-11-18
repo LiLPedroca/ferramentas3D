@@ -42,6 +42,9 @@ let coresSimbolo = null;
 let chaveSimbolo = "";
 // Vários nomes: chaveiros gerados (para exportar) e a "foto" das opções que os geraram.
 let lote = null; // { chave, itens: [{ nome, partes, tamanho, gramas }], placas }
+// Vários nomes na prévia: o nome mostrado agora (null = o nome único) e a argola escolhida de cada nome.
+let vendo = null;
+const argolasLote = new Map(); // nome → posição da argola (sem entrada = automática)
 
 const fator = () => (unidade === "cm" ? 10 : 1);
 const formatar = (mm, casas = 2) => (mm / fator()).toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -99,6 +102,7 @@ function voltar(passo) {
 // Muda opções e agenda a nova peça. Trocar texto, fonte ou estilo devolve a argola à posição automática.
 function mudar(mudancas, { lembrar: guardar = true, imediato = true } = {}) {
   if ("texto" in mudancas || "fonte" in mudancas || "estilo" in mudancas || "simbolo" in mudancas) mudancas.argola = null;
+  if ("fonte" in mudancas || "estilo" in mudancas || "simbolo" in mudancas) argolasLote.clear();
   opcoes = { ...opcoes, ...mudancas };
   preencherCampos();
   if (guardar) lembrar();
@@ -228,6 +232,8 @@ async function gerar() {
   }
   mostrarSimbolo();
   const pedido = { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null };
+  // Um nome da lista na prévia: mostra esse nome, com a argola escolhida para ele.
+  if (vendo !== null) Object.assign(pedido, { texto: vendo, argola: argolasLote.get(vendo) ?? null });
   try {
     conferirMedidas(MEDIDAS, LIMITES_CHAVEIRO, lerMedida, (n) => `${formatar(n)} ${unidade}`);
     const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(pedido.fonte)]);
@@ -263,6 +269,7 @@ function mostrarMedidas() {
 
 // A argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.
 async function argolaSolta(t) {
+  if (vendo !== null) return argolaDoNomeSolta(t);
   const anterior = opcoes.argola;
   opcoes = { ...opcoes, argola: t };
   await gerar();
@@ -272,6 +279,22 @@ async function argolaSolta(t) {
     await gerar();
     status(motivo, true);
   } else lembrar();
+}
+
+// Argola de um nome da lista: fica guardada só para ele.
+async function argolaDoNomeSolta(t) {
+  const nome = vendo;
+  const anterior = argolasLote.get(nome);
+  argolasLote.set(nome, t);
+  await gerar();
+  if ($("ch-status").classList.contains("erro")) {
+    const motivo = $("ch-status").textContent;
+    if (anterior === undefined) argolasLote.delete(nome);
+    else argolasLote.set(nome, anterior);
+    await gerar();
+    status(motivo, true);
+  }
+  mostrarNomesPrevia();
 }
 
 // ---------- Prévia 2D/3D e zoom ----------
@@ -327,7 +350,40 @@ const nomesDoLote = () => [
       .filter(Boolean),
   ),
 ];
-const chaveDoLote = () => JSON.stringify({ opcoes, nomes: nomesDoLote(), modo: $("ch-lote-tamanho").value, simbolo: chaveSimbolo });
+const chaveDoLote = () => JSON.stringify({ opcoes, nomes: nomesDoLote(), modo: $("ch-lote-tamanho").value, simbolo: chaveSimbolo, argolas: [...argolasLote] });
+
+// Botões em cima da prévia: o nome único (se houver) e cada nome da lista.
+function mostrarNomesPrevia() {
+  const nomes = nomesDoLote();
+  const unico = opcoes.texto.trim();
+  if (vendo !== null && !nomes.includes(vendo)) vendo = null;
+  if (vendo === null && !unico && nomes.length) vendo = nomes[0];
+  const grupo = $("ch-nomes-previa");
+  grupo.hidden = nomes.length === 0;
+  if (grupo.hidden) return;
+  const botao = (rotulo, valor) => {
+    const b = el("button", "ch-mini", rotulo);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(vendo === valor));
+    if (valor !== null && argolasLote.has(valor)) b.title = "Argola escolhida por você";
+    b.addEventListener("click", () => {
+      if (vendo === valor) return;
+      vendo = valor;
+      mostrarNomesPrevia();
+      gerar();
+    });
+    return b;
+  };
+  grupo.replaceChildren(...(unico ? [botao(unico, null)] : []), ...nomes.filter((n) => n !== unico).map((n) => botao(n, n)));
+}
+
+// Os nomes da lista mudaram: atualiza os botões e, se o nome da prévia mudou, a peça.
+function aoMudarNomes() {
+  const antes = vendo;
+  mostrarNomesPrevia();
+  mostrarLote();
+  if (vendo !== antes) gerar();
+}
 const gramas = (g) => `${g.toLocaleString("pt-BR", { maximumFractionDigits: g < 10 ? 1 : 0 })} g`;
 
 function mostrarLote() {
@@ -353,8 +409,10 @@ async function prepararLote() {
   try {
     const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(opcoes.fonte)]);
     const pedidoBase = { ...opcoes, argola: null, simbolo: simboloImagem ? opcoes.simbolo : null };
-    // "mesma altura de letra": a escala do nome deste chaveiro vale para todos
-    const escala = modelo.larguraTexto / larguraNaFonte(fonte, modelo.opcoes.texto);
+    // "mesma altura de letra": a escala do nome único (ou do primeiro da lista) vale para todos
+    const referencia = opcoes.texto.trim() || nomes[0];
+    const base = modelo.opcoes.texto === referencia ? modelo : gerarChaveiro(M, fonte, { ...pedidoBase, texto: referencia }, coresSimbolo);
+    const escala = base.larguraTexto / larguraNaFonte(fonte, referencia);
     const densidade = densidadeDoModelo();
     const itens = [];
     const linhas = [];
@@ -362,16 +420,28 @@ async function prepararLote() {
       $("ch-lote-resumo").textContent = `Preparando ${i + 1} de ${nomes.length}…`;
       await new Promise((r) => setTimeout(r, 0)); // deixa a tela atualizar
       try {
-        const pedido = { ...pedidoBase, texto: nome };
-        const r =
-          $("ch-lote-tamanho").value === "letra"
+        const fazer = (argola) => {
+          const pedido = { ...pedidoBase, texto: nome, argola };
+          return $("ch-lote-tamanho").value === "letra"
             ? gerarChaveiroComLarguraDoTexto(M, fonte, pedido, escala * larguraNaFonte(fonte, nome), coresSimbolo)
             : gerarChaveiro(M, fonte, pedido, coresSimbolo);
+        };
+        // Argola escolhida na prévia; se não couber neste tamanho, volta para a automática.
+        const escolhida = argolasLote.get(nome) ?? (nome === opcoes.texto.trim() ? opcoes.argola : null);
+        let r;
+        let semArgolaEscolhida = false;
+        try {
+          r = fazer(escolhida);
+        } catch (erro) {
+          if (escolhida === null) throw erro;
+          r = fazer(null);
+          semArgolaEscolhida = true;
+        }
         const p = r.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
         const tamanho = posicionarNaOrigem(p.map((x) => x.geometria));
         const g = pesoDasMalhas(r.malhas, densidade).total;
         itens.push({ nome, partes: p, tamanho, gramas: g, base: r.opcoes.base });
-        linhas.push(el("li", "", `${nome} · ${formatar(tamanho.x, 1)} × ${formatar(tamanho.y, 1)} ${unidade} · ≈ ${gramas(g)}`));
+        linhas.push(el("li", "", `${nome} · ${formatar(tamanho.x, 1)} × ${formatar(tamanho.y, 1)} ${unidade} · ≈ ${gramas(g)}${semArgolaEscolhida ? " · argola na posição automática (a escolhida não coube)" : ""}`));
       } catch (erro) {
         linhas.push(el("li", "erro", `${nome}: ${erro.message}`));
       }
@@ -439,6 +509,7 @@ export function iniciarChaveiro() {
 
   $("ch-texto").addEventListener("input", () => {
     opcoes = { ...opcoes, texto: $("ch-texto").value, argola: null };
+    mostrarNomesPrevia();
     agendar();
   });
   $("ch-texto").addEventListener("change", lembrar);
@@ -471,7 +542,12 @@ export function iniciarChaveiro() {
     const p = MODELOS_PRONTOS[$("ch-pronto").value];
     if (p) mudar({ borda: p.borda, base: p.base, relevo: p.relevo });
   });
-  $("ch-argola-auto").addEventListener("click", () => mudar({ argola: null }));
+  $("ch-argola-auto").addEventListener("click", () => {
+    if (vendo === null) return mudar({ argola: null });
+    argolasLote.delete(vendo);
+    mostrarNomesPrevia();
+    gerar();
+  });
 
   // símbolo
   $("ch-simbolo-escolher").addEventListener("click", () => $("ch-simbolo-arquivo").click());
@@ -501,7 +577,7 @@ export function iniciarChaveiro() {
   $("ch-simbolo-fundo").addEventListener("change", () => mudar({ simboloFundo: $("ch-simbolo-fundo").checked }));
 
   // vários nomes
-  $("ch-lote-nomes").addEventListener("input", mostrarLote);
+  $("ch-lote-nomes").addEventListener("input", aoMudarNomes);
   $("ch-lote-tamanho").addEventListener("change", mostrarLote);
   $("ch-lote-gerar").addEventListener("click", prepararLote);
   $("ch-lote-3mf").addEventListener("click", async () => {
@@ -557,7 +633,7 @@ export function iniciarChaveiro() {
       atual: projetoAtual,
       nomePadrao: nomeArquivo(),
       montar: async () => ({
-        opcoes: { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null, nomeSimbolo: simboloImagem?.nome, loteNomes: $("ch-lote-nomes").value.slice(0, 4000) },
+        opcoes: { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null, nomeSimbolo: simboloImagem?.nome, loteNomes: $("ch-lote-nomes").value.slice(0, 4000), loteArgolas: Object.fromEntries(argolasLote) },
         miniatura: miniatura(modelo),
         imagem: simboloImagem ? await imagemComoTexto(simboloImagem.canvas) : "",
       }),
@@ -568,13 +644,17 @@ export function iniciarChaveiro() {
     }
   });
   registrarAbridor("chaveiro", async (p) => {
-    const { nomeSimbolo, loteNomes, ...resto } = p.opcoes;
+    const { nomeSimbolo, loteNomes, loteArgolas, ...resto } = p.opcoes;
     opcoes = { ...PADRAO_CHAVEIRO, ...resto };
     simboloImagem = null;
     if (p.imagem && opcoes.simbolo) await carregarSimbolo(arquivoDeTexto(p.imagem, nomeSimbolo || "simbolo.png"), p);
     else opcoes.simbolo = null;
     $("ch-lote-nomes").value = loteNomes ?? "";
     lote = null;
+    vendo = null;
+    argolasLote.clear();
+    for (const [nome, t] of Object.entries(loteArgolas ?? {})) if (Number.isFinite(t)) argolasLote.set(nome, t);
+    mostrarNomesPrevia();
     projetoAtual = { id: p.id, nome: p.nome };
     historico = [];
     posicao = -1;

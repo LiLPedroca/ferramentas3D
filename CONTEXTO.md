@@ -805,3 +805,12 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Produto escolhido dos salvos vai com `produtoId` (reserva estoque, regras da v0.62.0).
 - Testes: `tests/laser.test.js`. Conferido no modo de captura (tela, envio ao orçamento com troca na prévia, os dois PDFs).
 - **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
+
+## Trabalho do Claude Code (18/11/2026) — Chaveiro: vários nomes na prévia (v0.64.0, PUBLICADA junto com 0.62 e 0.63)
+
+- **Chaveiro de nome / Vários nomes:** com nomes na lista, aparece um botão por nome em cima da prévia (`#ch-nomes-previa`). Clicar mostra o chaveiro daquele nome (a peça usa `vendo` no lugar do texto). Arrastar a argola guarda a posição só daquele nome (`argolasLote`, Map nome → t); "Voltar a argola para a esquerda" vale para o nome da prévia. Trocar fonte, estilo ou símbolo devolve as argolas da lista à posição automática (como no nome único).
+- O nome único deixou de ser obrigatório: sem ele, a prévia começa no primeiro nome da lista, que também vira a referência de "mesma altura de letra".
+- Preparar/3MF do lote usam a argola de cada nome; se ela não couber, volta para a automática e a linha avisa.
+- "Salvar modelo" guarda as argolas (`loteArgolas`).
+- Conferido no modo de captura arrastando a argola do "Bruno" (ficou à direita, manteve ao trocar de nome, lote preparado com 3 chaveiros).
+- Pedro aprovou publicar (18/11): release v0.64.0 leva também a v0.62.0 (material/estoque) e a v0.63.0 (calculadora a laser).

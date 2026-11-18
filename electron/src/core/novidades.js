@@ -374,6 +374,15 @@ export const NOVIDADES = [
     texto: "Itens da gravação a laser com frente e frente e verso trocam na prévia do PDF.",
     itens: ["Troque a versão em cima da prévia", "Salve as duas versões em PDF para o cliente escolher"],
     botao: "Ver",
+  },  {
+    id: "chaveiro-varios-nomes",
+    versao: "0.64.0",
+    tela: "chaveiro",
+    icone: "chaveiro",
+    titulo: "Vários nomes na prévia",
+    texto: "Cada nome da lista ganha um botão em cima da prévia.",
+    itens: ["Clique no nome para ver o chaveiro dele", "Arraste a argola de cada nome para onde quiser"],
+    botao: "Ver",
   },
 ];
 

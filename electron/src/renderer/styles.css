@@ -7346,3 +7346,17 @@ textarea:focus {
   display: grid;
   grid-template-columns: 1fr;
 }
+
+/* Chaveiro: um botão por nome em cima da prévia (vários nomes) */
+.ch-nomes-previa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0 16px;
+}
+
+.ch-nomes-previa .ch-mini[title]::after {
+  content: " •";
+  color: var(--acento-forte);
+}
