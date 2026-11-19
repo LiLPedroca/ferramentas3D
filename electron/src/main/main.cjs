@@ -76,61 +76,42 @@ function criarJanela() {
 }
 
 // ---------- Atualização ----------
-// estado: "parada" | "baixando" | "pronta". Evita perguntar de novo ou baixar duas vezes.
-const atualizacao = { estado: "parada", perguntando: false, janela: null };
+// Procura versão nova ao abrir e a cada 5 minutos. Achou: baixa sozinho, sem perguntar.
+// Baixou: a tela mostra o aviso "Atualizar agora / Mais tarde" (uma vez por versão).
+// "Mais tarde" ou fechar o programa: a versão é instalada ao fechar (autoInstallOnAppQuit),
+// e o programa já abre atualizado da próxima vez.
+// estado: "parada" | "baixando" | "pronta".
+const INTERVALO_ATUALIZACAO = 5 * 60 * 1000;
+const atualizacao = { estado: "parada", versao: "", avisada: false, telaOuvindo: false, janela: null };
 
-async function perguntarSeAtualiza(info) {
-  if (atualizacao.estado !== "parada" || atualizacao.perguntando) return;
-  atualizacao.perguntando = true;
-  try {
-    const { response } = await dialog.showMessageBox(atualizacao.janela, {
-      type: "info",
-      buttons: ["Atualizar agora", "Depois"],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Atualização disponível",
-      message: `Existe a versão ${info.version} (você tem a ${app.getVersion()}).`,
-      detail: "A atualização é baixada e instalada. O programa reabre sozinho.",
-    });
-    if (response === 0) {
-      atualizacao.estado = "baixando";
-      autoUpdater.downloadUpdate().catch(() => {
-        atualizacao.estado = "parada";
-      });
-    }
-  } finally {
-    atualizacao.perguntando = false;
-  }
+function procurarAtualizacao() {
+  if (!autoUpdater || atualizacao.estado !== "parada") return;
+  autoUpdater.checkForUpdates().catch(() => {});
 }
 
-async function perguntarSeReinicia() {
-  if (atualizacao.perguntando) return;
-  atualizacao.perguntando = true;
-  try {
-    const { response } = await dialog.showMessageBox(atualizacao.janela, {
-      type: "info",
-      buttons: ["Reiniciar e instalar", "Mais tarde"],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Atualização pronta",
-      message: "A atualização foi baixada.",
-      detail: "Reinicie o programa para concluir a instalação.",
-    });
-    if (response === 0) autoUpdater.quitAndInstall();
-  } finally {
-    atualizacao.perguntando = false;
-  }
+// Manda o aviso para a tela quando a versão está baixada e a tela já está pronta para mostrar.
+function avisarTela() {
+  const janela = atualizacao.janela;
+  if (atualizacao.estado !== "pronta" || atualizacao.avisada || !atualizacao.telaOuvindo) return;
+  if (!janela || janela.isDestroyed()) return;
+  atualizacao.avisada = true;
+  janela.webContents.send("atualizacao:pronta", { versao: atualizacao.versao });
 }
 
 function configurarAtualizacao(janela, { verificarAoAbrir = true } = {}) {
   atualizacao.janela = janela;
   if (!autoUpdater) return;
 
-  autoUpdater.autoDownload = false;
-  autoUpdater.on("update-available", perguntarSeAtualiza);
-  autoUpdater.on("update-downloaded", () => {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("update-available", (info) => {
+    atualizacao.estado = "baixando";
+    atualizacao.versao = info?.version ?? "";
+  });
+  autoUpdater.on("update-downloaded", (info) => {
     atualizacao.estado = "pronta";
-    perguntarSeReinicia();
+    atualizacao.versao = info?.version ?? atualizacao.versao;
+    avisarTela();
   });
   // Erros de rede não interrompem o uso: a próxima verificação tenta de novo.
   autoUpdater.on("error", (erro) => {
@@ -138,24 +119,24 @@ function configurarAtualizacao(janela, { verificarAoAbrir = true } = {}) {
     console.error("Atualização:", erro?.message ?? erro);
   });
 
-  if (verificarAoAbrir) autoUpdater.checkForUpdates().catch(() => {});
+  if (verificarAoAbrir) {
+    procurarAtualizacao();
+    setInterval(procurarAtualizacao, INTERVALO_ATUALIZACAO);
+  }
 }
 
-// Botão "Verificar atualizações". Se houver versão nova, a pergunta de sempre aparece.
-// estado devolvido: "atualizado" | "disponivel" | "baixando" | "pronta" | "indisponivel" | "erro"
+// Botão "Verificar atualizações".
+// estado devolvido: "atualizado" | "baixando" | "pronta" (com versao) | "indisponivel" | "erro"
 async function verificarManualmente() {
   if (!autoUpdater) return { estado: "indisponivel" };
   if (atualizacao.estado === "baixando") return { estado: "baixando" };
-  if (atualizacao.estado === "pronta") {
-    perguntarSeReinicia();
-    return { estado: "pronta" };
-  }
+  if (atualizacao.estado === "pronta") return { estado: "pronta", versao: atualizacao.versao };
   try {
     const resultado = await autoUpdater.checkForUpdates();
     if (!resultado) return { estado: "indisponivel" };
     const versao = resultado.updateInfo?.version;
     const disponivel = resultado.isUpdateAvailable ?? (Boolean(versao) && versao !== app.getVersion());
-    return disponivel ? { estado: "disponivel", versao } : { estado: "atualizado", versao: app.getVersion() };
+    return disponivel ? { estado: "baixando", versao } : { estado: "atualizado", versao: app.getVersion() };
   } catch {
     return { estado: "erro" };
   }
@@ -657,6 +638,18 @@ function registrarDados() {
   });
 
   ipcMain.handle("atualizacao:verificar", (e) => (daTela(e) ? verificarManualmente() : { estado: "erro" }));
+  // A tela avisa que já pode mostrar o aviso de versão baixada.
+  ipcMain.handle("atualizacao:ouvir", (e) => {
+    if (!daTela(e)) return;
+    atualizacao.telaOuvindo = true;
+    avisarTela();
+  });
+  // "Atualizar agora": fecha, instala sem perguntar nada e abre de novo.
+  ipcMain.handle("atualizacao:instalar", (e) => {
+    if (!daTela(e) || !autoUpdater || atualizacao.estado !== "pronta") return false;
+    setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    return true;
+  });
 
   ipcMain.handle("produtos:listar", (e) => (daTela(e) ? responder(prontoTeste.then(() => produtos.listar())) : negado));
   ipcMain.handle("produtos:salvar", (e, valores, id) =>

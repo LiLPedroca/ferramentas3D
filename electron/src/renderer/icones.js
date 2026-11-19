@@ -30,6 +30,7 @@ const P = {
   detector: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/><path d="M10.5 7.5v2M10.5 11.5v2M7.5 10.5h2M11.5 10.5h2"/>',
   metadados: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m21 15-4-4-6 6"/><path d="M3 3l18 18"/>',
   inicio: '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-8.5Z"/>',
+  atualizar: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/>',
   configuracoes: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
   voltar: '<path d="M15 5 8 12l7 7"/>',
   seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',

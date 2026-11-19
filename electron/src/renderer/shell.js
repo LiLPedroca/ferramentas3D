@@ -324,14 +324,33 @@ const ICONE_BAIXANDO = SVG('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/>'
 
 const MENSAGENS_ATUALIZACAO = {
   atualizado: (r) => ["ok", ICONE_OK, "Tudo atualizado", `Você está na versão mais recente (${r.versao}).`],
-  baixando: () => ["info", ICONE_BAIXANDO, "Atualização em andamento", "A nova versão está sendo baixada. Quando terminar, o programa avisa."],
+  baixando: (r) => ["info", ICONE_BAIXANDO, "Atualização em andamento", `${r.versao ? `A versão ${r.versao}` : "A nova versão"} está sendo baixada. Quando terminar, o programa avisa.`],
   indisponivel: () => ["alerta", ICONE_ALERTA, "Verificação indisponível", "A verificação de atualizações só funciona no programa instalado."],
   erro: () => ["alerta", ICONE_ALERTA, "Não foi possível verificar", "Confira sua conexão com a internet e tente de novo."],
 };
 
+// Versão nova já baixada: "Atualizar agora" ou "Mais tarde" (instala ao fechar o programa).
+function mostrarAtualizacaoPronta({ versao }) {
+  const dialogo = $("dialogo-atualizacao-pronta");
+  $("atualizacao-pronta-versao").textContent = versao || "nova";
+  $("atualizacao-agora").disabled = false;
+  if (!dialogo.open) dialogo.showModal();
+  $("atualizacao-agora").focus();
+}
+
+async function atualizarAgora() {
+  $("atualizacao-agora").disabled = true;
+  const ok = await window.atualizacao.instalar().catch(() => false);
+  if (!ok) {
+    $("dialogo-atualizacao-pronta").close();
+    mostrarMensagemAtualizacao({ estado: "erro" });
+  }
+}
+
 function mostrarMensagemAtualizacao(resultado) {
+  if (resultado.estado === "pronta") return mostrarAtualizacaoPronta(resultado);
   const montar = MENSAGENS_ATUALIZACAO[resultado.estado];
-  if (!montar) return; // "disponivel" e "pronta": o programa já abre a pergunta de atualizar.
+  if (!montar) return;
   const [tipo, svg, titulo, texto] = montar(resultado);
   const iconeEl = $("atualizacao-icone");
   iconeEl.className = `mensagem-icone ${tipo}`;
@@ -434,6 +453,9 @@ export function iniciarShell() {
   });
   $("verificar-atualizacao").addEventListener("click", verificarAtualizacao);
   $("atualizacao-ok").addEventListener("click", () => $("dialogo-atualizacao").close());
+  $("atualizacao-agora").addEventListener("click", atualizarAgora);
+  $("atualizacao-depois").addEventListener("click", () => $("dialogo-atualizacao-pronta").close());
+  window.atualizacao?.aoFicarPronta?.(mostrarAtualizacaoPronta);
   $("novidade-ok").addEventListener("click", fecharNovidade);
   $("dialogo-novidade").addEventListener("cancel", (ev) => {
     ev.preventDefault();

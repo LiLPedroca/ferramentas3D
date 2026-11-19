@@ -7473,3 +7473,15 @@ textarea:focus {
   content: " •";
   color: var(--acento-forte);
 }
+
+/* Aviso de atualização baixada: "Mais tarde" e "Atualizar agora" lado a lado */
+.atualizacao-pronta-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.atualizacao-pronta-botoes button {
+  justify-content: center;
+}

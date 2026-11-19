@@ -821,3 +821,12 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Vários produtos:** "+ Adicionar outro produto" guarda o cálculo da tela numa lista no Resumo (nome · cor, quantidade × valor, total, botão × para tirar) e limpa o produto (os valores da gravação ficam). O botão principal vira "Adicionar N produtos ao orçamento" e leva a lista + o produto da tela de uma vez (`adicionarItensDoCalculo` em `orcamentos.js`). "Novo cálculo" limpa tudo, inclusive a lista.
 - Novidade `laser-varios-produtos`. Teste da cor em `tests/laser.test.js` (500 testes passando). Conferido no modo de captura: lista com 1 produto + 1 na tela, envio gera 2 itens no orçamento.
 - **Pendente:** Pedro instalar `ProgramaFerramentas3D-Setup-0.65.0.exe` e testar; publicar só quando ele aprovar.
+
+## Trabalho do Claude Code (19/11/2026) — Atualização automática a cada 5 minutos (v0.66.0, só local)
+
+- `main.cjs`: `autoDownload = true` e `autoInstallOnAppQuit = true`. Verifica ao abrir e a cada 5 min (`INTERVALO_ATUALIZACAO`), só com estado "parada". Achou versão: baixa sem perguntar. Baixou: manda `atualizacao:pronta` para a tela (uma vez por versão, depois que a tela chama `atualizacao:ouvir`). Saíram as janelas nativas do Windows (`perguntarSeAtualiza`/`perguntarSeReinicia`).
+- Tela: diálogo `#dialogo-atualizacao-pronta` ("Nova versão recebida", Mais tarde / Atualizar agora). "Atualizar agora" chama `atualizacao:instalar` → `quitAndInstall(true, true)` (instala sem assistente e reabre). "Mais tarde" fecha; a versão instala ao fechar o programa.
+- Botão "Verificar atualizações": versão nova → "Atualização em andamento" (já baixando); versão pronta → mostra o mesmo aviso.
+- Novidade `atualizacao-automatica` (tela inicio, ícone novo `atualizar`).
+- Conferido: 500 testes; aviso no modo de captura. **Não conferido:** o fluxo de ponta a ponta (precisa de uma release no GitHub maior que a instalada). A 0.65/0.66 instaladas localmente não acham nada enquanto a última release for a 0.64.0.
+- **Pendente:** Pedro instalar a 0.66.0; publicar só quando ele aprovar.

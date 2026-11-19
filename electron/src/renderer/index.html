@@ -2516,6 +2516,16 @@
       <button type="button" class="botao-primario" id="atualizacao-ok">Ok</button>
     </dialog>
 
+    <dialog class="dialogo dialogo-pequeno dialogo-mensagem" id="dialogo-atualizacao-pronta" aria-labelledby="atualizacao-pronta-titulo" aria-describedby="atualizacao-pronta-texto">
+      <span class="mensagem-icone info" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg></span>
+      <h2 id="atualizacao-pronta-titulo">Nova versão recebida</h2>
+      <p id="atualizacao-pronta-texto">A versão <strong id="atualizacao-pronta-versao"></strong> já foi baixada. Se escolher mais tarde, ela é instalada quando você fechar o programa.</p>
+      <div class="atualizacao-pronta-botoes">
+        <button type="button" class="botao-secundario" id="atualizacao-depois">Mais tarde</button>
+        <button type="button" class="botao-primario" id="atualizacao-agora">Atualizar agora</button>
+      </div>
+    </dialog>
+
     <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
     <script src="app.js"></script>

@@ -394,6 +394,16 @@ export const NOVIDADES = [
     itens: ["Escolha a cor do produto", "Use + Adicionar outro produto para calcular o próximo", "No fim, leve todos ao orçamento de uma vez"],
     botao: "Ver",
   },
+  {
+    id: "atualizacao-automatica",
+    versao: "0.66.0",
+    tela: "inicio",
+    icone: "atualizar",
+    titulo: "Atualizações chegam sozinhas",
+    texto: "Com o programa aberto, ele procura versão nova a cada 5 minutos e já baixa.",
+    itens: ["Quando terminar, escolha Atualizar agora ou Mais tarde", "Mais tarde: instala quando você fechar o programa"],
+    botao: "Entendi",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

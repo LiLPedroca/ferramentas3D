@@ -3,6 +3,12 @@ const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("atualizacao", {
   verificar: () => ipcRenderer.invoke("atualizacao:verificar"),
+  // funcao({ versao }) é chamada uma vez quando a versão nova termina de baixar.
+  aoFicarPronta: (funcao) => {
+    ipcRenderer.on("atualizacao:pronta", (_e, dados) => funcao(dados));
+    return ipcRenderer.invoke("atualizacao:ouvir");
+  },
+  instalar: () => ipcRenderer.invoke("atualizacao:instalar"),
 });
 
 const cadastro = (nome) => ({
