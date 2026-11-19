@@ -4,6 +4,7 @@
 "use strict";
 
 const { calcularTotais, dataValidade } = require("./orcamento.cjs");
+const { chaveParaMostrar } = require("./pix.cjs");
 
 const MENSAGEM_PADRAO = "Olá, {cliente}! Seu orçamento nº {numero} está pronto. Total: {total}. Segue o PDF.";
 const LIMITE_MENSAGEM = 1000;
@@ -14,6 +15,7 @@ const CAMPOS_MENSAGEM = [
   { chave: "numero", rotulo: "Nº do orçamento" },
   { chave: "total", rotulo: "Total" },
   { chave: "validade", rotulo: "Validade" },
+  { chave: "pix", rotulo: "Pix" },
 ];
 
 // Só números; põe o 55 (Brasil) na frente quando falta. Número que não parece telefone: null.
@@ -31,20 +33,21 @@ function reais(centavos) {
   return `${negativo ? "-" : ""}R$ ${inteiro},${(abs % 100n).toString().padStart(2, "0")}`;
 }
 
-// Valores dos campos para um orçamento gravado.
-function valoresDaMensagem(o) {
+// Valores dos campos para um orçamento gravado. pix: o Pix das Configurações (chave mostrada formatada).
+function valoresDaMensagem(o, pix) {
   return {
     cliente: String(o?.cliente?.nome ?? "").trim().split(/\s+/)[0] || "",
     numero: `${o?.teste ? "T-" : ""}${String(o?.numero ?? "").padStart(4, "0")}`,
     total: reais(calcularTotais(o).total),
     validade: new Date(dataValidade(o)).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+    pix: pix?.chave ? chaveParaMostrar(pix.tipo, pix.chave) : "",
   };
 }
 
-// Troca {cliente}, {numero}, {total} e {validade}. Campo desconhecido fica como está.
+// Troca {cliente}, {numero}, {total}, {validade} e {pix}. Campo desconhecido fica como está.
 function montarMensagem(modelo, valores) {
   const texto = String(modelo ?? "").trim() || MENSAGEM_PADRAO;
-  return texto.replace(/\{(cliente|numero|total|validade)\}/g, (_m, chave) => valores[chave] ?? "");
+  return texto.replace(/\{(cliente|numero|total|validade|pix)\}/g, (_m, chave) => valores[chave] ?? "");
 }
 
 // Link que abre a conversa direto no aplicativo (sem passar pelo navegador).

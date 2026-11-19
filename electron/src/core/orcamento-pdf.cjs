@@ -2,6 +2,8 @@
 "use strict";
 
 const { ROTULOS_ENTREGA, calcularTotais, dataValidade, exibirPdfDe, valorSinal } = require("./orcamento.cjs");
+const { TIPOS_CHAVE, chaveParaMostrar, codigoPix, mostrarPixNoOrcamento } = require("./pix.cjs");
+const { qrSvg } = require("./etiquetas.cjs");
 
 const ROTULOS_FORMA = { debito: "Débito", credito: "Crédito", pix: "Pix", dinheiro: "Dinheiro" };
 const LOGO = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+=*$/;
@@ -78,6 +80,9 @@ const CSS = `
   .orc .totais td:first-child { font-weight: 600; }
   .orc .totais .final td { font-weight: 700; font-size: 10.5pt; }
   .orc .texto { white-space: normal; line-height: 1.4; }
+  .orc .pix { display: grid; grid-template-columns: 34mm 1fr; gap: 10px; align-items: center; }
+  .orc .pix svg { display: block; width: 34mm; height: 34mm; }
+  .orc .pix .copia { margin-top: 4px; font-family: Consolas, monospace; font-size: 6.5pt; word-break: break-all; color: #333; }
   .orc .marca-teste { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 120pt; font-weight: 700; letter-spacing: 8px; color: rgba(200, 0, 0, 0.14); transform: rotate(-30deg); pointer-events: none; z-index: 10; }
 `;
 
@@ -151,6 +156,23 @@ function corpoOrcamento(o, empresa = {}) {
     sinal !== null
       ? bloco("Sinal e saldo", linha(`Sinal solicitado: ${reais(sinal)}`) + linha(`Saldo restante: ${reais(t.total - sinal)}`))
       : "";
+  // Pix: chave, quem recebe e o QR Code com o valor (e o "copia e cola" para quem abre no celular).
+  let blocoPix = "";
+  const pix = empresa.pix;
+  if (mostrarPixNoOrcamento(pix, o)) {
+    const codigo = codigoPix(pix, t.total);
+    const tipo = TIPOS_CHAVE.find((x) => x.id === pix.tipo)?.rotulo ?? "Chave";
+    blocoPix = bloco(
+      "Pagamento via Pix",
+      linha(`<div class="pix">${codigo ? qrSvg(codigo) : ""}<div>
+        <div>Chave (${escapar(tipo)}): <b>${escapar(chaveParaMostrar(pix.tipo, pix.chave))}</b></div>
+        <div>Recebedor: ${escapar(pix.nome)}</div>
+        <div>Valor: <b>${reais(t.total)}</b></div>
+        <div>Aponte a câmera do app do banco para o QR Code.</div>
+        ${codigo ? `<div class="copia">Pix copia e cola: ${escapar(codigo)}</div>` : ""}
+      </div></div>`),
+    );
+  }
   const textoLivre = (titulo, texto) => (texto ? bloco(titulo, linha(`<div class="texto">${escapar(texto).replace(/\n/g, "<br>")}</div>`)) : "");
 
   return `<div class="orc">
@@ -162,6 +184,7 @@ ${itens}
 ${totais}
 ${bloco("Condições", condicoes)}
 ${blocoSinal}
+${blocoPix}
 ${textoLivre("Descrição", o.descricaoComplementar)}
 ${textoLivre("Observações", o.observacoes)}
 </div>`;

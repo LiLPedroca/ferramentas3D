@@ -2423,6 +2423,20 @@
                 </div>
               </div>
 
+              <h3 class="subtitulo-config">Pix</h3>
+              <div class="linha">
+                <label class="campo"><span>Tipo da chave</span>
+                  <select id="c-pix-tipo" class="seletor"></select>
+                </label>
+                <label class="campo"><span>Chave Pix</span><div class="entrada"><input id="c-pix-chave" maxlength="80" autocomplete="off" /></div></label>
+              </div>
+              <div class="linha">
+                <label class="campo"><span>Nome de quem recebe</span><div class="entrada"><input id="c-pix-nome" maxlength="60" autocomplete="off" /></div></label>
+                <label class="campo"><span>Cidade de quem recebe</span><div class="entrada"><input id="c-pix-cidade" maxlength="60" autocomplete="off" /></div></label>
+              </div>
+              <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="c-pix-sempre" /> Mostrar o Pix em todo orçamento</label>
+              <p class="ajuda">Desligado: o Pix aparece só quando a forma de pagamento do orçamento for Pix. O PDF leva a chave e o QR Code com o valor.</p>
+
               <h3 class="subtitulo-config">Condições padrão</h3>
               <div class="linha">
                 <label class="campo"><span>Validade do orçamento</span><div class="entrada"><input id="c-orc-validade" inputmode="numeric" autocomplete="off" /><em>dias</em></div></label>

@@ -12,8 +12,10 @@ class ConfiguracaoInvalida extends ErroValidacao {
 }
 
 const { centavosDeTexto } = require("./produto.cjs");
+const { TIPOS_CHAVE, chavePix } = require("./pix.cjs");
 
-const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "", endereco: "", logo: "" };
+const PIX_VAZIO = { tipo: "", chave: "", nome: "", cidade: "", sempre: false };
+const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "", endereco: "", logo: "", pix: PIX_VAZIO };
 const FORMAS = ["debito", "credito", "pix", "dinheiro"];
 const ENTREGAS = ["retirada", "entrega", "envio"];
 const CAMPOS_PDF = ["numero", "nome", "quantidade", "precoUnitario", "dimensoes"];
@@ -46,6 +48,24 @@ function ou(funcao, reserva) {
   }
 }
 
+// Pix da empresa: tipo e chave (no formato do Pix), nome e cidade de quem recebe e se aparece
+// em todo orçamento (senão, só quando a forma de pagamento tiver Pix).
+function pixDe(p, estrito) {
+  const v = p && typeof p === "object" ? p : {};
+  const ler = () => {
+    const tipo = TIPOS_CHAVE.some((t) => t.id === v.tipo) ? v.tipo : "";
+    const bruto = String(v.chave ?? "").trim();
+    if (!bruto) return { ...PIX_VAZIO, tipo, sempre: v.sempre === true };
+    if (!tipo) throw new ConfiguracaoInvalida("Chave Pix: escolha o tipo da chave.");
+    const chave = chavePix(tipo, bruto, ConfiguracaoInvalida);
+    const nome = texto(v.nome, "Nome de quem recebe o Pix", 60, { Erro: ConfiguracaoInvalida });
+    const cidade = texto(v.cidade, "Cidade de quem recebe o Pix", 60, { Erro: ConfiguracaoInvalida });
+    if (!nome || !cidade) throw new ConfiguracaoInvalida("Pix: preencha o nome e a cidade de quem recebe.");
+    return { tipo, chave, nome, cidade, sempre: v.sempre === true };
+  };
+  return estrito ? ler() : ou(ler, PIX_VAZIO);
+}
+
 function empresaDe(e, estrito) {
   const v = e && typeof e === "object" ? e : {};
   const campo = (funcao, reserva = "") => (estrito ? funcao() : ou(funcao, reserva));
@@ -62,6 +82,7 @@ function empresaDe(e, estrito) {
       if (l && (l.length > LIMITE_LOGO || !LOGO.test(l))) throw new ConfiguracaoInvalida("Logo: use uma imagem PNG ou JPG de até 2 MB.");
       return l;
     }),
+    pix: pixDe(v.pix, estrito),
   };
 }
 

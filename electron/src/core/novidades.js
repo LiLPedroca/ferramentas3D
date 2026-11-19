@@ -434,6 +434,16 @@ export const NOVIDADES = [
     itens: ["Depois de atualizar, o botão pisca até você abrir"],
     botao: "Ver",
   },
+  {
+    id: "pix-orcamento",
+    versao: "0.68.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Pix no orçamento",
+    texto: "Cadastre sua chave Pix e o orçamento já sai com o QR Code para o cliente pagar.",
+    itens: ["Cadastre em Configurações > Dados do orçamento", "O QR Code já vem com o valor do orçamento", "Use {pix} na mensagem do WhatsApp"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"
@@ -447,17 +457,18 @@ export function compararVersoes(a, b) {
   return 0;
 }
 
-// Lista do botão Novidades: tudo o que esta versão já tem, da mais nova para a mais antiga.
-// "nova" = chegou depois da última vez que a pessoa abriu a lista (ou, se nunca abriu, depois
-// da versão em que começou a usar o programa). Quem acabou de instalar não tem nada "novo".
+// Lista do botão Novidades: só as novidades da versão em uso (se ela não tiver nenhuma, as da
+// última versão que teve). "nova" = chegou depois da última vez que a pessoa abriu a lista (ou,
+// se nunca abriu, depois da versão em que começou a usar o programa).
 // config: { novidadesVistoAte, primeiraVersao }
 export function listaDeNovidades(config, versaoApp, lista = NOVIDADES) {
   const vistoAte = config?.novidadesVistoAte || config?.primeiraVersao || versaoApp;
-  return lista
-    .map((n, i) => ({ ...n, nova: compararVersoes(n.versao, vistoAte) > 0, i }))
-    .filter((n) => compararVersoes(n.versao, versaoApp) <= 0)
-    .sort((a, b) => compararVersoes(b.versao, a.versao) || b.i - a.i)
-    .map(({ i, ...n }) => n);
+  const ate = lista.filter((n) => compararVersoes(n.versao, versaoApp) <= 0);
+  const versao = ate.reduce((m, n) => (compararVersoes(n.versao, m) > 0 ? n.versao : m), "0.0.0");
+  return ate
+    .filter((n) => compararVersoes(n.versao, versao) === 0)
+    .reverse()
+    .map((n) => ({ ...n, nova: compararVersoes(n.versao, vistoAte) > 0 }));
 }
 
 export const temNovidade = (config, versaoApp, lista = NOVIDADES) => listaDeNovidades(config, versaoApp, lista).some((n) => n.nova);

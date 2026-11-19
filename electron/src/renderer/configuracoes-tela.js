@@ -5,8 +5,10 @@ import { aoMudarConfig, confirmar, estado, mostrarAviso, registrarAoAbrir, salva
 import { el } from "./util-tela.js";
 import { abrirImagem, arquivoEhHeic } from "./imagem-arquivo.js";
 import modeloWhatsapp from "../core/whatsapp-orcamento.cjs";
+import modeloPix from "../core/pix.cjs";
 
 const { CAMPOS_MENSAGEM, MENSAGEM_PADRAO, montarMensagem } = modeloWhatsapp;
+const { TIPOS_CHAVE, chaveParaMostrar } = modeloPix;
 
 const $ = (id) => document.getElementById(id);
 
@@ -118,6 +120,12 @@ function preencher() {
   $("c-emp-site").value = e.site ?? "";
   logoAtual = e.logo ?? "";
   mostrarLogo();
+  const pix = e.pix ?? {};
+  $("c-pix-tipo").value = pix.tipo ?? "";
+  $("c-pix-chave").value = chaveParaMostrar(pix.tipo, pix.chave);
+  $("c-pix-nome").value = pix.nome ?? "";
+  $("c-pix-cidade").value = pix.cidade ?? "";
+  $("c-pix-sempre").checked = pix.sempre === true;
 
   $("c-orc-validade").value = String(o.validadeDias ?? 7);
   $("c-orc-prazo").value = o.prazoProducao ?? "";
@@ -178,6 +186,13 @@ async function salvarOrcamento(ev) {
       endereco: $("c-emp-endereco").value,
       site: $("c-emp-site").value,
       logo: logoAtual,
+      pix: {
+        tipo: $("c-pix-tipo").value,
+        chave: $("c-pix-chave").value,
+        nome: $("c-pix-nome").value,
+        cidade: $("c-pix-cidade").value,
+        sempre: $("c-pix-sempre").checked,
+      },
     },
     orcamento: {
       validadeDias: $("c-orc-validade").value,
@@ -278,7 +293,9 @@ async function mostrarPastas() {
 // ---------- Mensagem do WhatsApp ----------
 function mostrarPreviaWhatsapp() {
   const validade = new Date(Date.now() + 7 * 864e5).toLocaleDateString("pt-BR");
-  $("c-wpp-previa").textContent = montarMensagem($("c-orc-wpp").value, { cliente: "Maria", numero: "0012", total: "R$ 330,00", validade });
+  const pix = estado.config?.empresa?.pix;
+  const chave = pix?.chave ? chaveParaMostrar(pix.tipo, pix.chave) : "sua chave Pix";
+  $("c-wpp-previa").textContent = montarMensagem($("c-orc-wpp").value, { cliente: "Maria", numero: "0012", total: "R$ 330,00", validade, pix: chave });
 }
 
 function inserirCampoWhatsapp(chave) {
@@ -308,6 +325,7 @@ function montarCamposWhatsapp() {
 }
 
 export function iniciarConfiguracoes() {
+  $("c-pix-tipo").replaceChildren(new Option("Escolha o tipo", ""), ...TIPOS_CHAVE.map((t) => new Option(t.rotulo, t.id)));
   montarCamposWhatsapp();
   montarChaves($("c-orc-formas"), FORMAS, "c-orc-forma");
   montarChaves($("c-orc-pdf"), CAMPOS_PDF, "c-orc-pdf");

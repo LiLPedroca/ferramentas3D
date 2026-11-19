@@ -48,3 +48,12 @@ describe("mensagem", () => {
     expect(cfg.normalizarGravado({}).orcamento.mensagemWhatsapp).toBe("");
   });
 });
+
+describe("campo {pix}", () => {
+  it("mostra a chave formatada; sem Pix fica vazio", () => {
+    const o = { numero: 1, cliente: { nome: "Ana" }, itens: [], validadeDias: 7, criadoEm: "2026-11-19T15:00:00.000Z" };
+    expect(valoresDaMensagem(o, { tipo: "cpf", chave: "12345678909" }).pix).toBe("123.456.789-09");
+    expect(valoresDaMensagem(o).pix).toBe("");
+    expect(montarMensagem("Pix: {pix}", { pix: "a@b.com" })).toBe("Pix: a@b.com");
+  });
+});

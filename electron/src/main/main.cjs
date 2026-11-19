@@ -518,7 +518,7 @@ function registrarDados() {
       const arquivos = await pdfsOrcamentos.arquivos(orcamento.id);
       if (!arquivos.length) throw new ErroValidacao("Gere o PDF do orçamento antes de enviar.");
       const config = await configuracoes.ler();
-      const mensagem = wpp.montarMensagem(config.orcamento?.mensagemWhatsapp, wpp.valoresDaMensagem(orcamento));
+      const mensagem = wpp.montarMensagem(config.orcamento?.mensagemWhatsapp, wpp.valoresDaMensagem(orcamento, config.empresa?.pix));
       const copiado = await copiarArquivosParaAreaDeTransferencia(arquivos);
       if (process.env.FERRAMENTAS_CAPTURA) return { copiado, link: wpp.linkAppWhatsapp(numero, mensagem) };
       if (!copiado) shell.showItemInFolder(arquivos[0]);

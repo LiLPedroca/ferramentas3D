@@ -13,8 +13,13 @@ describe("avisos de novidade", () => {
     expect(compararVersoes("1.0.0", "0.99.9")).toBe(1);
   });
 
-  it("lista da mais nova para a mais antiga, sem o que esta versão ainda não tem", () => {
-    expect(listaDeNovidades({ primeiraVersao: "0.0.0" }, "0.42.0", lista).map((x) => x.id)).toEqual(["c", "b", "a"]);
+  it("mostra só as novidades da versão em uso (mais recente primeiro)", () => {
+    expect(listaDeNovidades({ primeiraVersao: "0.0.0" }, "0.42.0", lista).map((x) => x.id)).toEqual(["c", "b"]);
+    expect(listaDeNovidades({ primeiraVersao: "0.0.0" }, "0.43.0", lista).map((x) => x.id)).toEqual(["d"]);
+  });
+
+  it("versão sem novidades: mostra as da última versão que teve", () => {
+    expect(listaDeNovidades({ primeiraVersao: "0.0.0" }, "0.42.5", lista).map((x) => x.id)).toEqual(["c", "b"]);
   });
 
   it("marca como nova o que chegou depois da última vez que abriu a lista", () => {

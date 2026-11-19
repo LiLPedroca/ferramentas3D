@@ -856,3 +856,13 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Novidades:** saiu a janela automática ao abrir uma ferramenta (`dialogo-novidade`, `novidadeDaTela`). Agora há o botão "Novidades" à esquerda de Meu fatiador; depois de uma atualização ele pulsa com um ponto vermelho (`.chamando`) até ser clicado. A lista mostra todas as novidades, mais novas primeiro, com selo "Novo" (`listaDeNovidades`, `temNovidade`; config `novidadesVistoAte`). Continuar criando entradas em `NOVIDADES` a cada mudança visível.
 - Testes: 507 passando.
 - **19/11/2026:** Pedro confirmou: a 0.67.0 chegou sozinha no PC dele (vindo da 0.66.1), o aviso funcionou e o programa reabriu atualizado. Fluxo de atualização automática conferido de ponta a ponta.
+
+## Trabalho do Claude Code (19/11/2026) — Pix no orçamento (v0.68.0, só local)
+
+- `core/pix.cjs`: tipos de chave, `chavePix` (formato do Pix: CPF/CNPJ números, celular +55…, e-mail e aleatória minúsculas), `codigoPix` (BR Code estático com valor, CRC16; bate com o exemplo do manual do Banco Central), `mostrarPixNoOrcamento`.
+- Configurações > Dados do orçamento > Pix: tipo, chave, nome e cidade de quem recebe, "Mostrar o Pix em todo orçamento". Guardado em `empresa.pix`.
+- PDF/prévia: bloco "Pagamento via Pix" com QR Code (qrSvg das etiquetas), chave, recebedor, valor e "Pix copia e cola". Aparece sempre (se marcado) ou só com forma de pagamento Pix.
+- WhatsApp: campo `{pix}` (chave formatada) e botão "+ Pix".
+- Novidades: o botão mostra só as da versão em uso (sem nenhuma, as da última versão que teve). Texto da novidade do Pix aprovado pelo Pedro.
+- 518 testes. Conferido PDF com QR no modo de captura. **Não conferido:** ler o QR com app de banco.
+- **Pendente:** Pedro testar; publicar quando aprovar.
