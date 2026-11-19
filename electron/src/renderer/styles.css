@@ -7347,31 +7347,42 @@ textarea:focus {
   grid-template-columns: 1fr;
 }
 
-/* Cor do produto: lista com a amostra da cor escolhida à esquerda */
+/* Cor do produto: lista própria, com a amostra de cada cor */
 .laser-cor-campo {
   margin-bottom: 14px;
 }
 
 .laser-cor {
   position: relative;
-  display: grid;
 }
 
-.laser-cor .seletor {
+.laser-cor-botao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding-left: 46px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.laser-cor-botao #laser-cor-nome {
+  flex: 1;
+}
+
+.laser-cor-botao.sem-cor #laser-cor-nome {
+  color: var(--texto-suave);
+}
+
+.laser-cor-botao[aria-expanded="true"] {
+  border-color: var(--acento);
 }
 
 .laser-cor-amostra {
-  position: absolute;
-  top: 50%;
-  left: 12px;
+  flex: none;
   width: 22px;
   height: 22px;
-  border: 1px solid var(--borda);
+  border: 1px solid color-mix(in srgb, var(--texto) 35%, transparent);
   border-radius: 6px;
-  transform: translateY(-50%);
-  pointer-events: none;
 }
 
 .laser-cor-amostra.vazia {
@@ -7383,11 +7394,60 @@ textarea:focus {
   background: repeating-conic-gradient(#c8c8c8 0 25%, #f4f4f4 0 50%) 0 0 / 10px 10px;
 }
 
+.laser-cor-lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  max-height: 330px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 35%);
+  list-style: none;
+}
+
+.laser-cor-lista[hidden] {
+  display: none;
+}
+
+.laser-cor-lista li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.laser-cor-lista li:hover,
+.laser-cor-lista li:focus {
+  background: var(--superficie-2);
+}
+
+.laser-cor-lista li[aria-selected="true"] {
+  color: var(--acento-forte);
+  font-weight: 650;
+}
+
 /* Lista de produtos já calculados (vários produtos no mesmo orçamento) */
 .laser-lista {
   margin-top: 18px;
   padding-top: 16px;
   border-top: 1px solid var(--borda);
+}
+
+#laser-outro:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .laser-lista[hidden] {

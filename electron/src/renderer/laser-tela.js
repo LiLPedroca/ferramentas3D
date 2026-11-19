@@ -77,17 +77,103 @@ function ajustarBotaoOrcamento() {
   $("laser-orcamento").textContent = lista.length ? `Adicionar ${n} ${n === 1 ? "produto" : "produtos"} ao orçamento →` : "Adicionar ao orçamento →";
 }
 
+// Cor do produto: lista própria (a do Windows não mostra as cores). O <select> escondido guarda o valor.
+const ESCOLHER = { id: "", nome: "Escolher a cor", hex: "" };
+
+function pintarAmostra(amostra, cor) {
+  amostra.style.background = cor?.hex || "";
+  amostra.classList.toggle("vazia", !cor?.id);
+  amostra.classList.toggle("transparente", cor?.id === "transparente");
+}
+
 function preencherCores() {
-  $("laser-cor").replaceChildren(new Option("Escolher a cor", ""), ...CORES.map((c) => new Option(c.nome, c.id)));
+  $("laser-cor").replaceChildren(new Option(ESCOLHER.nome, ""), ...CORES.map((c) => new Option(c.nome, c.id)));
+  $("laser-cor-lista").replaceChildren(
+    ...[ESCOLHER, ...CORES].map((c) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.tabIndex = -1;
+      li.dataset.cor = c.id;
+      const amostra = document.createElement("span");
+      amostra.className = "laser-cor-amostra";
+      amostra.setAttribute("aria-hidden", "true");
+      pintarAmostra(amostra, c);
+      const nome = document.createElement("span");
+      nome.textContent = c.nome;
+      li.append(amostra, nome);
+      li.addEventListener("click", () => escolherCor(c.id));
+      return li;
+    }),
+  );
   mostrarCor();
 }
 
 function mostrarCor() {
-  const cor = CORES.find((c) => c.id === $("laser-cor").value);
-  const amostra = $("laser-cor-amostra");
-  amostra.style.background = cor?.hex || "";
-  amostra.classList.toggle("vazia", !cor);
-  amostra.classList.toggle("transparente", cor?.id === "transparente");
+  const id = $("laser-cor").value;
+  const cor = CORES.find((c) => c.id === id);
+  pintarAmostra($("laser-cor-amostra"), cor);
+  $("laser-cor-nome").textContent = cor?.nome ?? ESCOLHER.nome;
+  $("laser-cor-botao").classList.toggle("sem-cor", !cor);
+  for (const li of $("laser-cor-lista").children) li.setAttribute("aria-selected", String(li.dataset.cor === id));
+}
+
+const opcoesCor = () => [...$("laser-cor-lista").children];
+
+function abrirCores() {
+  $("laser-cor-lista").hidden = false;
+  $("laser-cor-botao").setAttribute("aria-expanded", "true");
+  const atual = opcoesCor().find((li) => li.dataset.cor === $("laser-cor").value) ?? opcoesCor()[0];
+  atual.focus();
+  atual.scrollIntoView({ block: "nearest" });
+}
+
+function fecharCores(voltarFoco = true) {
+  if ($("laser-cor-lista").hidden) return;
+  $("laser-cor-lista").hidden = true;
+  $("laser-cor-botao").setAttribute("aria-expanded", "false");
+  if (voltarFoco) $("laser-cor-botao").focus();
+}
+
+function escolherCor(id) {
+  $("laser-cor").value = id;
+  fecharCores();
+  mostrarCor();
+  atualizar();
+}
+
+function teclaNaLista(e) {
+  const lista = opcoesCor();
+  const i = lista.indexOf(document.activeElement);
+  const ir = (n) => {
+    e.preventDefault();
+    lista[Math.max(0, Math.min(lista.length - 1, n))].focus();
+  };
+  if (e.key === "ArrowDown") ir(i + 1);
+  else if (e.key === "ArrowUp") ir(i - 1);
+  else if (e.key === "Home") ir(0);
+  else if (e.key === "End") ir(lista.length - 1);
+  else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    if (i >= 0) escolherCor(lista[i].dataset.cor);
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    fecharCores();
+  } else if (e.key === "Tab") fecharCores(false);
+}
+
+function ligarCores() {
+  $("laser-cor-botao").addEventListener("click", () => ($("laser-cor-lista").hidden ? abrirCores() : fecharCores()));
+  $("laser-cor-botao").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      abrirCores();
+    }
+  });
+  $("laser-cor-lista").addEventListener("keydown", teclaNaLista);
+  // Clique fora fecha a lista.
+  document.addEventListener("mousedown", (e) => {
+    if (!$("laser-cor-caixa").contains(e.target)) fecharCores(false);
+  });
 }
 
 // Cálculo da tela (com a área escolhida) para a lista ou o orçamento.
@@ -204,10 +290,7 @@ export function iniciarLaser() {
   for (const id of ["laser-nome", "laser-quantidade", "laser-valor", "laser-frente", "laser-frente-verso"]) $(id).addEventListener("input", atualizar);
   for (const r of document.querySelectorAll('input[name="laser-area"]')) r.addEventListener("change", atualizar);
   $("laser-produto").addEventListener("change", escolherProduto);
-  $("laser-cor").addEventListener("change", () => {
-    mostrarCor();
-    atualizar();
-  });
+  ligarCores();
   $("laser-outro").addEventListener("click", adicionarOutro);
   $("laser-orcamento").addEventListener("click", adicionar);
   $("laser-novo").addEventListener("click", novo);

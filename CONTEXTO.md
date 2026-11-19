@@ -830,3 +830,11 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Novidade `atualizacao-automatica` (tela inicio, ícone novo `atualizar`).
 - Conferido: 500 testes; aviso no modo de captura. **Não conferido:** o fluxo de ponta a ponta (precisa de uma release no GitHub maior que a instalada). A 0.65/0.66 instaladas localmente não acham nada enquanto a última release for a 0.64.0.
 - **Pendente:** Pedro instalar a 0.66.0; publicar só quando ele aprovar.
+
+## Trabalho do Claude Code (19/11/2026) — Laser: lista de cores com amostras (v0.66.1, só local)
+
+- A lista nativa do Windows (`<select>`) não mostra cor nas opções. Troquei por uma lista própria: botão `#laser-cor-botao` + `#laser-cor-lista` (role listbox, 3 colunas, amostra de cada cor). O `<select id="laser-cor">` ficou escondido só para guardar o valor.
+- Teclado: setas abrem e andam, Enter/Espaço escolhe, Esc fecha. Clique fora fecha.
+- Amostras com borda mais clara (o Preto sumia no tema escuro). "+ Adicionar outro produto" desabilitado fica apagado.
+- Conferido no modo de captura (clique em Preto, setas). 500 testes.
+- **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
