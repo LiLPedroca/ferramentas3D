@@ -855,3 +855,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Conferido: Ctrl+V pelo Explorador cola o PDF (teste com `Shell.Application` Paste na pasta). **Não conferido:** colar no WhatsApp (Pedro vai testar).
 - **Novidades:** saiu a janela automática ao abrir uma ferramenta (`dialogo-novidade`, `novidadeDaTela`). Agora há o botão "Novidades" à esquerda de Meu fatiador; depois de uma atualização ele pulsa com um ponto vermelho (`.chamando`) até ser clicado. A lista mostra todas as novidades, mais novas primeiro, com selo "Novo" (`listaDeNovidades`, `temNovidade`; config `novidadesVistoAte`). Continuar criando entradas em `NOVIDADES` a cada mudança visível.
 - Testes: 507 passando.
+- **19/11/2026:** Pedro confirmou: a 0.67.0 chegou sozinha no PC dele (vindo da 0.66.1), o aviso funcionou e o programa reabriu atualizado. Fluxo de atualização automática conferido de ponta a ponta.
