@@ -34,7 +34,6 @@ it('abre a vista da assinatura somente depois que o copo terminou de carregar', 
   const multipartes = html.querySelector('#cp-exportar #cp-multipartes');
   expect(multipartes).not.toBeNull();
   expect(multipartes.textContent).toContain('Exportar em multipartes');
-  expect(multipartes.textContent).toContain('Em breve');
   document.body.append(multipartes.cloneNode(true));
   const texto = JSON.stringify({ partes: [{ cor: '#000000', offset: 0, count: 9 }] });
   const n = Math.ceil(texto.length / 4) * 4, bytes = new Uint8Array(4 + n + 36);bytes.fill(32, 4, 4 + n);
@@ -50,7 +49,7 @@ it('abre a vista da assinatura somente depois que o copo terminou de carregar', 
   document.getElementById('cp-base').click();expect(estado.verBase).toHaveBeenCalledTimes(1);
 });
 
-it('exporta multipartes dos Copos 1 e 2, com cores atuais, e bloqueia a opção no Copo 3', async()=>{
+it('exporta multipartes dos três copos, com as cores atuais', async()=>{
  const ids=['catalogo','cores','3d','status','nome','medidas','restaurar','grade','mais','menos','ajustar','base','custo','salvar','stl','3mf','fatiador','exportar','multipartes','logo-secao','logo-vazio','logo-com','logo-adicionar','logo-meus','logo-salvos','logo-editar','logo-clonar','logo-remover','logo-remover-esta','logo-miniatura','logo-info','logo-aviso'];
  document.body.innerHTML=ids.map(id=>`<button id="cp-${id}"></button>`).join('');
  const texto=JSON.stringify({partes:[{cor:'#000000',offset:0,count:9},{cor:'#ffffff',offset:36,count:9}]});
@@ -69,5 +68,6 @@ it('exporta multipartes dos Copos 1 e 2, com cores atuais, e bloqueia a opção 
  await vi.waitFor(()=>expect(salvarArquivoModelo).toHaveBeenCalledWith(new Uint8Array([7]),'Copo 1 - multipartes','3mf'));
  await vi.waitFor(()=>expect(document.getElementById('cp-multipartes').disabled).toBe(false));
  document.querySelector('#cp-catalogo [data-id="3"]').click();await vi.waitFor(()=>expect(document.getElementById('cp-salvar').disabled).toBe(false));
- expect(document.getElementById('cp-multipartes').disabled).toBe(true);expect(document.getElementById('cp-multipartes').textContent).toContain('Em breve');document.getElementById('cp-multipartes').click();expect(lerCopoMultipartes).toHaveBeenCalledTimes(2);
+ expect(document.getElementById('cp-multipartes').disabled).toBe(false);expect(document.getElementById('cp-multipartes').textContent).not.toContain('Em breve');
+ document.getElementById('cp-multipartes').click();await vi.waitFor(()=>expect(lerCopoMultipartes).toHaveBeenCalledWith(3));
 });

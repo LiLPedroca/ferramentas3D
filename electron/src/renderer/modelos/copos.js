@@ -2,7 +2,7 @@ import { BufferGeometry, Float32BufferAttribute } from "three";
 
 export const CATALOGO_COPOS = [{ id: 1, nome: "Copo 1" }, { id: 2, nome: "Copo 2" }, { id: 3, nome: "Copo 3" }];
 // Copos que já têm o projeto em peças separadas (assets/copos/<id>-multipartes.3mf).
-export const COPOS_MULTIPARTES = [1, 2];
+export const COPOS_MULTIPARTES = [1, 2, 3];
 const CORES_PADRAO = ["#000000", "#ffffff"];
 // Onde cada copo fica na mesa do 3MF original (mm): as logos vão ao lado.
 export const COPO_NA_MESA = {

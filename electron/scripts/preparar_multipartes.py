@@ -14,6 +14,7 @@ Nenhum arquivo de entrada é alterado; a saída precisa ser um arquivo novo.
 Construção offline: numpy, trimesh, manifold3d, shapely, fonttools, matplotlib.
 """
 import argparse
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -31,6 +32,7 @@ from shapely.geometry.polygon import orient
 
 from assinatura_copos import construir_assinatura, poligonos, SITE, INSTAGRAM
 from copos_malha import unir_partes
+from copos_pintura import decodificar, remapear_pintura
 
 PECAS = ('base', 'tubo', 'argola')
 PROFUNDIDADE = .2
@@ -85,9 +87,19 @@ def malha_xml(v, f, pintura=None):
     return '<mesh><vertices>' + verts + '</vertices><triangles>' + tris + '</triangles></mesh>'
 
 
-def sem_pintura(corpo):
-    # A pintura das peças de origem não leva cor (só "10" = filamento da parte).
-    return re.sub(r'\s+paint_color="[^"]*"', '', corpo)
+@lru_cache(maxsize=20000)
+def _pintura(codigo, padrao):
+    # "10" e afins = só a cor da parte: some. O resto passa para preto/branco.
+    if decodificar(codigo) == 0: return ''
+    return remapear_pintura(codigo, MAPA_EXTRUSOR, padrao)
+
+
+def pintura_preto_branco(corpo, padrao):
+    """Conserva a pintura (ex.: assinatura já pintada) trocando o 3º filamento por branco."""
+    def trocar(m):
+        novo = _pintura(m[1], padrao)
+        return f' paint_color="{novo}"' if novo else ''
+    return re.sub(r'\s+paint_color="([^"]*)"', trocar, corpo)
 
 
 def assinar_base(partes, desenho):
@@ -145,12 +157,13 @@ def assinar_base(partes, desenho):
     return [nova, *restantes], info
 
 
-def montar(copo, entradas, saida, desenho, perfil):
+def montar(copo, entradas, saida, desenho, perfil, assinar=True):
     saida = Path(saida)
     if saida.exists(): raise FileExistsError('A saída já existe; escolha outro arquivo.')
     if any(Path(e).resolve() == saida.resolve() for e in entradas.values()): raise ValueError('Use uma saída separada.')
     pecas = {p: ler_peca(entradas[p]) for p in PECAS}
-    pecas['base']['partes'], assinatura = assinar_base(pecas['base']['partes'], desenho)
+    if assinar: pecas['base']['partes'], assinatura = assinar_base(pecas['base']['partes'], desenho)
+    else: assinatura = 'mantida a do arquivo da base'
     proximo = 1
     arquivos, recursos, build, cfg_objs, placas, rels = {}, [], [], [], [], []
     for n, peca in enumerate(PECAS):
@@ -159,7 +172,7 @@ def montar(copo, entradas, saida, desenho, perfil):
         objs, comps, cfg_partes = [], [], []
         for parte in dados['partes']:
             pid = proximo; proximo += 1
-            malha = parte.get('malha') or sem_pintura(re.search(r'<mesh\b[\s\S]*?</mesh>', parte['corpo'])[0])
+            malha = parte.get('malha') or pintura_preto_branco(re.search(r'<mesh\b[\s\S]*?</mesh>', parte['corpo'])[0], parte['extrusor'])
             objs.append(f'<object id="{pid}" type="model">{malha}</object>')
             comps.append(f'<component p:path="/{esc(caminho)}" objectid="{pid}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>')
             cfg_partes.append(f'<part id="{pid}" subtype="normal_part"><metadata key="name" value="{esc(nome)}"/>'
@@ -173,7 +186,11 @@ def montar(copo, entradas, saida, desenho, perfil):
         oid = proximo; proximo += 1
         recursos.append(f'<object id="{oid}" type="model"><components>{"".join(comps)}</components></object>')
         m = matriz(dados['item'].get('transform'))
-        x, y = 130 + PASSO_PLACA * (n % 2), 130 - PASSO_PLACA * (n // 2)
+        # Centro da peça no plano: as malhas podem vir no meio da mesa, não na origem.
+        caixas = [ler_mesh(p.get('malha') or p['corpo'])[0] for p in dados['partes']]
+        minimo, maximo = np.min([c.min(0) for c in caixas], 0), np.max([c.max(0) for c in caixas], 0)
+        centro = m[:3, :3] @ np.array([(minimo[0] + maximo[0]) / 2, (minimo[1] + maximo[1]) / 2, 0])
+        x, y = 130 + PASSO_PLACA * (n % 2) - centro[0], 130 - PASSO_PLACA * (n // 2) - centro[1]
         t = ' '.join(f'{k:.9g}' for k in [*m[:3, :3].T.reshape(-1), x, y, m[2, 3]])
         build.append(f'<item objectid="{oid}" transform="{t}" printable="1"/>')
         extrusor = dados['partes'][0]['extrusor']
@@ -234,6 +251,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--copo', type=int, required=True)
     for peca in PECAS: p.add_argument(f'--{peca}', type=Path)
+    p.add_argument('--sem-assinatura', action='store_true', help='a base já vem assinada')
     p.add_argument('--renomear', type=Path); p.add_argument('--saida', type=Path, required=True)
     a = p.parse_args()
     if a.renomear:
@@ -241,7 +259,7 @@ def main():
     assets = Path(__file__).resolve().parents[1] / 'src/renderer/assets'
     desenho = construir_assinatura(assets / 'copos/criae3d-logo.svg', assets / 'fontes/Rubik-Regular.ttf')
     perfil = json.loads((assets / 'copos/perfil-petg.json').read_text(encoding='utf-8'))
-    report = montar(a.copo, {peca: getattr(a, peca) for peca in PECAS}, a.saida, desenho, perfil)
+    report = montar(a.copo, {peca: getattr(a, peca) for peca in PECAS}, a.saida, desenho, perfil, assinar=not a.sem_assinatura)
     a.saida.with_suffix('.validacao.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False))
 

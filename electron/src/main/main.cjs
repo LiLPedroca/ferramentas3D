@@ -373,7 +373,7 @@ function registrarDados() {
   // ---------- Modelos 3D: fontes, salvar e abrir no fatiador ----------
   const pastaFontes = path.join(__dirname, "..", "..", "build", "renderer", "assets", "fontes");
   ipcMain.handle("copos:multipartes", comTela(async (_e, id) => {
-    if (![1, 2].includes(id)) throw new Error("Exportação em multipartes indisponível para este copo.");
+    if (![1, 2, 3].includes(id)) throw new Error("Exportação em multipartes indisponível para este copo.");
     return new Uint8Array(await require("node:fs/promises").readFile(path.join(pastaFontes, "..", "copos", `${id}-multipartes.3mf`)));
   }));
   ipcMain.handle("copos:ler", comTela(async (_e, id, original) => {

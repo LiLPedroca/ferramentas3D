@@ -892,3 +892,13 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Não conferido:** abrir na janela do Anycubic; impressão física da assinatura e do encaixe base/tubo/argola do Copo 2 V6. O Copo 2 **completo** do catálogo continua sendo o Monster antigo (não é a V6).
 - **Pendente:** Pedro instalar `ProgramaFerramentas3D-Setup-0.70.0.exe` e testar; publicar só quando ele aprovar (a 0.69.0 também ainda não foi publicada).
 - **v0.70.1 (só local):** `copos.css` forçava `cursor: not-allowed` em "Exportar em multipartes" sempre (sobra do "Em breve"); o Pedro achou que estava bloqueado. Agora só `.copos-exportar button:disabled` (com opacidade). Conferido na captura: Copo 1/2 `pointer`, Copo 3 `not-allowed`.
+
+## Trabalho do Claude Code (19/11/2026) — Copo 3 em multipartes (v0.71.0, PUBLICADA com 0.69.0/0.70.x)
+
+- `assets/copos/3-multipartes.3mf` a partir de `Desktop/Modelagem/Copo 3 otimizados/Copo 3 {base,tubo,argola} otimizado.3mf` (divididos pelo Codex; originais não alterados): `preparar_multipartes.py --copo 3 --sem-assinatura ...`.
+- A base do Codex **já vem assinada**: lâmina 0–0,2 mm branca com logo/site/Instagram pintados em preto (`paint_color="4"`, 20.786 triângulos, lido certo de baixo). Mantida como está; o script agora conserva a pintura (`pintura_preto_branco`: "10"/vazias somem, 3º filamento vira branco) em vez de apagar tudo.
+- As malhas do Copo 3 vêm no meio da mesa (centro ≈ 128,128), não na origem: o script agora desconta o centro da peça na posição da placa.
+- `COPOS_MULTIPARTES = [1, 2, 3]`; IPC aceita 1–3; saiu o "Em breve" do botão no `index.html`.
+- Fatiado (linha de comando, Kobra X 0.4, PETG 0,20): base 3 1h43m03s / 43,4 g; tubo 3 4h35m17s / 81,9 g; argola 3 41m31s / 14,3 g; total ≈ 7h00m / 140 g. Exportado pelo programa em 0,4 s com nomes `base 3`/`tubo 3`/`argola 3`.
+- Sem entrada nova em NOVIDADES (texto precisa de aprovação do Pedro); o botão mostra as da 0.70.0.
+- **Não conferido:** janela do Anycubic; impressão/encaixe das peças do Copo 3.
