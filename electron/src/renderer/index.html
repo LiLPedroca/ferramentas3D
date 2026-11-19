@@ -1708,6 +1708,13 @@
                     <option value="letra">Mesma altura de letra (a largura muda com o nome)</option>
                   </select>
                 </label>
+                <div class="ch-largura-nome" id="ch-largura-nome" hidden>
+                  <label class="campo">
+                    <span id="ch-largura-nome-rotulo">Largura deste nome</span>
+                    <div class="entrada"><input id="ch-largura-nome-valor" inputmode="decimal" placeholder="Segue a lista" /><em data-unidade>mm</em></div>
+                  </label>
+                  <button type="button" class="botao-texto" id="ch-largura-nome-limpar">Usar o tamanho da lista</button>
+                </div>
                 <button type="button" class="botao-secundario largo" id="ch-lote-gerar" disabled>Preparar chaveiros</button>
                 <p class="ajuda" id="ch-lote-resumo" aria-live="polite"></p>
                 <ul class="ch-lote-lista" id="ch-lote-lista"></ul>

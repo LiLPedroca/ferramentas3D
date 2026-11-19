@@ -7805,3 +7805,14 @@ textarea:focus {
   max-width: 100%;
   max-height: 100%;
 }
+
+/* Chaveiro: largura própria de um nome da lista */
+.ch-largura-nome {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.ch-largura-nome .botao-texto {
+  justify-self: start;
+}

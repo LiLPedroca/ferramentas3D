@@ -45,6 +45,10 @@ let lote = null; // { chave, itens: [{ nome, partes, tamanho, gramas }], placas 
 // Vários nomes na prévia: o nome mostrado agora (null = o nome único) e a argola escolhida de cada nome.
 let vendo = null;
 const argolasLote = new Map(); // nome → posição da argola (sem entrada = automática)
+const largurasLote = new Map(); // nome → largura total escolhida só para ele, em mm (sem entrada = regra da lista)
+const TODOS = "\u0000todos"; // valor de "vendo" na visão com todos os nomes juntos
+const cacheNomes = new Map(); // peças já geradas na visão Todos (refaz só o nome que mudou)
+let escalaLetraCache = null; // { chave, escala } da regra "mesma altura de letra"
 
 const fator = () => (unidade === "cm" ? 10 : 1);
 const formatar = (mm, casas = 2) => (mm / fator()).toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -233,14 +237,13 @@ async function gerar() {
     status(erro.message, true);
   }
   mostrarSimbolo();
-  const pedido = { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null };
-  // Um nome da lista na prévia: mostra esse nome, com a argola escolhida para ele.
-  if (vendo !== null) Object.assign(pedido, { texto: vendo, argola: argolasLote.get(vendo) ?? null });
+  if (vendo === TODOS) return gerarTodos(minha);
   try {
     conferirMedidas(MEDIDAS, LIMITES_CHAVEIRO, lerMedida, (n) => `${formatar(n)} ${unidade}`);
-    const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(pedido.fonte)]);
+    const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(opcoes.fonte)]);
     if (minha !== geracao) return;
-    const resultado = gerarChaveiro(M, fonte, pedido, coresSimbolo);
+    // Um nome da lista na prévia: mostra esse nome como ele vai sair no lote (argola e tamanho dele).
+    const resultado = gerarNome(M, fonte, vendo);
     modelo = resultado;
     partes = resultado.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
     posicionarNaOrigem(partes.map((p) => p.geometria));
@@ -253,8 +256,147 @@ async function gerar() {
     habilitar(false);
   }
   mostrarMedidas();
-  previa2d.mostrar(modelo);
+  // alças nos cantos para puxar o tamanho (como no fatiador)
+  previa2d.mostrar(modelo && { ...modelo, alcas: [{ id: vendo, caixa: modelo.caixa, largura: modelo.dimensoes[0] }] });
+  mostrarLarguraDoNome();
   mostrarLote();
+}
+
+// ---------- Cada nome da lista ----------
+// Peça de um nome (null = o nome único), do jeito que sai no lote: argola e largura escolhidas
+// para ele ou, sem largura própria, a regra da lista (mesma largura ou mesma altura de letra).
+function gerarNome(M, fonte, nome) {
+  const base = { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null };
+  if (nome === null) return gerarChaveiro(M, fonte, base, coresSimbolo);
+  const pedido = { ...base, texto: nome, argola: argolasLote.get(nome) ?? (nome === opcoes.texto.trim() ? opcoes.argola : null) };
+  if (largurasLote.has(nome)) return gerarChaveiro(M, fonte, { ...pedido, largura: largurasLote.get(nome) }, coresSimbolo);
+  if ($("ch-lote-tamanho").value === "letra") return gerarChaveiroComLarguraDoTexto(M, fonte, pedido, escalaDaLetra(M, fonte) * larguraNaFonte(fonte, nome), coresSimbolo);
+  return gerarChaveiro(M, fonte, pedido, coresSimbolo);
+}
+
+// "Mesma altura de letra": a escala do nome único (ou do primeiro da lista) vale para todos.
+function escalaDaLetra(M, fonte) {
+  const referencia = opcoes.texto.trim() || nomesDoLote()[0];
+  const chave = JSON.stringify([opcoes, chaveSimbolo, referencia]);
+  if (escalaLetraCache?.chave !== chave) {
+    const base = gerarChaveiro(M, fonte, { ...opcoes, argola: null, texto: referencia, simbolo: simboloImagem ? opcoes.simbolo : null }, coresSimbolo);
+    escalaLetraCache = { chave, escala: base.larguraTexto / larguraNaFonte(fonte, referencia) };
+  }
+  return escalaLetraCache.escala;
+}
+
+// Visão "Todos": todos os chaveiros lado a lado, na mesma escala, com nome e medidas embaixo.
+async function gerarTodos(minha) {
+  const nomes = nomesDoLote();
+  const unico = opcoes.texto.trim();
+  const lista = [...(unico && !nomes.includes(unico) ? [null] : []), ...nomes];
+  habilitar(false);
+  try {
+    conferirMedidas(MEDIDAS, LIMITES_CHAVEIRO, lerMedida, (n) => `${formatar(n)} ${unidade}`);
+    const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(opcoes.fonte)]);
+    if (minha !== geracao) return;
+    if (cacheNomes.size > 300) cacheNomes.clear();
+    const itens = [];
+    for (const [i, nome] of lista.entries()) {
+      status(`Montando ${i + 1} de ${lista.length}…`);
+      await new Promise((r) => setTimeout(r, 0)); // deixa a tela atualizar
+      if (minha !== geracao) return;
+      const chave = JSON.stringify([opcoes, chaveSimbolo, nome, largurasLote.get(nome), argolasLote.get(nome), $("ch-lote-tamanho").value, unico || nomes[0]]);
+      let r = cacheNomes.get(chave);
+      if (!r) {
+        try {
+          r = gerarNome(M, fonte, nome);
+        } catch (erro) {
+          r = { erro: erro.message };
+        }
+        cacheNomes.set(chave, r);
+      }
+      itens.push({ nome, rotulo: nome ?? unico, r });
+    }
+    montarTodos(itens);
+  } catch (erro) {
+    if (minha !== geracao) return;
+    status(erro.message, true);
+  }
+  mostrarLarguraDoNome();
+  mostrarLote();
+}
+
+function montarTodos(itens) {
+  const bons = itens.filter((x) => !x.r.erro);
+  const erros = itens.filter((x) => x.r.erro).map((x) => `${x.rotulo}: ${x.r.erro}`);
+  if (!bons.length) {
+    status(erros.join(" ") || "Nenhum nome para mostrar.", true);
+    return;
+  }
+  const colunas = bons.length <= 2 ? bons.length : bons.length <= 4 ? 2 : 3;
+  const larguraCelula = Math.max(...bons.map((x) => x.r.dimensoes[0])) + 10;
+  const alturaCelula = Math.max(...bons.map((x) => x.r.dimensoes[1])) + 14;
+  const camadas = [];
+  const alcas = [];
+  const rotulos = [];
+  const pecas = [];
+  const desloca = (lacos, d) => lacos.map((l) => l.map(([x, y]) => [x + d[0], y + d[1]]));
+  bons.forEach(({ nome, rotulo, r }, i) => {
+    const x0 = (i % colunas) * larguraCelula;
+    const y0 = -Math.floor(i / colunas) * alturaCelula;
+    const [w, h] = r.dimensoes;
+    const d = [x0 + (larguraCelula - 10 - w) / 2 - r.caixa.min[0], y0 - r.caixa.max[1]];
+    r.camadas.forEach((c, k) => camadas.push({ lacos: desloca(c.lacos, d), cor: c.cor, regra: k === 0 ? "evenodd" : "nonzero" }));
+    const caixa = { min: [r.caixa.min[0] + d[0], r.caixa.min[1] + d[1]], max: [r.caixa.max[0] + d[0], r.caixa.max[1] + d[1]] };
+    alcas.push({ id: nome, caixa, largura: w });
+    const proprio = nome !== null && (largurasLote.has(nome) || argolasLote.has(nome));
+    rotulos.push({ texto: `${rotulo} · ${formatar(w, 1)} × ${formatar(h, 1)} ${unidade}${proprio ? " •" : ""}`, ponto: [(caixa.min[0] + caixa.max[0]) / 2, caixa.min[1] - 2] });
+    for (const m of r.malhas) {
+      const geometria = geometriaDaMalha(m);
+      geometria.translate(d[0], d[1], 0);
+      pecas.push({ nome: m.nome, cor: m.cor, geometria });
+    }
+  });
+  const xs = alcas.flatMap((a) => [a.caixa.min[0], a.caixa.max[0]]);
+  const ys = alcas.flatMap((a) => [a.caixa.min[1] - 9, a.caixa.max[1]]);
+  previa2d.mostrar({ camadas, alcas, rotulos, clicavel: true, caixa: { min: [Math.min(...xs), Math.min(...ys)], max: [Math.max(...xs), Math.max(...ys)] } });
+  posicionarNaOrigem(pecas.map((p) => p.geometria));
+  partes = pecas; // só para a prévia 3D; exportar fica desligado nesta visão
+  if (modo === "3d") previa3d?.mostrar(partes);
+  $("ch-medidas").textContent = `${bons.length} chaveiro(s) na mesma escala`;
+  status([`Clique num chaveiro para abrir; puxe um canto para mudar o tamanho dele.`, ...erros].join(" "), erros.length > 0);
+}
+
+// Tamanho puxado na prévia: nome único muda a Largura total; nome da lista ganha largura própria.
+async function tamanhoPuxado(id, largura) {
+  const [minimo, maximo] = LIMITES_CHAVEIRO.largura;
+  const nova = Math.min(maximo, Math.max(minimo, largura));
+  if (id === null) return mudar({ largura: nova });
+  try {
+    const [M, fonte] = await Promise.all([motorDaTela(), carregarFonte(opcoes.fonte)]);
+    const anterior = largurasLote.get(id);
+    largurasLote.set(id, nova);
+    try {
+      gerarNome(M, fonte, id); // confere antes de trocar
+    } catch (erro) {
+      if (anterior === undefined) largurasLote.delete(id);
+      else largurasLote.set(id, anterior);
+      throw erro;
+    }
+  } catch (erro) {
+    status(erro.message, true);
+    return;
+  }
+  mostrarNomesPrevia();
+  gerar();
+}
+
+// Campo "Largura deste nome": aparece com um nome da lista aberto na prévia.
+function mostrarLarguraDoNome() {
+  const nome = vendo !== null && vendo !== TODOS ? vendo : null;
+  $("ch-largura-nome").hidden = nome === null;
+  if (nome === null) return;
+  $("ch-largura-nome-rotulo").textContent = `Largura de "${nome}"`;
+  const campo = $("ch-largura-nome-valor");
+  if (document.activeElement !== campo) campo.value = largurasLote.has(nome) ? formatar(largurasLote.get(nome), 1) : "";
+  campo.placeholder = modelo && modelo.opcoes.texto === nome ? `Segue a lista (${formatar(modelo.dimensoes[0], 1)})` : "Segue a lista";
+  $("ch-largura-nome-limpar").hidden = !largurasLote.has(nome);
 }
 
 function habilitar(pronto) {
@@ -362,13 +504,14 @@ const nomesDoLote = () => [
       .filter(Boolean),
   ),
 ];
-const chaveDoLote = () => JSON.stringify({ opcoes, nomes: nomesDoLote(), modo: $("ch-lote-tamanho").value, simbolo: chaveSimbolo, argolas: [...argolasLote] });
+const chaveDoLote = () => JSON.stringify({ opcoes, nomes: nomesDoLote(), modo: $("ch-lote-tamanho").value, simbolo: chaveSimbolo, argolas: [...argolasLote], larguras: [...largurasLote] });
 
 // Botões em cima da prévia: o nome único (se houver) e cada nome da lista.
 function mostrarNomesPrevia() {
   const nomes = nomesDoLote();
   const unico = opcoes.texto.trim();
-  if (vendo !== null && !nomes.includes(vendo)) vendo = null;
+  if (vendo === TODOS && nomes.length + (unico && !nomes.includes(unico) ? 1 : 0) < 2) vendo = null;
+  if (vendo !== null && vendo !== TODOS && !nomes.includes(vendo)) vendo = null;
   if (vendo === null && !unico && nomes.length) vendo = nomes[0];
   const grupo = $("ch-nomes-previa");
   grupo.hidden = nomes.length === 0;
@@ -377,7 +520,7 @@ function mostrarNomesPrevia() {
     const b = el("button", "ch-mini", rotulo);
     b.type = "button";
     b.setAttribute("aria-pressed", String(vendo === valor));
-    if (valor !== null && argolasLote.has(valor)) b.title = "Argola escolhida por você";
+    if (valor !== null && valor !== TODOS && (argolasLote.has(valor) || largurasLote.has(valor))) b.title = "Tamanho ou argola escolhidos por você";
     b.addEventListener("click", () => {
       if (vendo === valor) return;
       vendo = valor;
@@ -386,7 +529,8 @@ function mostrarNomesPrevia() {
     });
     return b;
   };
-  grupo.replaceChildren(...(unico ? [botao(unico, null)] : []), ...nomes.filter((n) => n !== unico).map((n) => botao(n, n)));
+  const total = nomes.length + (unico && !nomes.includes(unico) ? 1 : 0);
+  grupo.replaceChildren(...(total >= 2 ? [botao("Todos", TODOS)] : []), ...(unico ? [botao(unico, null)] : []), ...nomes.filter((n) => n !== unico).map((n) => botao(n, n)));
 }
 
 // Os nomes da lista mudaram: atualiza os botões e, se o nome da prévia mudou, a peça.
@@ -395,6 +539,7 @@ function aoMudarNomes() {
   mostrarNomesPrevia();
   mostrarLote();
   if (vendo !== antes) gerar();
+  else if (vendo === TODOS) agendar();
 }
 const gramas = (g) => `${g.toLocaleString("pt-BR", { maximumFractionDigits: g < 10 ? 1 : 0 })} g`;
 
@@ -434,6 +579,7 @@ async function prepararLote() {
       try {
         const fazer = (argola) => {
           const pedido = { ...pedidoBase, texto: nome, argola };
+          if (largurasLote.has(nome)) return gerarChaveiro(M, fonte, { ...pedido, largura: largurasLote.get(nome) }, coresSimbolo);
           return $("ch-lote-tamanho").value === "letra"
             ? gerarChaveiroComLarguraDoTexto(M, fonte, pedido, escala * larguraNaFonte(fonte, nome), coresSimbolo)
             : gerarChaveiro(M, fonte, pedido, coresSimbolo);
@@ -596,7 +742,10 @@ export function iniciarChaveiro() {
 
   // vários nomes
   $("ch-lote-nomes").addEventListener("input", aoMudarNomes);
-  $("ch-lote-tamanho").addEventListener("change", mostrarLote);
+  $("ch-lote-tamanho").addEventListener("change", () => {
+    mostrarLote();
+    if (vendo !== null) gerar(); // nome da lista ou Todos: o tamanho muda com a regra
+  });
   $("ch-lote-gerar").addEventListener("click", prepararLote);
   $("ch-lote-3mf").addEventListener("click", async () => {
     const a = await arquivoDoLote();
@@ -640,6 +789,33 @@ export function iniciarChaveiro() {
     aoSoltar: argolaSolta,
     aoComecarSimbolo: () => status("Posicione o símbolo. A peça é refeita ao soltar."),
     aoSoltarSimbolo: simboloSolto,
+    aoRedimensionar: tamanhoPuxado,
+    aoClicarItem: (id) => {
+      vendo = id;
+      mostrarNomesPrevia();
+      gerar();
+    },
+  });
+  window.__chaveiroTeste = { previa2d }; // roteiros do modo de captura
+  $("ch-largura-nome-valor").addEventListener("change", () => {
+    if (vendo === null || vendo === TODOS) return;
+    const texto = $("ch-largura-nome-valor").value.trim();
+    if (!texto) {
+      largurasLote.delete(vendo);
+      mostrarNomesPrevia();
+      return gerar();
+    }
+    const mm = lerMedida("ch-largura-nome-valor");
+    const [minimo, maximo] = LIMITES_CHAVEIRO.largura;
+    if (!(mm >= minimo && mm <= maximo)) return status(`Largura: use de ${formatar(minimo)} a ${formatar(maximo)} ${unidade}.`, true);
+    tamanhoPuxado(vendo, mm);
+  });
+  $("ch-largura-nome-limpar").addEventListener("click", () => {
+    if (vendo === null || vendo === TODOS) return;
+    largurasLote.delete(vendo);
+    $("ch-largura-nome-valor").value = "";
+    mostrarNomesPrevia();
+    gerar();
   });
 
   $("ch-3mf").addEventListener("click", () => salvar("3mf"));
@@ -651,7 +827,7 @@ export function iniciarChaveiro() {
       atual: projetoAtual,
       nomePadrao: nomeArquivo(),
       montar: async () => ({
-        opcoes: { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null, nomeSimbolo: simboloImagem?.nome, loteNomes: $("ch-lote-nomes").value.slice(0, 4000), loteArgolas: Object.fromEntries(argolasLote) },
+        opcoes: { ...opcoes, simbolo: simboloImagem ? opcoes.simbolo : null, nomeSimbolo: simboloImagem?.nome, loteNomes: $("ch-lote-nomes").value.slice(0, 4000), loteArgolas: Object.fromEntries(argolasLote), loteLarguras: Object.fromEntries(largurasLote) },
         miniatura: miniatura(modelo),
         imagem: simboloImagem ? await imagemComoTexto(simboloImagem.canvas) : "",
       }),
@@ -662,7 +838,7 @@ export function iniciarChaveiro() {
     }
   });
   registrarAbridor("chaveiro", async (p) => {
-    const { nomeSimbolo, loteNomes, loteArgolas, ...resto } = p.opcoes;
+    const { nomeSimbolo, loteNomes, loteArgolas, loteLarguras, ...resto } = p.opcoes;
     opcoes = { ...PADRAO_CHAVEIRO, ...resto };
     simboloImagem = null;
     if (p.imagem && opcoes.simbolo) await carregarSimbolo(arquivoDeTexto(p.imagem, nomeSimbolo || "simbolo.png"), p);
@@ -671,6 +847,8 @@ export function iniciarChaveiro() {
     lote = null;
     vendo = null;
     argolasLote.clear();
+    largurasLote.clear();
+    for (const [nome, l] of Object.entries(loteLarguras ?? {})) if (Number.isFinite(l)) largurasLote.set(nome, l);
     for (const [nome, t] of Object.entries(loteArgolas ?? {})) {
       if (Number.isFinite(t)) argolasLote.set(nome, [t]);
       else if (Array.isArray(t)) argolasLote.set(nome, t.map((x) => (Number.isFinite(x) ? x : null)));

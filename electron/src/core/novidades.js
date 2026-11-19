@@ -455,6 +455,16 @@ export const NOVIDADES = [
     botao: "Ver",
   },
   {
+    id: "chaveiro-todos-nomes",
+    versao: "0.69.0",
+    tela: "chaveiro",
+    icone: "chaveiro",
+    titulo: "Ver todos os nomes juntos",
+    texto: "Em Vários nomes, o botão Todos mostra todos os chaveiros lado a lado.",
+    itens: ["Compare os tamanhos na mesma escala", "Puxe o canto de um chaveiro para aumentar ou diminuir só ele"],
+    botao: "Ver",
+  },
+  {
     id: "recibos-orcamentos",
     versao: "0.69.0",
     tela: "orcamentos",

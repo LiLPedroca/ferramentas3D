@@ -2,6 +2,10 @@
 // modelo: { camadas: [{ lacos, cor }], perimetro, argola: { t, centro, raio, afastamento }, caixa: { min, max } }
 // Com várias argolas: modelo.argolas = [argola, ...] (cada uma arrastável; aoSoltar(t, indice)).
 // Com modelo.simbolo ({ caixa: { min, max } }), o símbolo também pode ser arrastado (aoSoltarSimbolo recebe o deslocamento em mm).
+// Com modelo.alcas ([{ id, caixa, largura }]) e aoRedimensionar, cada peça ganha alças nos cantos: puxar
+// muda o tamanho proporcionalmente e, ao soltar, aoRedimensionar(id, novaLargura) recebe a largura em mm.
+// modelo.rotulos ([{ texto, ponto }]) escreve textos na prévia; modelo.clicavel + aoClicarItem(id): clique numa peça.
+// camada.regra ("evenodd" | "nonzero") escolhe como preencher (padrão: 1ª camada evenodd).
 import { maisPertoNoLaco, pontoNoLaco } from "./manifold.js";
 
 // Miniatura PNG (para Meus modelos): as camadas vistas de cima, centralizadas, fundo transparente.
@@ -37,7 +41,7 @@ export function miniatura(modelo, largura = 320, altura = 200) {
   return c.toDataURL("image/png");
 }
 
-export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, aoSoltarSimbolo } = {}) {
+export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, aoSoltarSimbolo, aoRedimensionar, aoClicarItem } = {}) {
   let modelo = null;
   let ativa = true;
   let zoom = 1;
@@ -46,6 +50,8 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   let arrasto = null; // { t, centro }
   let arrastoSimbolo = null; // { inicio: [x, y], atual: [x, y] } em mm
   let destaque = null; // id da camada contornada (parte escolhida no 2D para 3D)
+  let arrastoTamanho = null; // { alca, ancora, canto, fator } enquanto puxa uma alça
+  let clique = null; // { id, x, y } clique numa peça (visão com várias peças)
 
   function transformacao() {
     const { min, max } = modelo.caixa;
@@ -94,8 +100,9 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     modelo.camadas.forEach((camada, i) => {
       ctx.fillStyle = camada.cor;
       caminho(ctx, camada.lacos, paraTela);
-      ctx.fill(i === 0 ? "evenodd" : "nonzero");
-      if (i === 0) {
+      const regra = camada.regra ?? (i === 0 ? "evenodd" : "nonzero");
+      ctx.fill(regra);
+      if (regra === "evenodd") {
         ctx.strokeStyle = "rgba(127,127,127,0.35)";
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -130,6 +137,49 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
       }
     }
+    // nomes e medidas embaixo de cada peça
+    if (modelo.rotulos?.length) {
+      ctx.fillStyle = "rgba(170,170,170,0.95)";
+      ctx.font = `${12 * dpr}px "Segoe UI", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      for (const r of modelo.rotulos) {
+        const [x, y] = paraTela(r.ponto);
+        ctx.fillText(r.texto, x, y);
+      }
+    }
+    // alças de tamanho nos cantos (e o novo tamanho enquanto puxa)
+    if (aoRedimensionar && modelo.alcas?.length) {
+      for (const alca of modelo.alcas) {
+        if (arrastoTamanho?.alca === alca) continue;
+        for (const canto of cantosDe(alca.caixa)) {
+          const [x, y] = paraTela(canto);
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#5b8def";
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.fillRect(x - 4 * dpr, y - 4 * dpr, 8 * dpr, 8 * dpr);
+          ctx.strokeRect(x - 4 * dpr, y - 4 * dpr, 8 * dpr, 8 * dpr);
+        }
+      }
+      if (arrastoTamanho) {
+        const { ancora, canto, fator, alca } = arrastoTamanho;
+        const fim = [ancora[0] + (canto[0] - ancora[0]) * fator, ancora[1] + (canto[1] - ancora[1]) * fator];
+        const [x1, y1] = paraTela(ancora);
+        const [x2, y2] = paraTela(fim);
+        ctx.setLineDash([6 * dpr, 4 * dpr]);
+        ctx.strokeStyle = "#5b8def";
+        ctx.lineWidth = 2 * dpr;
+        ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(91,141,239,0.12)";
+        ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        ctx.font = `600 ${13 * dpr}px "Segoe UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "#5b8def";
+        ctx.fillText(`${(alca.largura * fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mm`, x2, y2 - 8 * dpr);
+      }
+    }
     // argolas (peça sem argola: Palavras decorativas)
     argolasDoModelo().forEach((argola, i) => {
       const arrastando = arrasto?.indice === i;
@@ -162,6 +212,32 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
   }
   const sobreArgola = (p) => argolaSob(p) >= 0;
 
+  // Cantos de uma caixa: [min-min, max-min, max-max, min-max]
+  function cantosDe({ min, max }) {
+    return [min, [max[0], min[1]], max, [min[0], max[1]]];
+  }
+
+  // Alça sob o ponto do canvas (px): { alca, canto, ancora } ou null.
+  function alcaSob(px, py) {
+    if (!aoRedimensionar || !modelo.alcas?.length) return null;
+    const { paraTela } = transformacao();
+    const dpr = window.devicePixelRatio || 1;
+    for (const alca of modelo.alcas) {
+      const cantos = cantosDe(alca.caixa);
+      for (let k = 0; k < 4; k++) {
+        const [x, y] = paraTela(cantos[k]);
+        if (Math.abs(px - x) <= 9 * dpr && Math.abs(py - y) <= 9 * dpr) return { alca, canto: cantos[k], ancora: cantos[(k + 2) % 4] };
+      }
+    }
+    return null;
+  }
+
+  // Peça (da visão com várias) sob o ponto, em mm.
+  function itemSob(p) {
+    if (!modelo.clicavel || !aoClicarItem) return null;
+    return (modelo.alcas ?? []).find(({ caixa: { min, max } }) => p[0] >= min[0] && p[0] <= max[0] && p[1] >= min[1] && p[1] <= max[1]) ?? null;
+  }
+
   function sobreSimbolo(p) {
     if (!modelo.simbolo || !aoSoltarSimbolo) return false;
     const { min, max } = modelo.simbolo.caixa;
@@ -185,7 +261,20 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       return;
     }
     if (e.button !== 0) return;
+    const [cx0, cy0] = noCanvas(e);
+    const alca = alcaSob(cx0, cy0);
+    if (alca) {
+      canvas.setPointerCapture?.(e.pointerId);
+      arrastoTamanho = { ...alca, fator: 1 };
+      desenhar();
+      return;
+    }
     const p = pontoDoEvento(e);
+    const item = argolaSob(p) < 0 && !sobreSimbolo(p) ? itemSob(p) : null;
+    if (item) {
+      clique = { id: item.id, x: cx0, y: cy0 };
+      return;
+    }
     if (!sobreArgola(p) && sobreSimbolo(p)) {
       canvas.setPointerCapture?.(e.pointerId);
       arrastoSimbolo = { inicio: p, atual: p };
@@ -211,6 +300,16 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       return;
     }
     const p = pontoDoEvento(e);
+    if (arrastoTamanho) {
+      const { ancora, canto } = arrastoTamanho;
+      const v0 = [canto[0] - ancora[0], canto[1] - ancora[1]];
+      const v = [p[0] - ancora[0], p[1] - ancora[1]];
+      const fator = (v[0] * v0[0] + v[1] * v0[1]) / (v0[0] * v0[0] + v0[1] * v0[1]);
+      arrastoTamanho = { ...arrastoTamanho, fator: Math.min(4, Math.max(0.2, fator)) };
+      canvas.style.cursor = "nwse-resize";
+      desenhar();
+      return;
+    }
     if (arrastoSimbolo) {
       canvas.style.cursor = "grabbing";
       arrastoSimbolo = { ...arrastoSimbolo, atual: p };
@@ -218,7 +317,8 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       return;
     }
     if (!arrasto) {
-      canvas.style.cursor = sobreArgola(p) || sobreSimbolo(p) ? "grab" : "";
+      const [cx1, cy1] = noCanvas(e);
+      canvas.style.cursor = alcaSob(cx1, cy1) ? "nwse-resize" : sobreArgola(p) || sobreSimbolo(p) ? "grab" : itemSob(p) ? "pointer" : "";
       return;
     }
     canvas.style.cursor = "grabbing";
@@ -231,6 +331,22 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       panorama = null;
       canvas.style.cursor = "";
       if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      return;
+    }
+    if (arrastoTamanho) {
+      const { alca, fator } = arrastoTamanho;
+      arrastoTamanho = null;
+      canvas.style.cursor = "";
+      if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      desenhar();
+      if (!cancelar && Math.abs(fator - 1) > 0.01) aoRedimensionar(alca.id, Math.round(alca.largura * fator * 10) / 10);
+      return;
+    }
+    if (clique) {
+      const [x, y] = noCanvas(e);
+      const { id, x: x0, y: y0 } = clique;
+      clique = null;
+      if (!cancelar && Math.hypot(x - x0, y - y0) < 6) aoClicarItem(id);
       return;
     }
     if (arrastoSimbolo) {
@@ -308,6 +424,14 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     },
     paraTela(ponto) {
       return modelo ? transformacao().paraTela(ponto) : null;
+    },
+    // Alças de tamanho em coordenadas da tela (clientX/Y), para testes: [{ id, cantos: [[x, y], ...] }]
+    alcasNaTela() {
+      if (!modelo?.alcas) return [];
+      const r = canvas.getBoundingClientRect();
+      const dpr = canvas.width / r.width;
+      const { paraTela } = transformacao();
+      return modelo.alcas.map((a) => ({ id: a.id, cantos: cantosDe(a.caixa).map((c) => paraTela(c)).map(([x, y]) => [r.left + x / dpr, r.top + y / dpr]) }));
     },
     // mm da peça por px (CSS) da tela
     mmPorPixel() {
