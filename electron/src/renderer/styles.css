@@ -7816,3 +7816,94 @@ textarea:focus {
 .ch-largura-nome .botao-texto {
   justify-self: start;
 }
+
+/* Calculadora laser: linhas de cor e quantidade (várias cores por linha) */
+.laser-variacoes {
+  display: grid;
+  gap: 8px;
+}
+
+.laser-variacao {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.laser-variacao:only-child {
+  grid-template-columns: minmax(0, 1fr) 140px;
+}
+
+.laser-variacao .laser-cor-lista {
+  grid-column: 1 / -1;
+}
+
+.laser-amostras {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+
+.laser-cor-botao .laser-cor-nome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.laser-cor-botao.sem-cor .laser-cor-nome {
+  color: var(--texto-suave);
+}
+
+.laser-cor-lista li[aria-selected="true"]::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--acento-forte);
+  font-weight: 700;
+}
+
+.laser-cor-lista li[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.laser-cor-lista .laser-cor-dica,
+.laser-cor-lista .laser-cor-pronto {
+  grid-column: 1 / -1;
+  cursor: default;
+}
+
+.laser-cor-lista .laser-cor-dica {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.laser-cor-lista .laser-cor-dica:hover,
+.laser-cor-lista .laser-cor-pronto:hover {
+  background: transparent;
+}
+
+.laser-cor-lista .laser-cor-pronto {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--borda);
+}
+
+#laser-mais-cor {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.laser-variacoes-campo {
+  display: grid;
+  margin-bottom: 14px;
+}
+
+/* Botão secundário desligado: fica apagado (antes parecia ligado e "não fazia nada") */
+.botao-secundario:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import laserMod from "../src/core/laser.cjs";
 import orcMod from "../src/core/orcamento.cjs";
 
-const { calcularLaser, itemDoOrcamento } = laserMod;
+const { calcularLaser, itemDoOrcamento, itensDoOrcamento } = laserMod;
 const { itensNaVersao, montarOrcamento, versoesDo } = orcMod;
 
 const base = { nome: "Copo térmico personalizado", quantidade: "10", valorProduto: "25,00" };
@@ -32,6 +32,21 @@ describe("conta da gravação a laser", () => {
     expect(c.opcoes[0].descricao).toBe("Copo térmico personalizado (Preto, gravação frente e verso)");
     expect(calcularLaser({ ...base, cor: "", valorFrente: "5" }).cor).toBe("");
     expect(() => calcularLaser({ ...base, cor: "#ff0000", valorFrente: "5" })).toThrow(/Cor do produto/);
+  });
+
+  it("produto de duas cores e quantidades por cor: uma linha do orçamento por cor", () => {
+    const c = calcularLaser({ ...base, quantidade: undefined, variacoes: [{ cores: ["dourado", "preto"], quantidade: "6" }, { cores: ["branco"], quantidade: "4" }], valorFrente: "5", valorFrenteVerso: "8" });
+    expect(c.quantidade).toBe(10);
+    expect(c.opcoes[1].totalCentavos).toBe(33000n);
+    const itens = itensDoOrcamento(c, "frenteVerso", PID);
+    expect(itens.map((i) => [i.descricao, i.quantidade])).toEqual([
+      ["Copo térmico personalizado (Preto e Dourado, gravação frente e verso)", 6],
+      ["Copo térmico personalizado (Branco, gravação frente e verso)", 4],
+    ]);
+    expect(itens[1].opcoes[0].descricao).toBe("Copo térmico personalizado (Branco, gravação frente)");
+    expect(itens.every((i) => i.produtoId === PID && i.precoUnitarioCentavos === "3300")).toBe(true);
+    expect(() => calcularLaser({ ...base, variacoes: [{ cores: ["roxo"], quantidade: "0" }], valorFrente: "5" })).toThrow(/Quantidade/);
+    expect(() => calcularLaser({ ...base, variacoes: [{ cores: ["a", "b", "c", "d", "e"], quantidade: "1" }], valorFrente: "5" })).toThrow(/no máximo 4/);
   });
 
   it("sem gravação, sem valor do produto ou quantidade errada: mensagem clara", () => {

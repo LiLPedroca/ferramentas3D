@@ -49,6 +49,7 @@ const largurasLote = new Map(); // nome → largura total escolhida só para ele
 const TODOS = "\u0000todos"; // valor de "vendo" na visão com todos os nomes juntos
 const cacheNomes = new Map(); // peças já geradas na visão Todos (refaz só o nome que mudou)
 let escalaLetraCache = null; // { chave, escala } da regra "mesma altura de letra"
+let malhasTodos = null; // na visão Todos: as malhas de todos os chaveiros (para Calcular custo)
 
 const fator = () => (unidade === "cm" ? 10 : 1);
 const formatar = (mm, casas = 2) => (mm / fator()).toLocaleString("pt-BR", { maximumFractionDigits: casas });
@@ -336,6 +337,7 @@ function montarTodos(itens) {
   const alcas = [];
   const rotulos = [];
   const pecas = [];
+  malhasTodos = bons.flatMap((x) => x.r.malhas);
   const desloca = (lacos, d) => lacos.map((l) => l.map(([x, y]) => [x + d[0], y + d[1]]));
   bons.forEach(({ nome, rotulo, r }, i) => {
     const x0 = (i % colunas) * larguraCelula;
@@ -360,6 +362,7 @@ function montarTodos(itens) {
   partes = pecas; // só para a prévia 3D; exportar fica desligado nesta visão
   if (modo === "3d") previa3d?.mostrar(partes);
   $("ch-medidas").textContent = `${bons.length} chaveiro(s) na mesma escala`;
+  $("ch-custo").disabled = false; // custo de todos juntos; exportar é por nome ou em Preparar chaveiros
   status([`Clique num chaveiro para abrir; puxe um canto para mudar o tamanho dele.`, ...erros].join(" "), erros.length > 0);
 }
 
@@ -389,6 +392,7 @@ async function tamanhoPuxado(id, largura) {
 
 // Campo "Largura deste nome": aparece com um nome da lista aberto na prévia.
 function mostrarLarguraDoNome() {
+  $("ch-larguras-limpar").hidden = largurasLote.size === 0;
   const nome = vendo !== null && vendo !== TODOS ? vendo : null;
   $("ch-largura-nome").hidden = nome === null;
   if (nome === null) return;
@@ -810,6 +814,13 @@ export function iniciarChaveiro() {
     if (!(mm >= minimo && mm <= maximo)) return status(`Largura: use de ${formatar(minimo)} a ${formatar(maximo)} ${unidade}.`, true);
     tamanhoPuxado(vendo, mm);
   });
+  // Apaga as larguras próprias: todos voltam à regra da lista.
+  $("ch-larguras-limpar").addEventListener("click", () => {
+    largurasLote.clear();
+    $("ch-largura-nome-valor").value = "";
+    mostrarNomesPrevia();
+    gerar();
+  });
   $("ch-largura-nome-limpar").addEventListener("click", () => {
     if (vendo === null || vendo === TODOS) return;
     largurasLote.delete(vendo);
@@ -862,6 +873,10 @@ export function iniciarChaveiro() {
     gerar();
   });
   $("ch-custo").addEventListener("click", () => {
+    if (vendo === TODOS && malhasTodos?.length) {
+      const n = nomesDoLote().length + (opcoes.texto.trim() && !nomesDoLote().includes(opcoes.texto.trim()) ? 1 : 0);
+      return calcularCustoModelo({ malhas: malhasTodos }, `${n} chaveiros de nome`);
+    }
     if (!modelo) return;
     calcularCustoModelo(modelo, nomeArquivo());
   });

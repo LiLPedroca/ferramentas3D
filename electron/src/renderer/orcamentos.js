@@ -890,6 +890,7 @@ export function iniciarOrcamentos() {
   $("busca-escolher-produto").addEventListener("input", renderizarEscolherProduto);
   $("fechar-escolher-produto").addEventListener("click", () => $("dialogo-escolher-produto").close());
   $("o-calcular").addEventListener("click", () => irPara("calculadora"));
+  $("o-calcular-laser").addEventListener("click", () => irPara("laser"));
   $("o-add-manual").addEventListener("click", () => {
     f.itens.push({ descricao: "", quantidade: "1", preco: "" });
     renderizarItens();
