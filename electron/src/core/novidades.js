@@ -504,6 +504,16 @@ export const NOVIDADES = [
     itens: ["O cliente vê quanto custou cada coisa", "Sem valor do produto, sai só a gravação"],
     botao: "Ver",
   },
+  {
+    id: "copo2-multipartes",
+    versao: "0.70.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Copo 2 em peças separadas",
+    texto: "Agora o Copo 2 também sai em multipartes, pronto para o fatiador.",
+    itens: ["Base, tubo e argola, cada um na sua placa", "Assinatura Criae3D no fundo da base", "Exportar em multipartes ficou bem mais rápido"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"
