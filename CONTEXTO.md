@@ -838,3 +838,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Amostras com borda mais clara (o Preto sumia no tema escuro). "+ Adicionar outro produto" desabilitado fica apagado.
 - Conferido no modo de captura (clique em Preto, setas). 500 testes.
 - **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
+- **19/11/2026:** Pedro aprovou ("sobe no github"). Release **v0.66.1 PUBLICADA** (push da `electron` + 3 arquivos), levando 0.65.0, 0.66.0 e 0.66.1. A partir dela, o aviso "Nova versão recebida" passa a valer para as próximas releases.
