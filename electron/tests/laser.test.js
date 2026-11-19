@@ -34,6 +34,21 @@ describe("conta da gravação a laser", () => {
     expect(() => calcularLaser({ ...base, cor: "#ff0000", valorFrente: "5" })).toThrow(/Cor do produto/);
   });
 
+  it("gravação em linha separada: produto por cor + uma linha de gravação; sem produto, só a gravação", () => {
+    const c = calcularLaser({ ...base, variacoes: [{ cores: ["preto", "dourado"], quantidade: "6" }, { cores: ["branco"], quantidade: "4" }], valorFrente: "5", valorFrenteVerso: "8" });
+    const itens = itensDoOrcamento(c, "frenteVerso", PID, { separada: true });
+    expect(itens.map((i) => [i.descricao, i.quantidade, i.precoUnitarioCentavos])).toEqual([
+      ["Copo térmico personalizado (Preto e Dourado)", 6, "2500"],
+      ["Copo térmico personalizado (Branco)", 4, "2500"],
+      ["Gravação frente e verso: Copo térmico personalizado", 10, "800"],
+    ]);
+    expect(itens[0].produtoId).toBe(PID);
+    expect(itens[2].produtoId).toBeUndefined();
+    expect(itens[2].opcoes.map((o) => o.precoUnitarioCentavos)).toEqual(["500", "800"]);
+    const so = itensDoOrcamento(calcularLaser({ ...base, valorProduto: "", valorFrente: "5" }), "frente", undefined, { separada: true });
+    expect(so).toEqual([{ descricao: "Gravação frente: Copo térmico personalizado", quantidade: 10, precoUnitarioCentavos: "500" }]);
+  });
+
   it("produto de duas cores e quantidades por cor: uma linha do orçamento por cor", () => {
     const c = calcularLaser({ ...base, quantidade: undefined, variacoes: [{ cores: ["dourado", "preto"], quantidade: "6" }, { cores: ["branco"], quantidade: "4" }], valorFrente: "5", valorFrenteVerso: "8" });
     expect(c.quantidade).toBe(10);
@@ -51,7 +66,7 @@ describe("conta da gravação a laser", () => {
 
   it("sem gravação, sem valor do produto ou quantidade errada: mensagem clara", () => {
     expect(() => calcularLaser(base)).toThrow(/valor da gravação/);
-    expect(() => calcularLaser({ ...base, valorProduto: "", valorFrente: "5" })).toThrow(/Valor do produto/);
+    expect(calcularLaser({ ...base, valorProduto: "", valorFrente: "5" }).opcoes[0].porPecaCentavos).toBe(500n); // cliente trouxe o produto
     expect(() => calcularLaser({ ...base, quantidade: "0", valorFrente: "5" })).toThrow(/Quantidade/);
   });
 });

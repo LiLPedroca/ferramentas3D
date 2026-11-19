@@ -20,6 +20,23 @@ let produtoId = ""; // produto escolhido em Meus produtos
 let calculo = null; // último cálculo válido
 let lista = []; // produtos já calculados: { itens, rotulo, detalhe, totalCentavos }
 
+// Chave "Gravação em linha separada": lembra a última escolha neste computador.
+const CHAVE_SEPARAR = "laser-gravacao-separada";
+function lerSeparar() {
+  try {
+    return localStorage.getItem(CHAVE_SEPARAR) === "sim";
+  } catch {
+    return false;
+  }
+}
+function guardarSeparar(sim) {
+  try {
+    localStorage.setItem(CHAVE_SEPARAR, sim ? "sim" : "nao");
+  } catch {
+    // sem armazenamento: só não lembra
+  }
+}
+
 const areaEscolhida = () => document.querySelector('input[name="laser-area"]:checked')?.value ?? "";
 
 function valores() {
@@ -275,7 +292,7 @@ function entradaAtual() {
   const op = calculo.opcoes.find((o) => o.id === area) ?? calculo.opcoes[0];
   const cores = calculo.variacoes.length > 1 ? calculo.variacoes.map((v) => `${v.rotuloCores || "Sem cor"} (${v.quantidade})`).join(", ") : calculo.cor;
   return {
-    itens: itensDoOrcamento(calculo, area, produtoId || undefined),
+    itens: itensDoOrcamento(calculo, area, produtoId || undefined, { separada: $("laser-separar").checked }),
     rotulo: [calculo.nome || "Produto", cores].filter(Boolean).join(" · "),
     detalhe: `${calculo.quantidade} × ${reais(op.porPecaCentavos)} · ${op.rotulo.toLowerCase()}`,
     totalCentavos: op.totalCentavos,
@@ -389,6 +406,8 @@ export function iniciarLaser() {
   $("laser-orcamento").addEventListener("click", adicionar);
   $("laser-novo").addEventListener("click", novo);
   registrarAoAbrir("laser", carregarProdutos);
+  $("laser-separar").checked = lerSeparar();
+  $("laser-separar").addEventListener("change", () => guardarSeparar($("laser-separar").checked));
   montarLinhas();
   atualizar();
 }

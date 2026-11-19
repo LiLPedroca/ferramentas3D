@@ -7907,3 +7907,7 @@ textarea:focus {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+.laser-separar {
+  margin-top: 14px;
+}

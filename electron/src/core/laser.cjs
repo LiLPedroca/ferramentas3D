@@ -3,6 +3,8 @@
 // Com os dois, o orçamento leva as duas versões e a pessoa escolhe qual enviar (ou envia as duas).
 // Cores: cada linha de "Cor e quantidade" tem uma ou mais cores (produto de duas cores, como
 // "Preto e Dourado") e a quantidade daquela cor; cada linha vira uma linha do orçamento.
+// Gravação separada: o produto sai numa linha (uma por cor) e a gravação noutra, com a quantidade
+// total. Sem valor do produto (cliente trouxe o produto), sai só a gravação.
 // CommonJS: usado na tela e nos testes.
 "use strict";
 
@@ -61,7 +63,7 @@ function calcularLaser(v) {
   if (!Array.isArray(v?.variacoes)) corDe(v?.cor); // confere a cor do jeito antigo
   const variacoes = variacoesDe(v);
   const quantidade = variacoes.reduce((s, x) => s + x.quantidade, 0);
-  const produto = BigInt(centavosDeTexto(v?.valorProduto, "Valor do produto", { obrigatorio: true }));
+  const produto = BigInt(centavosDeTexto(v?.valorProduto, "Valor do produto") || "0");
   const valores = [centavosDeTexto(v?.valorFrente, "Valor frente"), centavosDeTexto(v?.valorFrenteVerso, "Valor frente e verso")];
   const opcoes = [];
   AREAS.forEach((a, i) => {
@@ -83,8 +85,10 @@ function calcularLaser(v) {
 }
 
 // Itens para o orçamento: uma linha por cor, com a opção escolhida e, havendo duas, as duas guardadas.
-function itensDoOrcamento(calculo, escolhida, produtoId) {
+// separada: produto (uma linha por cor, só se tiver valor) + gravação numa linha só.
+function itensDoOrcamento(calculo, escolhida, produtoId, { separada = false } = {}) {
   const i = Math.max(0, calculo.opcoes.findIndex((o) => o.id === escolhida));
+  if (separada) return itensSeparados(calculo, i, produtoId);
   return calculo.variacoes.map((v) => {
     const op = calculo.opcoes[i];
     const item = { descricao: descricaoDe(calculo.nome, v.rotuloCores, op.sufixo), quantidade: v.quantidade, precoUnitarioCentavos: op.porPecaCentavos.toString() };
@@ -95,6 +99,29 @@ function itensDoOrcamento(calculo, escolhida, produtoId) {
     }
     return item;
   });
+}
+
+const nomeComCores = (nome, rotuloCores) => `${nome || "Produto"}${rotuloCores ? ` (${rotuloCores})` : ""}`.slice(0, 160);
+// "Gravação frente e verso: Copo térmico"
+const descricaoGravacao = (nome, a) => `${a.rotulo === "Frente" ? "Gravação frente" : "Gravação frente e verso"}: ${nome || "Produto"}`.slice(0, 160);
+
+function itensSeparados(calculo, i, produtoId) {
+  const itens = [];
+  if (calculo.produtoCentavos > 0n) {
+    for (const v of calculo.variacoes) {
+      const item = { descricao: nomeComCores(calculo.nome, v.rotuloCores), quantidade: v.quantidade, precoUnitarioCentavos: calculo.produtoCentavos.toString() };
+      if (produtoId) item.produtoId = produtoId;
+      itens.push(item);
+    }
+  }
+  const op = calculo.opcoes[i];
+  const gravacao = { descricao: descricaoGravacao(calculo.nome, op), quantidade: calculo.quantidade, precoUnitarioCentavos: op.gravacaoCentavos.toString() };
+  if (calculo.opcoes.length === 2) {
+    gravacao.opcoes = calculo.opcoes.map((o) => ({ rotulo: o.rotulo, descricao: descricaoGravacao(calculo.nome, o), precoUnitarioCentavos: o.gravacaoCentavos.toString() }));
+    gravacao.opcao = i;
+  }
+  itens.push(gravacao);
+  return itens;
 }
 
 // Um item só (cálculo com uma linha de cor).
