@@ -839,3 +839,10 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Conferido no modo de captura (clique em Preto, setas). 500 testes.
 - **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
 - **19/11/2026:** Pedro aprovou ("sobe no github"). Release **v0.66.1 PUBLICADA** (push da `electron` + 3 arquivos), levando 0.65.0, 0.66.0 e 0.66.1. A partir dela, o aviso "Nova versão recebida" passa a valer para as próximas releases.
+
+## Trabalho do Claude Code (19/11/2026) — Orçamento: aviso de campo faltando (v0.66.2, só local)
+
+- Bug relatado por cliente do Pedro: "Finalizar e gerar PDF" sem telefone (ou nome) voltava para a etapa 1 sem explicar. A mensagem ia para `#erro-orcamento`, que fica na etapa 4 (escondida).
+- Agora `mostrarPendencia` põe o aviso na etapa certa (`#o-erro-etapa-1` / `#o-erro-etapa-2`), marca o campo em vermelho (`.entrada.faltando`, `aria-invalid`) e põe o cursor nele. `limparPendenciasResolvidas` (em `aoMudar`) apaga aviso e marca quando o campo é preenchido.
+- Telefone continua obrigatório. Conferido no modo de captura; 500 testes.
+- **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.

@@ -7545,3 +7545,9 @@ textarea:focus {
 .atualizacao-pronta-botoes button {
   justify-content: center;
 }
+
+/* Orçamento: campo obrigatório que faltou ao finalizar */
+.entrada.faltando {
+  border-color: var(--erro);
+  box-shadow: 0 0 0 1px var(--erro);
+}

@@ -271,6 +271,7 @@ function ligar(id, gravar, evento = "input") {
 }
 
 function aoMudar() {
+  limparPendenciasResolvidas();
   atualizarTotais();
   agendarPrevia();
   agendarRascunho();
@@ -289,12 +290,39 @@ function irEtapa(n) {
   agendarRascunho();
 }
 
+// [etapa, mensagem, campo que falta (opcional)]
 function pendencias() {
   const p = [];
-  if (!f.cliente.nome.trim()) p.push([1, "Preencha o nome do cliente."]);
-  else if (!f.cliente.telefone.trim()) p.push([1, "Preencha o telefone do cliente."]);
+  if (!f.cliente.nome.trim()) p.push([1, "Preencha o nome do cliente.", "o-cli-nome"]);
+  else if (!f.cliente.telefone.trim()) p.push([1, "Preencha o telefone do cliente.", "o-cli-telefone"]);
   if (!f.itens.length) p.push([2, "Adicione pelo menos um produto."]);
   return p;
+}
+
+const CAMPOS_PENDENTES = ["o-cli-nome", "o-cli-telefone"];
+
+// Ao finalizar com algo faltando: vai para a etapa, mostra o aviso nela e marca o campo.
+function mostrarPendencia([n, mensagem, campo]) {
+  irEtapa(n);
+  for (const k of [1, 2]) $(`o-erro-etapa-${k}`).textContent = k === n ? mensagem : "";
+  for (const id of CAMPOS_PENDENTES) marcarCampo(id, id === campo);
+  if (campo) $(campo).focus();
+}
+
+function marcarCampo(id, faltando) {
+  $(id).closest(".entrada").classList.toggle("faltando", faltando);
+  if (faltando) $(id).setAttribute("aria-invalid", "true");
+  else $(id).removeAttribute("aria-invalid");
+}
+
+// Apaga os avisos que já foram resolvidos (ex.: telefone preenchido, produto adicionado).
+function limparPendenciasResolvidas() {
+  const atuais = pendencias();
+  for (const k of [1, 2]) {
+    const el = $(`o-erro-etapa-${k}`);
+    if (el.textContent && !atuais.some((p) => p[0] === k && p[1] === el.textContent)) el.textContent = "";
+  }
+  for (const id of CAMPOS_PENDENTES) if (!atuais.some((p) => p[2] === id)) marcarCampo(id, false);
 }
 
 function atualizarPendencias() {
@@ -688,8 +716,8 @@ async function novoOrcamento() {
 async function finalizar({ pdf }) {
   const p = pendencias();
   if (p.length) {
-    $("erro-orcamento").textContent = p[0][1];
-    irEtapa(p[0][0]);
+    $("erro-orcamento").textContent = "";
+    mostrarPendencia(p[0]);
     return;
   }
   const botoes = [$("o-finalizar"), $("o-finalizar-pdf"), $("o-pdf-versoes")];
