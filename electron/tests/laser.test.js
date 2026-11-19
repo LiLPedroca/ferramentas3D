@@ -26,6 +26,14 @@ describe("conta da gravação a laser", () => {
     expect(c.opcoes[0].id).toBe("frenteVerso");
   });
 
+  it("cor do produto entra na descrição; cor fora da lista é recusada", () => {
+    const c = calcularLaser({ ...base, cor: "preto", valorFrenteVerso: "8" });
+    expect(c.cor).toBe("Preto");
+    expect(c.opcoes[0].descricao).toBe("Copo térmico personalizado (Preto, gravação frente e verso)");
+    expect(calcularLaser({ ...base, cor: "", valorFrente: "5" }).cor).toBe("");
+    expect(() => calcularLaser({ ...base, cor: "#ff0000", valorFrente: "5" })).toThrow(/Cor do produto/);
+  });
+
   it("sem gravação, sem valor do produto ou quantidade errada: mensagem clara", () => {
     expect(() => calcularLaser(base)).toThrow(/valor da gravação/);
     expect(() => calcularLaser({ ...base, valorProduto: "", valorFrente: "5" })).toThrow(/Valor do produto/);

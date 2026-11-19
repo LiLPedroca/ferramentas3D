@@ -6,6 +6,7 @@
 
 const { ErroValidacao } = require("./validacao.cjs");
 const { centavosDeTexto } = require("./produto.cjs");
+const { CORES } = require("./impressao.cjs");
 
 const AREAS = [
   { id: "frente", rotulo: "Frente", sufixo: "gravação frente" },
@@ -18,11 +19,21 @@ function quantidadeDe(valor) {
   return Number(t);
 }
 
-// v: { nome, quantidade, valorProduto, valorFrente, valorFrenteVerso }
-// Devolve { nome, quantidade, produtoCentavos, opcoes: [{ id, rotulo, descricao, gravacaoCentavos, porPecaCentavos, totalCentavos }] }
+// Cor do produto: uma das 14 cores do programa (id de CORES) ou vazio.
+function corDe(valor) {
+  const id = String(valor ?? "").trim();
+  if (!id) return null;
+  const cor = CORES.find((c) => c.id === id);
+  if (!cor) throw new ErroValidacao("Cor do produto: escolha uma cor da lista.");
+  return cor;
+}
+
+// v: { nome, cor, quantidade, valorProduto, valorFrente, valorFrenteVerso }
+// Devolve { nome, cor (nome da cor ou ""), quantidade, produtoCentavos, opcoes: [{ id, rotulo, descricao, gravacaoCentavos, porPecaCentavos, totalCentavos }] }
 // (BigInt nos valores). Lança ErroValidacao com a mensagem para a tela.
 function calcularLaser(v) {
   const nome = String(v?.nome ?? "").trim().replace(/\s+/g, " ");
+  const cor = corDe(v?.cor);
   const quantidade = quantidadeDe(v?.quantidade);
   const produto = BigInt(centavosDeTexto(v?.valorProduto, "Valor do produto", { obrigatorio: true }));
   const valores = [centavosDeTexto(v?.valorFrente, "Valor frente"), centavosDeTexto(v?.valorFrenteVerso, "Valor frente e verso")];
@@ -34,14 +45,14 @@ function calcularLaser(v) {
     opcoes.push({
       id: a.id,
       rotulo: a.rotulo,
-      descricao: `${nome || "Produto"} (${a.sufixo})`.slice(0, 160),
+      descricao: `${nome || "Produto"} (${cor ? `${cor.nome}, ` : ""}${a.sufixo})`.slice(0, 160),
       gravacaoCentavos: gravacao,
       porPecaCentavos: porPeca,
       totalCentavos: porPeca * BigInt(quantidade),
     });
   });
   if (!opcoes.length) throw new ErroValidacao("Informe o valor da gravação (frente, frente e verso ou os dois).");
-  return { nome, quantidade, produtoCentavos: produto, opcoes };
+  return { nome, cor: cor?.nome ?? "", quantidade, produtoCentavos: produto, opcoes };
 }
 
 // Item para o orçamento, com a opção escolhida e, havendo duas, as duas guardadas.

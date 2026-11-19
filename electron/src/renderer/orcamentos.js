@@ -419,8 +419,23 @@ function adicionarProduto(p) {
 
 // Chamado pela Calculadora ("Adicionar ao orçamento").
 // Também pela Calculadora gravação a laser (com produtoId e as duas versões, quando houver).
-export async function adicionarItemDoCalculo({ descricao, quantidade, precoUnitarioCentavos, custoUnitarioCentavos, calculo, produtoId, opcoes, opcao }) {
+export async function adicionarItemDoCalculo(dados) {
+  await adicionarItensDoCalculo([dados]);
+}
+
+// Vários itens de uma vez (Calculadora gravação a laser com a lista de produtos).
+export async function adicionarItensDoCalculo(lista) {
+  if (!lista.length) return;
   if (!f) await prepararFormulario();
+  for (const dados of lista) f.itens.push(itemDoCalculo(dados));
+  irPara("orcamentos");
+  renderizarItens();
+  irEtapa(2);
+  aoMudar();
+  mostrarAviso(lista.length === 1 ? `"${lista[0].descricao}" adicionado ao orçamento.` : `${lista.length} produtos adicionados ao orçamento.`);
+}
+
+function itemDoCalculo({ descricao, quantidade, precoUnitarioCentavos, custoUnitarioCentavos, calculo, produtoId, opcoes, opcao }) {
   const item = { descricao, quantidade: String(quantidade), preco: centavosParaTexto(precoUnitarioCentavos), custoUnitarioCentavos, calculo };
   if (produtoId) {
     item.produtoId = produtoId;
@@ -428,12 +443,7 @@ export async function adicionarItemDoCalculo({ descricao, quantidade, precoUnita
     if (p) Object.assign(item, { alturaMm: p.alturaMm || undefined, larguraMm: p.larguraMm || undefined, comprimentoMm: p.comprimentoMm || undefined });
   }
   if (opcoes) Object.assign(item, { opcoes, opcao });
-  f.itens.push(item);
-  irPara("orcamentos");
-  renderizarItens();
-  irEtapa(2);
-  aoMudar();
-  mostrarAviso(`"${descricao}" adicionado ao orçamento.`);
+  return item;
 }
 
 function abrirEscolherProduto() {

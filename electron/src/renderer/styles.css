@@ -7347,6 +7347,119 @@ textarea:focus {
   grid-template-columns: 1fr;
 }
 
+/* Cor do produto: lista com a amostra da cor escolhida à esquerda */
+.laser-cor-campo {
+  margin-bottom: 14px;
+}
+
+.laser-cor {
+  position: relative;
+  display: grid;
+}
+
+.laser-cor .seletor {
+  width: 100%;
+  padding-left: 46px;
+}
+
+.laser-cor-amostra {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.laser-cor-amostra.vazia {
+  border-style: dashed;
+  background: transparent;
+}
+
+.laser-cor-amostra.transparente {
+  background: repeating-conic-gradient(#c8c8c8 0 25%, #f4f4f4 0 50%) 0 0 / 10px 10px;
+}
+
+/* Lista de produtos já calculados (vários produtos no mesmo orçamento) */
+.laser-lista {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borda);
+}
+
+.laser-lista[hidden] {
+  display: none;
+}
+
+.laser-lista ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.laser-lista li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie);
+}
+
+.laser-lista li div {
+  display: grid;
+  min-width: 0;
+}
+
+.laser-lista li div strong {
+  overflow-wrap: anywhere;
+}
+
+.laser-lista li div span {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.laser-lista-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.laser-lista-remover {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.laser-lista-remover:hover {
+  background: var(--superficie-2);
+  color: var(--texto);
+}
+
+.laser-lista-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-weight: 650;
+}
+
+.laser-lista-total strong {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Chaveiro: um botão por nome em cima da prévia (vários nomes) */
 .ch-nomes-previa {
   display: flex;

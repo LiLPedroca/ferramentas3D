@@ -384,6 +384,16 @@ export const NOVIDADES = [
     itens: ["Clique no nome para ver o chaveiro dele", "Arraste a argola de cada nome para onde quiser"],
     botao: "Ver",
   },
+  {
+    id: "laser-varios-produtos",
+    versao: "0.65.0",
+    tela: "laser",
+    icone: "laser",
+    titulo: "Vários produtos e cor do produto",
+    texto: "Monte o orçamento inteiro sem sair da calculadora.",
+    itens: ["Escolha a cor do produto", "Use + Adicionar outro produto para calcular o próximo", "No fim, leve todos ao orçamento de uma vez"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -814,3 +814,10 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - "Salvar modelo" guarda as argolas (`loteArgolas`).
 - Conferido no modo de captura arrastando a argola do "Bruno" (ficou à direita, manteve ao trocar de nome, lote preparado com 3 chaveiros).
 - Pedro aprovou publicar (18/11): release v0.64.0 leva também a v0.62.0 (material/estoque) e a v0.63.0 (calculadora a laser).
+
+## Trabalho do Claude Code (19/11/2026) — Laser: cor do produto e vários produtos (v0.65.0, só local)
+
+- **Cor do produto:** lista que abre (`#laser-cor`) com as 14 cores de `CORES` (`core/impressao.cjs`) e a amostra da cor à esquerda. Opcional. `calcularLaser` recebe `cor` (id), recusa id fora da lista e põe o nome na descrição: "Copo térmico personalizado (Preto, gravação frente e verso)".
+- **Vários produtos:** "+ Adicionar outro produto" guarda o cálculo da tela numa lista no Resumo (nome · cor, quantidade × valor, total, botão × para tirar) e limpa o produto (os valores da gravação ficam). O botão principal vira "Adicionar N produtos ao orçamento" e leva a lista + o produto da tela de uma vez (`adicionarItensDoCalculo` em `orcamentos.js`). "Novo cálculo" limpa tudo, inclusive a lista.
+- Novidade `laser-varios-produtos`. Teste da cor em `tests/laser.test.js` (500 testes passando). Conferido no modo de captura: lista com 1 produto + 1 na tela, envio gera 2 itens no orçamento.
+- **Pendente:** Pedro instalar `ProgramaFerramentas3D-Setup-0.65.0.exe` e testar; publicar só quando ele aprovar.

@@ -241,6 +241,13 @@
             <select id="laser-produto" class="seletor"></select>
           </label>
         </div>
+        <label class="campo laser-cor-campo">
+          <span>Cor do produto</span>
+          <div class="laser-cor">
+            <span class="laser-cor-amostra" id="laser-cor-amostra" aria-hidden="true"></span>
+            <select id="laser-cor" class="seletor"></select>
+          </div>
+        </label>
         <div class="linha">
           <label class="campo">
             <span>Quantidade</span>
@@ -289,7 +296,13 @@
           <span>Valor total</span>
           <strong id="laser-total">R$ 0,00</strong>
         </div>
+        <div class="laser-lista" id="laser-lista-bloco" hidden>
+          <p class="rotulo">Produtos deste orçamento</p>
+          <ul id="laser-lista"></ul>
+          <div class="laser-lista-total"><span>Total dos produtos</span><strong id="laser-lista-total">R$ 0,00</strong></div>
+        </div>
         <div class="calc-acoes">
+          <button class="botao-secundario" id="laser-outro" type="button">+ Adicionar outro produto</button>
           <button class="botao-primario" id="laser-orcamento" type="button">Adicionar ao orçamento →</button>
         </div>
       </section>
