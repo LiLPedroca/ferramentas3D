@@ -124,16 +124,17 @@ export function pontoNoLaco(laco, t) {
 // o: { furo, parede } em mm. Devolve { base, perimetro, argola: { t, centro, raio, furo } }.
 // t = null: posição automática. Começa no ponto da borda mais perto de pontoPadrao e, se ali não der
 // (ponta fina, desenho no caminho), tenta pontos vizinhos dos dois lados até achar um que dê.
-export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao) {
-  if (t !== null && t !== undefined) return prenderArgolaEm(M, guardar, base, arte, o, t);
-  const perimetro = contornoExterno(base);
+// extra: { perimetro (fixo, para várias argolas), evitar (discos das argolas já presas) }.
+export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao, extra = {}) {
+  if (t !== null && t !== undefined) return prenderArgolaEm(M, guardar, base, arte, o, t, extra);
+  const perimetro = extra.perimetro ?? contornoExterno(base);
   const inicio = maisPertoNoLaco(perimetro, pontoPadrao).t;
   let primeiroErro = null;
   for (let k = 0; k <= 24; k++) {
     for (const sinal of k ? [1, -1] : [1]) {
       const tentativa = (((inicio + sinal * k * 0.015) % 1) + 1) % 1;
       try {
-        return prenderArgolaEm(M, guardar, base, arte, o, tentativa);
+        return prenderArgolaEm(M, guardar, base, arte, o, tentativa, extra);
       } catch (erro) {
         primeiroErro ??= erro;
       }
@@ -142,9 +143,27 @@ export function prenderArgola(M, guardar, base, arte, o, t, pontoPadrao) {
   throw primeiroErro;
 }
 
-function prenderArgolaEm(M, guardar, base, arte, o, posicao) {
+// Várias argolas na mesma peça, uma depois da outra. As posições (t) são medidas sempre na borda
+// da base sem argolas, para cada argola poder ser arrastada sem mexer nas outras.
+// posicoes: [t ou null, ...]; pontosPadrao: ponto de partida de cada argola automática.
+export function prenderArgolas(M, guardar, base, arte, o, posicoes, pontosPadrao) {
   const C = M.CrossSection;
   const perimetro = contornoExterno(base);
+  const argolas = [];
+  const evitar = [];
+  let atual = base;
+  posicoes.forEach((t, i) => {
+    const presa = prenderArgola(M, guardar, atual, arte, o, t, pontosPadrao[i], { perimetro, evitar });
+    atual = presa.base;
+    argolas.push(presa.argola);
+    evitar.push(guardar(guardar(C.circle(presa.argola.raio + 0.8, 64)).translate(presa.argola.centro)));
+  });
+  return { base: atual, perimetro, argola: argolas[0] ?? null, argolas };
+}
+
+function prenderArgolaEm(M, guardar, base, arte, o, posicao, extra = {}) {
+  const C = M.CrossSection;
+  const perimetro = extra.perimetro ?? contornoExterno(base);
   const ancora = pontoNoLaco(perimetro, posicao);
   const raio = o.furo / 2 + o.parede;
   const afastamento = raio - Math.min(o.parede, 2);
@@ -152,6 +171,9 @@ function prenderArgolaEm(M, guardar, base, arte, o, posicao) {
   const disco = guardar(guardar(C.circle(raio, 96)).translate(centro));
   const furo = guardar(guardar(C.circle(o.furo / 2, 80)).translate(centro));
   if (guardar(arte.intersect(furo)).area() > 0.001) throw new Error("A argola ficou sobre o desenho. Arraste-a para outra posição na borda.");
+  for (const outra of extra.evitar ?? []) {
+    if (guardar(disco.intersect(outra)).area() > 0.01) throw new Error("As argolas ficaram juntas demais. Arraste uma delas para longe.");
+  }
   if (guardar(disco.intersect(guardar(base.offset(-0.5)))).area() < 1) throw new Error("A ligação da argola ficou fina. Arraste-a para outra posição na borda.");
   const nova = guardar(guardar(base.add(disco)).subtract(furo));
   if (nova.decompose().map(guardar).length !== 1) throw new Error("A argola precisa ficar ligada à base. Escolha outra posição.");

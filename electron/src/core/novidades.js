@@ -444,6 +444,26 @@ export const NOVIDADES = [
     itens: ["Cadastre em Configurações > Dados do orçamento", "O QR Code já vem com o valor do orçamento", "Use {pix} na mensagem do WhatsApp"],
     botao: "Ver",
   },
+  {
+    id: "chaveiro-varias-argolas",
+    versao: "0.69.0",
+    tela: "chaveiro",
+    icone: "chaveiro",
+    titulo: "Chaveiro com mais de uma argola",
+    texto: "Escolha 1, 2 ou 3 argolas no mesmo chaveiro.",
+    itens: ["Cada argola pode ser arrastada pela borda", "Funciona também em Vários nomes"],
+    botao: "Ver",
+  },
+  {
+    id: "recibos-orcamentos",
+    versao: "0.69.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Recibos dos orçamentos",
+    texto: "Gere o recibo de cada pagamento, já assinado, e envie pelo WhatsApp.",
+    itens: ["Botão Recibos no histórico e no Financeiro", "Sinal e saldo têm recibos separados, numerados", "Cadastre a imagem da sua assinatura em Configurações > Dados do orçamento"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

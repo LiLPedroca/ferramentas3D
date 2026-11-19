@@ -120,6 +120,9 @@ function preencher() {
   $("c-emp-site").value = e.site ?? "";
   logoAtual = e.logo ?? "";
   mostrarLogo();
+  assinaturaAtual = e.assinatura ?? "";
+  mostrarAssinatura();
+  $("c-assinatura-nome").value = e.assinaturaNome ?? "";
   const pix = e.pix ?? {};
   $("c-pix-tipo").value = pix.tipo ?? "";
   $("c-pix-chave").value = chaveParaMostrar(pix.tipo, pix.chave);
@@ -186,6 +189,8 @@ async function salvarOrcamento(ev) {
       endereco: $("c-emp-endereco").value,
       site: $("c-emp-site").value,
       logo: logoAtual,
+      assinatura: assinaturaAtual,
+      assinaturaNome: $("c-assinatura-nome").value,
       pix: {
         tipo: $("c-pix-tipo").value,
         chave: $("c-pix-chave").value,
@@ -290,6 +295,81 @@ async function mostrarPastas() {
   );
 }
 
+// ---------- Assinatura do recibo ----------
+let assinaturaAtual = "";
+
+function mostrarAssinatura() {
+  const previa = $("c-assinatura-previa");
+  previa.replaceChildren();
+  if (assinaturaAtual) {
+    const img = el("img");
+    img.src = assinaturaAtual;
+    img.alt = "Assinatura";
+    previa.append(img);
+  } else previa.append(el("span", "ajuda", "Sem assinatura"));
+  $("c-assinatura-remover").hidden = !assinaturaAtual;
+}
+
+// Recorta a assinatura: fundo branco vira transparente (se a imagem não tiver transparência),
+// corta as sobras e reduz para no máximo 600 × 200 px.
+async function prepararAssinatura(arquivo) {
+  if (!/^image\/(png|jpeg|webp)$/.test(arquivo.type)) throw new Error("Escolha uma imagem PNG, JPG ou WEBP.");
+  if (arquivo.size > 10 * 1024 * 1024) throw new Error("A imagem passa de 10 MB. Escolha uma menor.");
+  const bitmap = await abrirImagem(arquivo);
+  const tela = document.createElement("canvas");
+  tela.width = bitmap.width;
+  tela.height = bitmap.height;
+  const ctx = tela.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close?.();
+  const dados = ctx.getImageData(0, 0, tela.width, tela.height);
+  const px = dados.data;
+  let transparente = false;
+  for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { transparente = true; break; }
+  if (!transparente) {
+    // quanto mais claro, mais transparente (branco some; o traço fica com a cor dele)
+    for (let i = 0; i < px.length; i += 4) {
+      const luz = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      px[i + 3] = Math.max(0, Math.min(255, Math.round(((235 - luz) * 255) / 175)));
+    }
+  }
+  let x1 = tela.width, y1 = tela.height, x2 = -1, y2 = -1;
+  for (let y = 0; y < tela.height; y++) {
+    for (let x = 0; x < tela.width; x++) {
+      if (px[(y * tela.width + x) * 4 + 3] > 20) {
+        if (x < x1) x1 = x;
+        if (x > x2) x2 = x;
+        if (y < y1) y1 = y;
+        if (y > y2) y2 = y;
+      }
+    }
+  }
+  if (x2 < 0) throw new Error("Não achei a assinatura na imagem. Use uma imagem com o traço escuro.");
+  ctx.putImageData(dados, 0, 0);
+  const w = x2 - x1 + 1;
+  const h = y2 - y1 + 1;
+  const escala = Math.min(1, 600 / w, 200 / h);
+  const saida = document.createElement("canvas");
+  saida.width = Math.max(1, Math.round(w * escala));
+  saida.height = Math.max(1, Math.round(h * escala));
+  saida.getContext("2d").drawImage(tela, x1, y1, w, h, 0, 0, saida.width, saida.height);
+  return saida.toDataURL("image/png");
+}
+
+async function aoEscolherAssinatura() {
+  const arquivo = $("c-assinatura-arquivo").files[0];
+  $("c-assinatura-arquivo").value = "";
+  if (!arquivo) return;
+  try {
+    assinaturaAtual = await prepararAssinatura(arquivo);
+    mostrarAssinatura();
+    $("erro-cfg-orcamento").textContent = "";
+    mostrarAviso("Assinatura pronta. Clique em Salvar dados do orçamento.");
+  } catch (e) {
+    $("erro-cfg-orcamento").textContent = e.message;
+  }
+}
+
 // ---------- Mensagem do WhatsApp ----------
 function mostrarPreviaWhatsapp() {
   const validade = new Date(Date.now() + 7 * 864e5).toLocaleDateString("pt-BR");
@@ -334,6 +414,12 @@ export function iniciarConfiguracoes() {
   $("cfg-calculadora").addEventListener("submit", salvarCalculadora);
   $("cfg-orcamento").addEventListener("submit", salvarOrcamento);
   $("c-logo-escolher").addEventListener("click", () => $("c-logo-arquivo").click());
+  $("c-assinatura-escolher").addEventListener("click", () => $("c-assinatura-arquivo").click());
+  $("c-assinatura-arquivo").addEventListener("change", aoEscolherAssinatura);
+  $("c-assinatura-remover").addEventListener("click", () => {
+    assinaturaAtual = "";
+    mostrarAssinatura();
+  });
   $("c-logo-arquivo").addEventListener("change", aoEscolherLogo);
   $("c-logo-remover").addEventListener("click", () => {
     logoAtual = "";

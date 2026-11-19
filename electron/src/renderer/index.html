@@ -509,6 +509,21 @@
       </div>
     </main>
 
+    <!-- Diálogo: recibos de uma venda (um por pagamento) -->
+    <dialog class="dialogo dialogo-medio" id="dialogo-recibos" aria-labelledby="recibos-titulo">
+      <header class="dialogo-topo">
+        <h2 id="recibos-titulo">Recibos</h2>
+        <button type="button" class="fechar" id="fechar-recibos" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialogo-corpo-simples">
+        <p class="ajuda" id="recibos-sub"></p>
+        <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="recibos-assinar" /> Assinar o recibo</label>
+        <p class="ajuda" id="recibos-sem-assinatura" hidden>Para assinar, cadastre a imagem da assinatura em Configurações &gt; Dados do orçamento.</p>
+        <div class="recibos-lista" id="recibos-lista"></div>
+        <p class="ajuda">Os PDFs ficam na pasta Recibos.</p>
+      </div>
+    </dialog>
+
     <!-- Diálogo: histórico do estoque de um produto -->
     <dialog class="dialogo dialogo-medio" id="dialogo-historico-produto" aria-labelledby="titulo-historico-produto">
       <header class="dialogo-topo">
@@ -1660,7 +1675,12 @@
 
               <section id="ch-sec-argola">
                 <h2 class="ch-titulo">Argola</h2>
-                <p class="ajuda">Na prévia 2D, arraste o círculo tracejado para levar a argola a qualquer ponto da borda.</p>
+                <div class="ch-estilos ch-qtd-argolas" role="group" aria-label="Quantidade de argolas">
+                  <button type="button" data-argolas="1">1 argola</button>
+                  <button type="button" data-argolas="2">2 argolas</button>
+                  <button type="button" data-argolas="3">3 argolas</button>
+                </div>
+                <p class="ajuda">Na prévia 2D, arraste o círculo tracejado de cada argola para levá-la a qualquer ponto da borda.</p>
                 <div class="linha">
                   <label class="campo">
                     <span>Furo</span>
@@ -1671,7 +1691,7 @@
                     <div class="entrada"><input id="ch-parede" inputmode="decimal" /><em data-unidade>mm</em></div>
                   </label>
                 </div>
-                <button type="button" class="botao-texto" id="ch-argola-auto">Voltar a argola para a esquerda</button>
+                <button type="button" class="botao-texto" id="ch-argola-auto">Voltar as argolas à posição automática</button>
               </section>
 
               <section id="ch-sec-varios">
@@ -2436,6 +2456,18 @@
               </div>
               <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="c-pix-sempre" /> Mostrar o Pix em todo orçamento</label>
               <p class="ajuda">Desligado: o Pix aparece só quando a forma de pagamento do orçamento for Pix. O PDF leva a chave e o QR Code com o valor.</p>
+
+              <h3 class="subtitulo-config">Assinatura do recibo</h3>
+              <div class="logo-campo">
+                <div class="assinatura-previa" id="c-assinatura-previa"></div>
+                <div class="logo-botoes">
+                  <button type="button" class="botao-secundario" id="c-assinatura-escolher">Escolher imagem</button>
+                  <button type="button" class="botao-texto perigo" id="c-assinatura-remover" hidden>Remover assinatura</button>
+                  <input type="file" id="c-assinatura-arquivo" accept="image/png,image/jpeg,image/webp" hidden />
+                </div>
+              </div>
+              <label class="campo"><span>Nome abaixo da assinatura</span><div class="entrada"><input id="c-assinatura-nome" maxlength="80" autocomplete="off" placeholder="Ex.: Pedro Henrique" /></div></label>
+              <p class="ajuda">PNG, JPG ou WEBP. O fundo branco é tirado sozinho e a assinatura sai sobre a linha do recibo.</p>
 
               <h3 class="subtitulo-config">Condições padrão</h3>
               <div class="linha">

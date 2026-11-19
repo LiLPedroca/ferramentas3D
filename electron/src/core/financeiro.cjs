@@ -6,6 +6,7 @@ const { ErroValidacao, ID, dataValida, texto } = require("./validacao.cjs");
 const { centavosDeTexto } = require("./produto.cjs");
 const { validarCalculo } = require("./calculo-salvo.cjs");
 const { calcularTotais } = require("./orcamento.cjs");
+const { validarRecibos } = require("./recibo.cjs");
 
 const LIMITES = { vendas: 50_000, despesas: 50_000, pagamentos: 500, itens: 200, descricao: 160 };
 const FORMAS = ["debito", "credito", "pix", "dinheiro"];
@@ -121,6 +122,7 @@ function validarVenda(v) {
   if (!Array.isArray(v.pagamentos) || v.pagamentos.length > LIMITES.pagamentos) throw new ErroValidacao("Venda inválida.");
   v.pagamentos.forEach(validarPagamento);
   if (recebido(v) > BigInt(v.valorCentavos)) throw new ErroValidacao("A venda recebeu mais do que o valor total.");
+  validarRecibos(v.recibos);
   if (!PRODUCAO.includes(v.producao)) throw new ErroValidacao("Venda inválida.");
   if (v.teste !== undefined && typeof v.teste !== "boolean") throw new ErroValidacao("Venda inválida.");
   if (!dataValida(v.criadoEm) || !dataValida(v.atualizadoEm)) throw new ErroValidacao("Venda inválida.");
@@ -180,6 +182,7 @@ function montarVendaManual(valores, { id, anterior, agora = new Date().toISOStri
     venda.orcamentoId = anterior.orcamentoId;
     venda.orcamentoNumero = anterior.orcamentoNumero;
   }
+  if (anterior?.recibos) venda.recibos = anterior.recibos;
   if (recebido(venda) > BigInt(venda.valorCentavos)) throw new ErroValidacao("O valor ficou menor que o já recebido nesta venda.");
   return validarVenda(venda);
 }
@@ -228,6 +231,15 @@ function novoPagamento(pagamento, { id, hoje = diaLocal() }) {
   const divisao = divisaoDe(p.divisao, formas, valorCentavos);
   if (divisao) novo.divisao = divisao;
   return validarPagamento(novo);
+}
+
+// Guarda (ou atualiza o arquivo de) o recibo de um pagamento. O número de um recibo nunca muda.
+function registrarRecibo(venda, recibo, { agora = new Date().toISOString() } = {}) {
+  const lista = venda.recibos ?? [];
+  const existente = lista.find((r) => r.pagamentoId === recibo.pagamentoId);
+  const novo = existente ? { ...existente, caminho: recibo.caminho ?? existente.caminho } : recibo;
+  const recibos = existente ? lista.map((r) => (r === existente ? novo : r)) : [...lista, novo];
+  return validarVenda({ ...venda, recibos, atualizadoEm: agora });
 }
 
 function registrarPagamento(venda, pagamento, { id, agora = new Date().toISOString(), hoje } = {}) {
@@ -330,6 +342,7 @@ function orcamentosSemVenda(orcamentos, vendas) {
 }
 
 module.exports = {
+  registrarRecibo,
   FORMAS,
   LIMITES,
   PRODUCAO,

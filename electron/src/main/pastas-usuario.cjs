@@ -10,6 +10,7 @@ const NOME_RAIZ = "Programa Ferramentas 3D";
 // tipo -> [nome da pasta, para que serve]
 const PASTAS = {
   orcamentos: ["Orçamentos", "PDFs dos orçamentos"],
+  recibos: ["Recibos", "PDFs dos recibos"],
   etiquetas: ["Etiquetas", "PDFs das etiquetas"],
   modelos: ["Modelos 3D", "STL e 3MF dos modelos"],
   backups: ["Backups", "Backups que você salva"],

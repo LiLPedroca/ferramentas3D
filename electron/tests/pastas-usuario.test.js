@@ -27,6 +27,6 @@ describe("Minhas pastas", () => {
     expect(await fs.readdir(raiz)).toEqual(["Backups"]);
     await p.garantirTodas();
     expect((await fs.readdir(raiz)).sort()).toEqual(Object.values(PASTAS).map(([n]) => n).sort());
-    expect(p.listar().map((x) => x.tipo)).toEqual(["orcamentos", "etiquetas", "modelos", "backups", "produtos"]);
+    expect(p.listar().map((x) => x.tipo)).toEqual(["orcamentos", "recibos", "etiquetas", "modelos", "backups", "produtos"]);
   });
 });

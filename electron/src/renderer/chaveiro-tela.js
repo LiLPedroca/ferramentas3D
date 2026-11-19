@@ -62,6 +62,7 @@ function preencherCampos() {
   mostrarFonte($("ch-fonte"), opcoes.fonte);
   $("ch-fonte-amostra").style.fontFamily = familiaCss(opcoes.fonte);
   for (const b of document.querySelectorAll("#tela-chaveiro [data-estilo]")) b.setAttribute("aria-pressed", String(b.dataset.estilo === opcoes.estilo));
+  for (const b of document.querySelectorAll("#tela-chaveiro [data-argolas]")) b.setAttribute("aria-pressed", String(Number(b.dataset.argolas) === (opcoes.argolas || 1)));
   marcarPaleta($("ch-paleta-base"), opcoes.corBase);
   marcarPaleta($("ch-paleta-texto"), opcoes.corTexto);
   const pronto = Object.entries(MODELOS_PRONTOS).find(([, p]) => p.borda === opcoes.borda && p.base === opcoes.base && p.relevo === opcoes.relevo);
@@ -102,7 +103,8 @@ function voltar(passo) {
 // Muda opções e agenda a nova peça. Trocar texto, fonte ou estilo devolve a argola à posição automática.
 function mudar(mudancas, { lembrar: guardar = true, imediato = true } = {}) {
   if ("texto" in mudancas || "fonte" in mudancas || "estilo" in mudancas || "simbolo" in mudancas) mudancas.argola = null;
-  if ("fonte" in mudancas || "estilo" in mudancas || "simbolo" in mudancas) argolasLote.clear();
+  if ("argolas" in mudancas) mudancas.argola = null;
+  if ("fonte" in mudancas || "estilo" in mudancas || "simbolo" in mudancas || "argolas" in mudancas) argolasLote.clear();
   opcoes = { ...opcoes, ...mudancas };
   preencherCampos();
   if (guardar) lembrar();
@@ -267,11 +269,19 @@ function mostrarMedidas() {
   $("ch-medidas").textContent = `${modelo.dimensoes.map((d) => formatar(d)).join(" × ")} ${unidade} · ${pesoCurto(modelo.malhas, densidadeDoModelo())}`;
 }
 
-// A argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.
-async function argolaSolta(t) {
-  if (vendo !== null) return argolaDoNomeSolta(t);
+// Posições das argolas como lista (uma por argola; null = automática). Aceita o número antigo.
+function posicoesDasArgolas(valor) {
+  const lista = Array.isArray(valor) ? valor : [valor];
+  return Array.from({ length: opcoes.argolas || 1 }, (_v, i) => (Number.isFinite(lista[i]) ? lista[i] : null));
+}
+
+// Uma argola foi solta num ponto da borda: tenta a nova posição; se não servir, volta e explica.
+async function argolaSolta(t, indice = 0) {
+  if (vendo !== null) return argolaDoNomeSolta(t, indice);
   const anterior = opcoes.argola;
-  opcoes = { ...opcoes, argola: t };
+  const novas = posicoesDasArgolas(anterior);
+  novas[indice] = t;
+  opcoes = { ...opcoes, argola: novas };
   await gerar();
   if ($("ch-status").classList.contains("erro")) {
     const motivo = $("ch-status").textContent;
@@ -282,10 +292,12 @@ async function argolaSolta(t) {
 }
 
 // Argola de um nome da lista: fica guardada só para ele.
-async function argolaDoNomeSolta(t) {
+async function argolaDoNomeSolta(t, indice = 0) {
   const nome = vendo;
   const anterior = argolasLote.get(nome);
-  argolasLote.set(nome, t);
+  const novas = posicoesDasArgolas(anterior ?? null);
+  novas[indice] = t;
+  argolasLote.set(nome, novas);
   await gerar();
   if ($("ch-status").classList.contains("erro")) {
     const motivo = $("ch-status").textContent;
@@ -538,6 +550,12 @@ export function iniciarChaveiro() {
     mostrarMedidas();
   });
   for (const b of document.querySelectorAll("#tela-chaveiro [data-estilo]")) b.addEventListener("click", () => mudar({ estilo: b.dataset.estilo }));
+  for (const b of document.querySelectorAll("#tela-chaveiro [data-argolas]")) {
+    b.addEventListener("click", () => {
+      const n = Number(b.dataset.argolas);
+      if (n !== (opcoes.argolas || 1)) mudar({ argolas: n });
+    });
+  }
   $("ch-pronto").addEventListener("change", () => {
     const p = MODELOS_PRONTOS[$("ch-pronto").value];
     if (p) mudar({ borda: p.borda, base: p.base, relevo: p.relevo });
@@ -653,7 +671,10 @@ export function iniciarChaveiro() {
     lote = null;
     vendo = null;
     argolasLote.clear();
-    for (const [nome, t] of Object.entries(loteArgolas ?? {})) if (Number.isFinite(t)) argolasLote.set(nome, t);
+    for (const [nome, t] of Object.entries(loteArgolas ?? {})) {
+      if (Number.isFinite(t)) argolasLote.set(nome, [t]);
+      else if (Array.isArray(t)) argolasLote.set(nome, t.map((x) => (Number.isFinite(x) ? x : null)));
+    }
     mostrarNomesPrevia();
     projetoAtual = { id: p.id, nome: p.nome };
     historico = [];

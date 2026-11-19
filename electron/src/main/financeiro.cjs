@@ -79,6 +79,7 @@ function criarServicoFinanceiro(pasta, { orcamentos }) {
     },
 
     registrarPagamento: (id, pagamento) => alterarVenda(id, (v) => fin.registrarPagamento(v, pagamento, { id: randomUUID() })),
+    registrarRecibo: (id, recibo) => alterarVenda(id, (v) => fin.registrarRecibo(v, recibo)),
 
     definirProducao(id, producao) {
       if (!fin.PRODUCAO.includes(producao)) throw new ErroValidacao("Situação de produção inválida.");

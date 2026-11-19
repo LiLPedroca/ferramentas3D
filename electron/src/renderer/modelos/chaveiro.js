@@ -3,7 +3,7 @@
 // "nonzero" das fontes, a base é um contorno de verdade e a argola é unida à base.
 // Símbolo opcional (v0.47): uma imagem vetorizada por cores ao lado do nome. As cores marcadas
 // "em relevo" sobem junto com o texto (na cor do texto); as outras ficam só na base.
-import { comEscopo, malhaDoSolido, prenderArgola, resolverLargura, unirIlhas } from "./manifold.js";
+import { comEscopo, malhaDoSolido, prenderArgolas, resolverLargura, unirIlhas } from "./manifold.js";
 
 export const ESTILOS_BASE = ["contorno", "capsula", "retangular"];
 
@@ -17,7 +17,10 @@ export const PADRAO_CHAVEIRO = {
   furo: 4,
   parede: 2,
   estilo: "contorno",
-  argola: null, // posição ao longo da borda (0 a 1); null = automática, no meio do lado esquerdo
+  argolas: 1, // quantas argolas (1 a 3)
+  // posição de cada argola ao longo da borda (0 a 1): [t ou null, ...]; null = automática
+  // (1ª no meio do lado esquerdo, 2ª no lado direito, 3ª em cima). Um número só vale para a 1ª.
+  argola: null,
   corBase: "#ffffff",
   corTexto: "#2563eb",
   // null = sem símbolo. { lado, dx, dy, tamanho, relevo }:
@@ -45,6 +48,7 @@ export const LIMITES_CHAVEIRO = {
   relevo: [0.4, 5],
   furo: [3, 8],
   parede: [1.6, 5],
+  argolas: [1, 2, 3],
 };
 
 const NOMES = { largura: "Largura total", borda: "Borda", base: "Base", relevo: "Relevo", furo: "Furo da argola", parede: "Parede da argola" };
@@ -63,8 +67,16 @@ export function validarOpcoesChaveiro(entrada = {}) {
   if (!texto) throw new Error("Digite o nome do chaveiro.");
   if ([...texto].length > LIMITES_CHAVEIRO.texto) throw new Error(`Use no máximo ${LIMITES_CHAVEIRO.texto} caracteres.`);
   if (!ESTILOS_BASE.includes(o.estilo)) throw new Error("Estilo de base inválido.");
-  const argola = o.argola === null || o.argola === undefined || o.argola === "" ? null : Number(o.argola);
-  if (argola !== null && !(argola >= 0 && argola <= 1)) throw new Error("Posição da argola inválida.");
+  const argolas = Number(o.argolas ?? 1);
+  if (!LIMITES_CHAVEIRO.argolas.includes(argolas)) throw new Error("Use 1, 2 ou 3 argolas.");
+  const posicao = (v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const t = Number(v);
+    if (!(t >= 0 && t <= 1)) throw new Error("Posição da argola inválida.");
+    return t;
+  };
+  const lista = Array.isArray(o.argola) ? o.argola : [o.argola];
+  const argola = Array.from({ length: argolas }, (_v, i) => posicao(lista[i]));
   const cor = (c, padrao) => (/^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : padrao);
   let simbolo = null;
   if (o.simbolo) {
@@ -91,6 +103,7 @@ export function validarOpcoesChaveiro(entrada = {}) {
     furo: numero(o.furo, "furo"),
     parede: numero(o.parede, "parede"),
     estilo: o.estilo,
+    argolas,
     argola,
     corBase: cor(o.corBase, PADRAO_CHAVEIRO.corBase),
     corTexto: cor(o.corTexto, PADRAO_CHAVEIRO.corTexto),
@@ -289,8 +302,11 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto, coresSimbolo) {
       base = guardar(miolo.offset(capsula ? altura / 2 + o.borda : o.borda, "Round", 2, 80));
     }
 
-    // argola na borda externa, na posição pedida (ou no meio do lado esquerdo); não pode cair no desenho
-    const presa = prenderArgola(M, guardar, base, arte, o, o.argola, [-1e4, (cx.min[1] + cx.max[1]) / 2]);
+    // argolas na borda externa, nas posições pedidas (automáticas: esquerda, direita, em cima);
+    // não podem cair no desenho nem ficar juntas demais
+    const meioY = (cx.min[1] + cx.max[1]) / 2;
+    const pontosPadrao = [[-1e4, meioY], [1e4, meioY], [(cx.min[0] + cx.max[0]) / 2, 1e4]];
+    const presa = prenderArgolas(M, guardar, base, arte, o, o.argola, pontosPadrao);
     base = presa.base;
     if (o.base < 1.6 || o.borda < 1.6 || o.relevo < 0.6) avisos.push("Estrutura delicada: confira a resistência e a largura de linha do bico.");
 
@@ -313,6 +329,7 @@ function gerarComLarguraDoTexto(M, fonte, o, larguraTexto, coresSimbolo) {
       lacosTexto,
       perimetro: presa.perimetro,
       argola: presa.argola,
+      argolas: presa.argolas,
       // para arrastar o símbolo na prévia 2D
       simbolo: simbolo ? { centro: simbolo.centro, alturaNome: simbolo.h, caixa: simbolo.todo.bounds() } : null,
       larguraTexto,

@@ -7667,7 +7667,7 @@ textarea:focus {
 
 .linha-orcamento-caixa {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px;
+  grid-template-columns: minmax(0, 1fr) 44px 52px;
   align-items: center;
   border-bottom: 1px solid var(--borda);
 }
@@ -7718,4 +7718,90 @@ textarea:focus {
   color: var(--texto-suave);
   font-size: 12px;
   font-weight: 650;
+}
+
+/* Recibos: botão no histórico, janela com um pagamento por linha e assinatura nas Configurações */
+.botao-recibos-linha {
+  width: 38px;
+  height: 38px;
+}
+
+.fin-bloco-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recibos-lista {
+  display: grid;
+  margin: 12px 0;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.recibo-linha {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 100px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.recibo-linha:last-child {
+  border-bottom: 0;
+}
+
+.recibo-linha.cancelado {
+  color: var(--texto-suave);
+  text-decoration: line-through;
+}
+
+.recibo-data {
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.recibo-valor {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.recibo-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.recibo-numero {
+  color: var(--texto-suave);
+  font-size: 12.5px;
+}
+
+.botao-wpp-recibo {
+  color: #1fa855;
+}
+
+.botao-wpp-recibo:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.assinatura-previa {
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 84px;
+  padding: 8px;
+  border: 1px dashed var(--borda);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.assinatura-previa img {
+  max-width: 100%;
+  max-height: 100%;
 }

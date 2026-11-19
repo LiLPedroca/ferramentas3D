@@ -15,7 +15,10 @@ const { centavosDeTexto } = require("./produto.cjs");
 const { TIPOS_CHAVE, chavePix } = require("./pix.cjs");
 
 const PIX_VAZIO = { tipo: "", chave: "", nome: "", cidade: "", sempre: false };
-const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "", endereco: "", logo: "", pix: PIX_VAZIO };
+const EMPRESA_VAZIA = { nome: "", telefone: "", email: "", documento: "", cidade: "", site: "", endereco: "", logo: "", pix: PIX_VAZIO, assinatura: "", assinaturaNome: "" };
+// Assinatura do recibo: PNG (fundo transparente, já recortado na tela), até 400 KB em texto.
+const ASSINATURA = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+const LIMITE_ASSINATURA = 400_000;
 const FORMAS = ["debito", "credito", "pix", "dinheiro"];
 const ENTREGAS = ["retirada", "entrega", "envio"];
 const CAMPOS_PDF = ["numero", "nome", "quantidade", "precoUnitario", "dimensoes"];
@@ -83,6 +86,12 @@ function empresaDe(e, estrito) {
       return l;
     }),
     pix: pixDe(v.pix, estrito),
+    assinatura: campo(() => {
+      const a = String(v.assinatura ?? "");
+      if (a && (a.length > LIMITE_ASSINATURA || !ASSINATURA.test(a))) throw new ConfiguracaoInvalida("Assinatura: use uma imagem PNG, JPG ou WEBP menor.");
+      return a;
+    }),
+    assinaturaNome: campo(() => texto(v.assinaturaNome, "Nome abaixo da assinatura", 80, { Erro: ConfiguracaoInvalida })),
   };
 }
 
@@ -362,6 +371,7 @@ function normalizarGravado(dados) {
     ocultarNovidades: d.ocultarNovidades === true,
     primeiraVersao: versaoDe(d.primeiraVersao, false),
     novidadesVistoAte: versaoDe(d.novidadesVistoAte, false),
+    ultimoRecibo: Number.isInteger(d.ultimoRecibo) && d.ultimoRecibo > 0 ? d.ultimoRecibo : 0,
     dadosTesteCriados: d.dadosTesteCriados === true,
     calibracoes: calibracoesDe(d.calibracoes, false),
     medidasSalvas: medidasSalvasDe(d.medidasSalvas, false),
@@ -388,6 +398,8 @@ function aplicarAlteracao(atual, alteracao) {
   if ("ocultarNovidades" in a) novo.ocultarNovidades = a.ocultarNovidades === true;
   if ("primeiraVersao" in a && !base.primeiraVersao) novo.primeiraVersao = versaoDe(a.primeiraVersao, true);
   if ("novidadesVistoAte" in a) novo.novidadesVistoAte = versaoDe(a.novidadesVistoAte, true);
+  // Só sobe: o número de um recibo nunca é reaproveitado.
+  if ("ultimoRecibo" in a && Number.isInteger(a.ultimoRecibo) && a.ultimoRecibo > base.ultimoRecibo) novo.ultimoRecibo = a.ultimoRecibo;
   if ("dadosTesteCriados" in a) novo.dadosTesteCriados = a.dadosTesteCriados === true;
   if ("calibracoes" in a) novo.calibracoes = calibracoesDe(a.calibracoes, true);
   if ("medidasSalvas" in a) novo.medidasSalvas = medidasSalvasDe(a.medidasSalvas, true);

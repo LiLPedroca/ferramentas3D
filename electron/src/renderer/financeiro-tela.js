@@ -8,6 +8,7 @@ import { icone } from "./icones.js";
 import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
 import { criarDivisao } from "./divisao-pagamento.js";
+import { abrirRecibos } from "./recibos-ui.js";
 import { centavosDeTexto } from "../core/produto.cjs";
 import modeloEstoque from "../core/estoque-produtos.cjs";
 
@@ -430,7 +431,15 @@ function renderizarVenda(v) {
   } else itens.append(el("p", "ajuda", "Venda lançada à mão, sem produtos detalhados."));
 
   const pags = el("section", "painel fin-bloco");
-  pags.append(el("h2", "", "Pagamentos"));
+  const cabecalho = el("div", "fin-bloco-topo");
+  cabecalho.append(el("h2", "", "Pagamentos"));
+  if (v.pagamentos.length) {
+    const recibos = el("button", "botao-secundario", "Recibos");
+    recibos.type = "button";
+    recibos.addEventListener("click", () => abrirRecibos(v.id, atualizarTudo));
+    cabecalho.append(recibos);
+  }
+  pags.append(cabecalho);
   if (v.pagamentos.length) {
     for (const p of v.pagamentos) {
       const l = el("div", "fin-registro recebimento");

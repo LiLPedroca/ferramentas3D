@@ -868,3 +868,11 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Pendente:** Pedro testar; publicar quando aprovar.
 - **19/11/2026:** Pedro leu o QR com o app do banco: valor e recebedor certos. QR do Pix conferido.
 - **19/11/2026:** Pedro aprovou ("pode publicar"). Release **v0.68.0 PUBLICADA**.
+
+## Trabalho do Claude Code (19/11/2026) — Várias argolas no chaveiro e recibos (v0.69.0, só local)
+
+- **Chaveiro de nome, 1 a 3 argolas:** `opcoes.argolas` (1/2/3) e `opcoes.argola` virou lista de posições (`[t ou null]`; número antigo vale para a 1ª). `prenderArgolas` (manifold.js) prende uma depois da outra, com as posições medidas na borda da base sem argolas; recusa argolas encostadas ("juntas demais"). Automáticas: esquerda, direita, em cima. Prévia 2D arrasta cada argola (`aoSoltar(t, indice)`; `modelo.argolas`). Vários nomes guardam a lista de cada nome. Logo e Palavras continuam com uma argola.
+- **Recibos:** `core/recibo.cjs` (valor por extenso, tipo do pagamento — pagamento/sinal/parcela/saldo —, HTML do PDF, nome do arquivo, numeração). Registro em `venda.recibos` (entra no backup; recibo de pagamento apagado aparece "Cancelado"); último número em `config.ultimoRecibo` (só sobe). Canais `recibos:gerar` (gera ou refaz com o mesmo número; pasta nova "Recibos") e `recibos:whatsapp`. Janela `recibos-ui.js` aberta pelo ícone no histórico de orçamentos e pelo botão "Recibos" na venda do Financeiro, com a chave "Assinar o recibo".
+- **Assinatura:** Configurações > Dados do orçamento > Assinatura do recibo (`empresa.assinatura` PNG recortado na tela — fundo branco vira transparente — e `empresa.assinaturaNome`). Nenhuma assinatura real vai para o código (teste com a do Pedro só em pasta temporária).
+- 526 testes. Conferido no modo de captura: recibo de sinal e de saldo (assinatura vinda de JPG com fundo branco), mesmo número ao refazer, WhatsApp, janela Recibos e chaveiro com 3 argolas.
+- **Pendente:** Pedro testar; publicar só quando aprovar. Não conferido: imprimir peça com 2–3 argolas.

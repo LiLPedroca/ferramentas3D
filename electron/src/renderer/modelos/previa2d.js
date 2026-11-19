@@ -1,5 +1,6 @@
 // Prévia 2D de chaveiros, vista de cima: camadas coloridas e a argola arrastável pela borda.
 // modelo: { camadas: [{ lacos, cor }], perimetro, argola: { t, centro, raio, afastamento }, caixa: { min, max } }
+// Com várias argolas: modelo.argolas = [argola, ...] (cada uma arrastável; aoSoltar(t, indice)).
 // Com modelo.simbolo ({ caixa: { min, max } }), o símbolo também pode ser arrastado (aoSoltarSimbolo recebe o deslocamento em mm).
 import { maisPertoNoLaco, pontoNoLaco } from "./manifold.js";
 
@@ -71,9 +72,11 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     }
   }
 
-  function centroDaArgola(t) {
+  const argolasDoModelo = () => modelo?.argolas ?? (modelo?.argola ? [modelo.argola] : []);
+
+  function centroDaArgola(t, argola) {
     const { ponto, normal } = pontoNoLaco(modelo.perimetro, t);
-    const d = modelo.argola.afastamento;
+    const d = argola.afastamento;
     return [ponto[0] + normal[0] * d, ponto[1] + normal[1] * d];
   }
 
@@ -127,22 +130,24 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
         ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
       }
     }
-    if (!modelo.argola) return; // peça sem argola (Palavras decorativas)
-    const centro = arrasto ? arrasto.centro : modelo.argola.centro;
-    const [x, y] = paraTela(centro);
-    ctx.setLineDash([6 * dpr, 5 * dpr]);
-    ctx.strokeStyle = "#5b8def";
-    ctx.lineWidth = 2 * dpr;
-    ctx.beginPath();
-    ctx.arc(x, y, (modelo.argola.raio + 1.2) * escala, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    if (arrasto) {
-      ctx.fillStyle = "rgba(91,141,239,0.25)";
+    // argolas (peça sem argola: Palavras decorativas)
+    argolasDoModelo().forEach((argola, i) => {
+      const arrastando = arrasto?.indice === i;
+      const [x, y] = paraTela(arrastando ? arrasto.centro : argola.centro);
+      ctx.setLineDash([6 * dpr, 5 * dpr]);
+      ctx.strokeStyle = "#5b8def";
+      ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
-      ctx.arc(x, y, modelo.argola.raio * escala, 0, Math.PI * 2);
-      ctx.fill();
-    }
+      ctx.arc(x, y, (argola.raio + 1.2) * escala, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (arrastando) {
+        ctx.fillStyle = "rgba(91,141,239,0.25)";
+        ctx.beginPath();
+        ctx.arc(x, y, argola.raio * escala, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
   }
 
   function pontoDoEvento(e) {
@@ -151,11 +156,11 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     return transformacao().paraModelo((e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr);
   }
 
-  function sobreArgola(p) {
-    if (!modelo.argola) return false;
-    const [cx, cy] = modelo.argola.centro;
-    return Math.hypot(p[0] - cx, p[1] - cy) <= modelo.argola.raio * 1.6 + 1;
+  // Índice da argola sob o ponto, ou -1.
+  function argolaSob(p) {
+    return argolasDoModelo().findIndex((a) => Math.hypot(p[0] - a.centro[0], p[1] - a.centro[1]) <= a.raio * 1.6 + 1);
   }
+  const sobreArgola = (p) => argolaSob(p) >= 0;
 
   function sobreSimbolo(p) {
     if (!modelo.simbolo || !aoSoltarSimbolo) return false;
@@ -188,9 +193,11 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       desenhar();
       return;
     }
-    if (!sobreArgola(p)) return;
+    const indice = argolaSob(p);
+    if (indice < 0) return;
     canvas.setPointerCapture?.(e.pointerId);
-    arrasto = { t: modelo.argola.t, centro: modelo.argola.centro };
+    const argola = argolasDoModelo()[indice];
+    arrasto = { indice, t: argola.t, centro: argola.centro };
     aoComecar?.();
     desenhar();
   });
@@ -216,7 +223,7 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
     }
     canvas.style.cursor = "grabbing";
     const t = maisPertoNoLaco(modelo.perimetro, p).t;
-    arrasto = { t, centro: centroDaArgola(t) };
+    arrasto = { ...arrasto, t, centro: centroDaArgola(t, argolasDoModelo()[arrasto.indice]) };
     desenhar();
   });
   const soltar = (e, cancelar) => {
@@ -237,12 +244,12 @@ export function criarPrevia2d(canvas, { aoComecar, aoSoltar, aoComecarSimbolo, a
       return;
     }
     if (!arrasto) return;
-    const { t } = arrasto;
+    const { t, indice } = arrasto;
     arrasto = null;
     canvas.style.cursor = "";
     if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     desenhar();
-    if (!cancelar) aoSoltar?.(Math.round(t * 1e5) / 1e5);
+    if (!cancelar) aoSoltar?.(Math.round(t * 1e5) / 1e5, indice);
   };
   canvas.addEventListener("pointerup", (e) => soltar(e, false));
   canvas.addEventListener("pointercancel", (e) => soltar(e, true));

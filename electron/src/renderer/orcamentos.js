@@ -10,6 +10,7 @@ import { CAMPOS_PDF, FORMAS, abrirSecaoConfig, chavesMarcadas, marcarChaves, mon
 import { abrirPagamentoOrcamento, contarRevisoes, abrirRevisao } from "./financeiro-tela.js";
 import { confirmar, estado, irPara, mostrarAviso, registrarAoAbrir } from "./shell.js";
 import { el } from "./util-tela.js";
+import { abrirRecibos } from "./recibos-ui.js";
 
 const { ROTULOS_SITUACAO, calcularTotais, centavosParaTexto, itensNaVersao, sinalDeFormulario, sinalParaTexto, valorSinal, versoesDo } = modeloOrcamento;
 const { centavosDeTexto } = modeloProduto;
@@ -592,8 +593,12 @@ function chipSituacao(situacao) {
 
 // ---------- Enviar pelo WhatsApp ----------
 let idsComPdf = new Set();
+let vendaDoOrcamento = new Map(); // orcamentoId → venda (para o botão Recibos)
 const ICONE_WHATSAPP =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 5.6 16A8 8 0 1 1 8.4 18.6Z"/><path d="M9.2 8.6c.2-.5.6-.5.9-.5l.6.1 1 2-.6.9a5 5 0 0 0 2 2l.9-.6 2 1v.6c0 .3-.1.7-.6.9-1 .5-2.6.1-4.2-1.4S8.7 9.6 9.2 8.6Z"/></svg>';
+
+const ICONE_RECIBO =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>';
 
 async function enviarWhatsapp(o, botao) {
   if (botao) botao.disabled = true;
@@ -644,7 +649,17 @@ function linhaOrcamento(o) {
     chipSituacao(o.situacao),
   );
   linha.addEventListener("click", () => abrirEditor(o));
-  caixa.append(linha, botaoWhatsappLinha(o));
+  const venda = vendaDoOrcamento.get(o.id);
+  let recibos = el("span", "orc-wpp-vazio");
+  if (venda?.pagamentos.length) {
+    recibos = el("button", "botao-icone botao-recibos-linha");
+    recibos.type = "button";
+    recibos.innerHTML = ICONE_RECIBO;
+    recibos.title = "Recibos";
+    recibos.setAttribute("aria-label", `Recibos do orçamento ${numeroOrcamento(o.numero, o.teste)}`);
+    recibos.addEventListener("click", () => abrirRecibos(venda.id));
+  }
+  caixa.append(linha, recibos, botaoWhatsappLinha(o));
   return caixa;
 }
 
@@ -676,8 +691,9 @@ export async function carregarOrcamentos() {
   }
   $("erro-orcamentos").textContent = "";
   orcamentos = resposta.dados;
-  const comPdf = await window.dados.orcamentos.comPdf?.();
+  const [comPdf, fin] = await Promise.all([window.dados.orcamentos.comPdf?.(), window.dados.financeiro.listar()]);
   idsComPdf = new Set(comPdf?.ok ? comPdf.dados : []);
+  vendaDoOrcamento = new Map(fin?.ok ? fin.dados.vendas.filter((v) => v.orcamentoId).map((v) => [v.orcamentoId, v]) : []);
   renderizarLista();
 }
 

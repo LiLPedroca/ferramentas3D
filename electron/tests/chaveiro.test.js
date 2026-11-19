@@ -105,6 +105,24 @@ describe("chaveiro de nome", { timeout: 30000 }, () => {
     expect(externos).toHaveLength(1);
   });
 
+  it("duas e três argolas: esquerda, direita e em cima, base numa peça só e largura total certa", () => {
+    const fonte = carregar("Lobster");
+    const duas = gerarChaveiro(M, fonte, { texto: "Pedro", argolas: 2 });
+    expect(duas.argolas).toHaveLength(2);
+    expect(duas.argolas[0].centro[0]).toBeLessThan(duas.argolas[1].centro[0]);
+    expect(duas.dimensoes[0]).toBeCloseTo(70, 1);
+    const tres = gerarChaveiro(M, fonte, { texto: "Pedro", argolas: 3, estilo: "capsula" });
+    expect(tres.argolas).toHaveLength(3);
+    expect(tres.argolas[2].centro[1]).toBeGreaterThan(tres.argolas[0].centro[1]);
+    const externos = tres.lacosBase.filter((l) => l.reduce((s, p, i) => s + p[0] * l[(i + 1) % l.length][1] - l[(i + 1) % l.length][0] * p[1], 0) > 0);
+    expect(externos).toHaveLength(1);
+    // a 2ª arrastada para cima da 1ª: recusa com explicação
+    const t1 = duas.argolas[0].t;
+    expect(() => gerarChaveiro(M, fonte, { texto: "Pedro", argolas: 2, argola: [t1, t1 + 0.005] })).toThrow(/juntas demais|argola/i);
+    expect(validarOpcoesChaveiro({ texto: "A", argolas: 2, argola: 0.3 }).argola).toEqual([0.3, null]);
+    expect(() => validarOpcoesChaveiro({ texto: "A", argolas: 4 })).toThrow(/1, 2 ou 3/);
+  });
+
   it("argola segue a posição escolhida na borda; posição sobre o texto é recusada com explicação", () => {
     const fonte = carregar("Lobster");
     const auto = gerarChaveiro(M, fonte, { texto: "Pedro" });

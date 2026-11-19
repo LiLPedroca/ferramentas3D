@@ -142,6 +142,21 @@ async function verificarManualmente() {
   }
 }
 
+// Copia os arquivos e abre a conversa no WhatsApp com a mensagem pronta (sem o aplicativo:
+// navegador). Se não der para copiar, mostra o arquivo na pasta para arrastar.
+async function abrirConversaComArquivos(numero, mensagem, arquivos) {
+  const wpp = require("../core/whatsapp-orcamento.cjs");
+  const copiado = await copiarArquivosParaAreaDeTransferencia(arquivos);
+  if (process.env.FERRAMENTAS_CAPTURA) return { copiado, link: wpp.linkAppWhatsapp(numero, mensagem) };
+  if (!copiado) shell.showItemInFolder(arquivos[0]);
+  try {
+    await shell.openExternal(wpp.linkAppWhatsapp(numero, mensagem));
+  } catch {
+    await shell.openExternal(wpp.linkWebWhatsapp(numero, mensagem));
+  }
+  return { copiado };
+}
+
 // Põe arquivos na área de transferência do jeito do Explorador (Ctrl+V cola o arquivo).
 // Os caminhos vão por variável de ambiente, nunca dentro do comando.
 function copiarArquivosParaAreaDeTransferencia(arquivos) {
@@ -519,15 +534,57 @@ function registrarDados() {
       if (!arquivos.length) throw new ErroValidacao("Gere o PDF do orçamento antes de enviar.");
       const config = await configuracoes.ler();
       const mensagem = wpp.montarMensagem(config.orcamento?.mensagemWhatsapp, wpp.valoresDaMensagem(orcamento, config.empresa?.pix));
-      const copiado = await copiarArquivosParaAreaDeTransferencia(arquivos);
-      if (process.env.FERRAMENTAS_CAPTURA) return { copiado, link: wpp.linkAppWhatsapp(numero, mensagem) };
-      if (!copiado) shell.showItemInFolder(arquivos[0]);
-      try {
-        await shell.openExternal(wpp.linkAppWhatsapp(numero, mensagem));
-      } catch {
-        await shell.openExternal(wpp.linkWebWhatsapp(numero, mensagem)); // sem o aplicativo: navegador
-      }
-      return { copiado };
+      return abrirConversaComArquivos(numero, mensagem, arquivos);
+    }),
+  );
+
+  // ---------- Recibos ----------
+  // Gera (ou refaz, com o mesmo número) o recibo de um pagamento e guarda o registro na venda.
+  async function gerarRecibo(vendaId, pagamentoId, assinar) {
+    const rec = require("../core/recibo.cjs");
+    const todas = await financeiro.vendas.listar();
+    const venda = todas.find((v) => v.id === String(vendaId));
+    if (!venda) throw new ErroValidacao("Esta venda não existe mais.");
+    const linha = rec.linhasDaVenda(venda).find((l) => l.pagamento?.id === String(pagamentoId));
+    if (!linha) throw new ErroValidacao("Este pagamento não existe mais.");
+    const orcamento = venda.orcamentoId ? ((await orcamentos.listar()).find((o) => o.id === venda.orcamentoId) ?? null) : null;
+    const config = await configuracoes.ler();
+    const numero = linha.recibo?.numero ?? rec.proximoNumero(todas, config.ultimoRecibo);
+    let destino = linha.recibo?.caminho;
+    try {
+      if (destino) await require("node:fs/promises").access(destino);
+    } catch {
+      destino = null; // arquivo apagado ou movido: grava de novo na pasta Recibos
+    }
+    if (!destino) {
+      const pasta = process.env.FERRAMENTAS_PDF_DESTINO || (await pastasUsuario.garantir("recibos"));
+      const nome = rec.nomeArquivoRecibo({ numero, cliente: orcamento?.cliente?.nome || venda.cliente, orcamentoNumero: orcamento?.numero ?? venda.orcamentoNumero, tipo: linha.tipo, teste: venda.teste });
+      destino = path.join(pasta, nome);
+    }
+    const pdf = await htmlParaPdf(rec.gerarHtmlRecibo({ venda, orcamento, empresa: config.empresa, linha, numero, assinar: assinar === true }));
+    await gravarPdf(destino, pdf);
+    await financeiro.registrarRecibo(venda.id, { numero, pagamentoId: linha.pagamento.id, tipo: linha.tipo, data: linha.pagamento.data, valorCentavos: linha.pagamento.valorCentavos, caminho: destino });
+    if (!linha.recibo) await configuracoes.salvar({ ultimoRecibo: numero });
+    return { numero, caminho: destino, venda, orcamento };
+  }
+  ipcMain.handle(
+    "recibos:gerar",
+    comTela(async (_e, vendaId, pagamentoId, opcoes) => {
+      const r = await gerarRecibo(vendaId, pagamentoId, opcoes?.assinar);
+      if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(r.caminho);
+      return { numero: r.numero, caminho: r.caminho };
+    }),
+  );
+  ipcMain.handle(
+    "recibos:whatsapp",
+    comTela(async (_e, vendaId, pagamentoId, opcoes) => {
+      const rec = require("../core/recibo.cjs");
+      const wpp = require("../core/whatsapp-orcamento.cjs");
+      const r = await gerarRecibo(vendaId, pagamentoId, opcoes?.assinar);
+      const numero = wpp.numeroWhatsapp(r.orcamento?.cliente?.telefone);
+      if (!numero) throw new ErroValidacao("Cadastre o telefone do cliente.");
+      const mensagem = rec.mensagemRecibo({ cliente: r.orcamento?.cliente?.nome || r.venda.cliente, numero: r.numero, orcamentoNumero: r.orcamento?.numero ?? r.venda.orcamentoNumero });
+      return { numero: r.numero, ...(await abrirConversaComArquivos(numero, mensagem, [r.caminho])) };
     }),
   );
   // As duas versões do orçamento (gravação a laser: frente / frente e verso), uma em cada PDF,
