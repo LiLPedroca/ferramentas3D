@@ -1,4 +1,4 @@
-import { CATALOGO_COPOS, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
+import { CATALOGO_COPOS, COPOS_MULTIPARTES, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
 import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo, stlComLogos } from './modelos/copos-exportar.js';
 import { anguloDaNovaCopia, caixaDaLogo, limitarNoCopo, logoNaCurva, logosNaMesa, medirTubo, passaDoTubo, raioEm } from './modelos/logo-copo.js';
 import { abrirLogoNoCopo } from './logo-tela.js';
@@ -14,8 +14,9 @@ const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-b
 function bloquear(sim) {
   ocupado = sim;
   [...acoes, 'cp-restaurar'].forEach(id => { $(id).disabled = sim || !pronto; });
-  $('cp-multipartes').disabled = sim || !pronto || id !== 1;
-  $('cp-multipartes').innerHTML = 'Exportar em multipartes' + (id === 1 ? '' : ' <small>Em breve</small>');
+  const multipartes = COPOS_MULTIPARTES.includes(id);
+  $('cp-multipartes').disabled = sim || !pronto || !multipartes;
+  $('cp-multipartes').innerHTML = 'Exportar em multipartes' + (multipartes ? '' : ' <small>Em breve</small>');
   document.querySelectorAll('#cp-cores input').forEach(input => { input.disabled = sim || !pronto; });
 }
 function pintar() { previa?.colorir(cores); }
@@ -274,9 +275,9 @@ export function iniciarCopos() {
   ligarArrasto();
   $('cp-3mf').addEventListener('click', () => executar(() => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
   $('cp-multipartes').addEventListener('click', () => executar(async () => {
-    if (id !== 1) return;
+    if (!COPOS_MULTIPARTES.includes(id)) return;
     if (logo) mostrarAviso('A logo não vai no arquivo em multipartes. Para levar a logo, use Salvar 3MF.');
-    const escolhidas = [...cores], nome = ($('cp-nome').value || 'Copo 1') + ' - multipartes';
+    const escolhidas = [...cores], nome = ($('cp-nome').value || `Copo ${id}`) + ' - multipartes';
     const r = await window.modelos.lerCopoMultipartes(id);
     if (!r.ok) throw Error(r.erro);
     await salvarArquivoModelo(colorir3mfMultipartes(r.dados, escolhidas, { nome }), nome, '3mf');

@@ -22,3 +22,19 @@ it('recusa multipartes sem perfil ou sem as duas cores esperadas',()=>{
  expect(()=>colorir3mfMultipartes(b,['#000000','#ffffff'])).toThrow(/perfil/i);
  expect(()=>colorir3mfMultipartes(b,['#000000'])).toThrow(/cores/i);
 });
+
+it('copia as malhas de 3D/Objects sem descompactar e mantém o ZIP legível', () => {
+ const malha=strToU8('<model><resources><object id="1"><mesh><vertices><vertex x="0" y="0" z="0"/></vertices></mesh></object></resources></model>'.repeat(2000));
+ const origem=zipSync({'3D/3dmodel.model':strToU8('<model><metadata name="Title">X</metadata></model>'),'3D/Objects/tubo 2.model':malha,'Metadata/project_settings.config':strToU8('{"filament_colour":["#000000","#ffffff"]}')},{level:9});
+ const saida=colorir3mfMultipartes(origem,['#ff0000','#00ff00'],{nome:'Copo 2 - multipartes'});
+ const z=unzipSync(saida);
+ expect(z['3D/Objects/tubo 2.model']).toEqual(malha);
+ expect(strFromU8(z['3D/3dmodel.model'])).toContain('Copo 2 - multipartes');
+ expect(JSON.parse(strFromU8(z['Metadata/project_settings.config'])).filament_colour).toEqual(['#ff0000','#00ff00']);
+ const achar=(b,s)=>{const a=strToU8(s);for(let i=0;i<b.length-a.length;i++){let ok=true;for(let j=0;j<a.length&&ok;j++)ok=b[i+j]===a[j];if(ok)return i;}return -1;};
+ const nome='3D/Objects/tubo 2.model', i0=achar(origem,nome), i1=achar(saida,nome);
+ const dv0=new DataView(origem.buffer), dv1=new DataView(saida.buffer);
+ const c0=dv0.getUint32(i0-12,true), c1=dv1.getUint32(i1-12,true);
+ expect(c1).toBe(c0);
+ expect(saida.subarray(i1+nome.length,i1+nome.length+c1)).toEqual(origem.subarray(i0+nome.length,i0+nome.length+c0));
+});
