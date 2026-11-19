@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { NOVIDADES, compararVersoes, novidadeDaTela } from "../src/core/novidades.js";
+import { NOVIDADES, compararVersoes, listaDeNovidades, temNovidade } from "../src/core/novidades.js";
 import modelo from "../src/core/configuracoes.cjs";
 
 const { aplicarAlteracao, normalizarGravado } = modelo;
-const lista = [{ id: "calc-nova", versao: "0.42.0", tela: "calculadora", titulo: "t", texto: "t", itens: [], botao: "b" }];
+const n = (id, versao) => ({ id, versao, tela: "inicio", titulo: "t", texto: "t", itens: [], botao: "b" });
+const lista = [n("a", "0.40.0"), n("b", "0.42.0"), n("c", "0.42.0"), n("d", "0.43.0")];
 
 describe("avisos de novidade", () => {
   it("compara versões", () => {
@@ -12,17 +13,20 @@ describe("avisos de novidade", () => {
     expect(compararVersoes("1.0.0", "0.99.9")).toBe(1);
   });
 
-  it("mostra uma vez para quem já usava antes da mudança", () => {
-    const antigo = { primeiraVersao: "0.0.0", novidadesVistas: [] };
-    expect(novidadeDaTela("calculadora", antigo, "0.42.0", lista)?.id).toBe("calc-nova");
-    expect(novidadeDaTela("produtos", antigo, "0.42.0", lista)).toBeNull();
-    expect(novidadeDaTela("calculadora", { ...antigo, novidadesVistas: ["calc-nova"] }, "0.42.0", lista)).toBeNull();
-    expect(novidadeDaTela("calculadora", { ...antigo, ocultarNovidades: true }, "0.42.0", lista)).toBeNull();
+  it("lista da mais nova para a mais antiga, sem o que esta versão ainda não tem", () => {
+    expect(listaDeNovidades({ primeiraVersao: "0.0.0" }, "0.42.0", lista).map((x) => x.id)).toEqual(["c", "b", "a"]);
   });
 
-  it("não mostra para quem instalou já com a mudança nem antes de ela existir", () => {
-    expect(novidadeDaTela("calculadora", { primeiraVersao: "0.42.0" }, "0.42.0", lista)).toBeNull();
-    expect(novidadeDaTela("calculadora", { primeiraVersao: "0.0.0" }, "0.41.0", lista)).toBeNull();
+  it("marca como nova o que chegou depois da última vez que abriu a lista", () => {
+    const l = listaDeNovidades({ primeiraVersao: "0.0.0", novidadesVistoAte: "0.42.0" }, "0.43.0", lista);
+    expect(l.filter((x) => x.nova).map((x) => x.id)).toEqual(["d"]);
+    expect(temNovidade({ primeiraVersao: "0.0.0", novidadesVistoAte: "0.43.0" }, "0.43.0", lista)).toBe(false);
+  });
+
+  it("quem instalou agora não tem nada novo; quem já usava, tem", () => {
+    expect(temNovidade({ primeiraVersao: "0.43.0" }, "0.43.0", lista)).toBe(false);
+    expect(temNovidade({ primeiraVersao: "0.0.0" }, "0.43.0", lista)).toBe(true);
+    expect(temNovidade({}, "0.43.0", lista)).toBe(false);
   });
 
   it("catálogo real tem ids únicos e campos preenchidos", () => {
@@ -39,5 +43,7 @@ describe("avisos de novidade", () => {
     expect(aplicarAlteracao(c, { primeiraVersao: "0.50.0" }).primeiraVersao).toBe("0.42.0");
     expect(normalizarGravado({ primeiraVersao: "x" }).primeiraVersao).toBe("");
     expect(() => aplicarAlteracao({}, { novidadesVistas: ["<b>"] })).toThrow(/Novidades/);
+    expect(aplicarAlteracao(c, { novidadesVistoAte: "0.67.0" }).novidadesVistoAte).toBe("0.67.0");
+    expect(() => aplicarAlteracao({}, { novidadesVistoAte: "x" })).toThrow(/Versão/);
   });
 });

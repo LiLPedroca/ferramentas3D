@@ -846,3 +846,12 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Agora `mostrarPendencia` põe o aviso na etapa certa (`#o-erro-etapa-1` / `#o-erro-etapa-2`), marca o campo em vermelho (`.entrada.faltando`, `aria-invalid`) e põe o cursor nele. `limparPendenciasResolvidas` (em `aoMudar`) apaga aviso e marca quando o campo é preenchido.
 - Telefone continua obrigatório. Conferido no modo de captura; 500 testes.
 - **Pendente:** Pedro instalar e testar; publicar só quando ele aprovar.
+
+## Trabalho do Claude Code (19/11/2026) — WhatsApp no orçamento e botão Novidades (v0.67.0, PUBLICADA com a 0.66.2)
+
+- **Enviar pelo WhatsApp (sem API):** `core/whatsapp-orcamento.cjs` (número com 55, mensagem com {cliente} {numero} {total} {validade}, links). Canal `orcamentos:whatsapp`: copia o(s) PDF(s) para a área de transferência com `Set-Clipboard -LiteralPath` (caminhos por variável de ambiente) e abre `whatsapp://send?phone=…&text=…` direto no aplicativo; se o app não abrir, `https://wa.me/…`. Se a cópia falhar, abre a pasta com o PDF selecionado. Único esquema além de https liberado, montado só pelo programa.
+- Onde aparece: aviso verde "Orçamento #X pronto. Enviar pelo WhatsApp" depois de finalizar com PDF (`#o-enviar`) e ícone verde em cada linha do histórico que tem PDF (`orcamentos:com-pdf`). Sem telefone válido: botão desligado com "Cadastre o telefone do cliente". `pdf-versoes` agora lembra os dois PDFs (`pdfs-orcamentos.cjs` aceita lista).
+- Configurações > Dados do orçamento: "Mensagem do WhatsApp" (`orcamento.mensagemWhatsapp`, vazio = padrão), botões de campo, prévia e "Voltar à mensagem padrão".
+- Conferido: Ctrl+V pelo Explorador cola o PDF (teste com `Shell.Application` Paste na pasta). **Não conferido:** colar no WhatsApp (Pedro vai testar).
+- **Novidades:** saiu a janela automática ao abrir uma ferramenta (`dialogo-novidade`, `novidadeDaTela`). Agora há o botão "Novidades" à esquerda de Meu fatiador; depois de uma atualização ele pulsa com um ponto vermelho (`.chamando`) até ser clicado. A lista mostra todas as novidades, mais novas primeiro, com selo "Novo" (`listaDeNovidades`, `temNovidade`; config `novidadesVistoAte`). Continuar criando entradas em `NOVIDADES` a cada mudança visível.
+- Testes: 507 passando.

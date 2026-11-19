@@ -112,6 +112,8 @@ function orcamentoDe(o, estrito) {
     }, "retirada"),
     freteCentavos: campo(() => centavosDeTexto(v.frete ?? (v.freteCentavos !== undefined ? (Number(v.freteCentavos) / 100).toFixed(2) : ""), "Frete padrão") || "0", "0"),
     descricaoComplementar: campo(() => textoLongo(v.descricaoComplementar, "Descrição complementar padrão", 1000), ""),
+    // Vazio = mensagem padrão (core/whatsapp-orcamento.cjs).
+    mensagemWhatsapp: campo(() => textoLongo(v.mensagemWhatsapp, "Mensagem do WhatsApp", 1000), ""),
     exibirPdf: Object.fromEntries(CAMPOS_PDF.map((k) => [k, v.exibirPdf && typeof v.exibirPdf === "object" && k in v.exibirPdf ? v.exibirPdf[k] === true : true])),
     nomeArquivo: v.nomeArquivo === "manual" ? "manual" : "automatico",
     proximoNumero: campo(() => {
@@ -338,6 +340,7 @@ function normalizarGravado(dados) {
     novidadesVistas: novidadesVistasDe(d.novidadesVistas, false),
     ocultarNovidades: d.ocultarNovidades === true,
     primeiraVersao: versaoDe(d.primeiraVersao, false),
+    novidadesVistoAte: versaoDe(d.novidadesVistoAte, false),
     dadosTesteCriados: d.dadosTesteCriados === true,
     calibracoes: calibracoesDe(d.calibracoes, false),
     medidasSalvas: medidasSalvasDe(d.medidasSalvas, false),
@@ -363,6 +366,7 @@ function aplicarAlteracao(atual, alteracao) {
   if ("novidadesVistas" in a) novo.novidadesVistas = novidadesVistasDe(a.novidadesVistas, true);
   if ("ocultarNovidades" in a) novo.ocultarNovidades = a.ocultarNovidades === true;
   if ("primeiraVersao" in a && !base.primeiraVersao) novo.primeiraVersao = versaoDe(a.primeiraVersao, true);
+  if ("novidadesVistoAte" in a) novo.novidadesVistoAte = versaoDe(a.novidadesVistoAte, true);
   if ("dadosTesteCriados" in a) novo.dadosTesteCriados = a.dadosTesteCriados === true;
   if ("calibracoes" in a) novo.calibracoes = calibracoesDe(a.calibracoes, true);
   if ("medidasSalvas" in a) novo.medidasSalvas = medidasSalvasDe(a.medidasSalvas, true);

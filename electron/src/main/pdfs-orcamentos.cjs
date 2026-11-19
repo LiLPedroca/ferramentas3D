@@ -22,6 +22,29 @@ function criarPdfsOrcamentos(pasta) {
         return null;
       }
     },
+    // Todos os PDFs deste orçamento que ainda existem (um, ou as duas versões).
+    async arquivos(id) {
+      const mapa = await doc.ler();
+      const lista = [mapa[id]].flat().filter((c) => typeof c === "string" && path.isAbsolute(c));
+      const existentes = [];
+      for (const c of lista) {
+        try {
+          await fs.access(c);
+          existentes.push(c);
+        } catch {
+          // arquivo apagado ou movido
+        }
+      }
+      return existentes;
+    },
+    // Ids dos orçamentos que têm PDF (para o botão do WhatsApp no histórico).
+    async idsComPdf() {
+      const mapa = await doc.ler();
+      const ids = [];
+      for (const id of Object.keys(mapa)) if ((await this.arquivos(id)).length) ids.push(id);
+      return ids;
+    },
+    // caminho: um arquivo ou a lista das duas versões.
     lembrar(id, caminho) {
       return doc.alterarValor(async (mapa) => ({ novo: { ...mapa, [id]: caminho }, resultado: caminho }));
     },

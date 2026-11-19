@@ -404,6 +404,36 @@ export const NOVIDADES = [
     itens: ["Quando terminar, escolha Atualizar agora ou Mais tarde", "Mais tarde: instala quando você fechar o programa"],
     botao: "Entendi",
   },
+  {
+    id: "orcamento-whatsapp",
+    versao: "0.67.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Enviar orçamento pelo WhatsApp",
+    texto: "Depois de gerar o PDF, um clique abre a conversa do cliente com a mensagem pronta.",
+    itens: ["O PDF já vai copiado: aperte Ctrl+V na conversa", "No histórico, o botão verde envia orçamentos que têm PDF", "Mude a mensagem em Configurações > Dados do orçamento"],
+    botao: "Ver",
+  },
+  {
+    id: "orcamento-campo-faltando",
+    versao: "0.67.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Orçamento avisa o que falta",
+    texto: "Sem nome ou telefone do cliente, o campo fica vermelho e o aviso aparece na hora.",
+    itens: ["O cursor já vai para o campo que falta"],
+    botao: "Ver",
+  },
+  {
+    id: "botao-novidades",
+    versao: "0.67.0",
+    tela: "inicio",
+    icone: "inicio",
+    titulo: "Novidades num botão só",
+    texto: "As novidades de cada atualização ficam aqui, no botão Novidades do topo.",
+    itens: ["Depois de atualizar, o botão pisca até você abrir"],
+    botao: "Ver",
+  },
 ];
 
 // "0.41.0" < "0.42.0"
@@ -417,19 +447,17 @@ export function compararVersoes(a, b) {
   return 0;
 }
 
-// Aviso a mostrar ao entrar na tela, ou null.
-// config: { ocultarNovidades, novidadesVistas, primeiraVersao }
-export function novidadeDaTela(tela, config, versaoApp, lista = NOVIDADES) {
-  if (!config || config.ocultarNovidades) return null;
-  const vistas = new Set(config.novidadesVistas ?? []);
-  const primeira = config.primeiraVersao || "0.0.0";
-  return (
-    lista.find(
-      (n) =>
-        n.tela === tela &&
-        !vistas.has(n.id) &&
-        compararVersoes(n.versao, versaoApp) <= 0 && // não mostra o que esta versão ainda não tem
-        compararVersoes(primeira, n.versao) < 0, // quem instalou já com a mudança não precisa do aviso
-    ) ?? null
-  );
+// Lista do botão Novidades: tudo o que esta versão já tem, da mais nova para a mais antiga.
+// "nova" = chegou depois da última vez que a pessoa abriu a lista (ou, se nunca abriu, depois
+// da versão em que começou a usar o programa). Quem acabou de instalar não tem nada "novo".
+// config: { novidadesVistoAte, primeiraVersao }
+export function listaDeNovidades(config, versaoApp, lista = NOVIDADES) {
+  const vistoAte = config?.novidadesVistoAte || config?.primeiraVersao || versaoApp;
+  return lista
+    .map((n, i) => ({ ...n, nova: compararVersoes(n.versao, vistoAte) > 0, i }))
+    .filter((n) => compararVersoes(n.versao, versaoApp) <= 0)
+    .sort((a, b) => compararVersoes(b.versao, a.versao) || b.i - a.i)
+    .map(({ i, ...n }) => n);
 }
+
+export const temNovidade = (config, versaoApp, lista = NOVIDADES) => listaDeNovidades(config, versaoApp, lista).some((n) => n.nova);

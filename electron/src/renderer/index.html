@@ -37,6 +37,10 @@
       <span class="titulo-tela" id="titulo-tela">Início</span>
 
       <div class="acoes-topo">
+        <button class="botao-topo botao-novidades" id="novidades" type="button" title="Ver as novidades do programa">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5Z"/><path d="M19 3v3M17.5 4.5h3M5 17.5v3M3.5 19h3"/></svg>
+          <span class="rotulo-topo">Novidades</span>
+        </button>
         <button class="botao-topo" id="meu-fatiador" type="button" title="Abrir meu fatiador">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
           <span class="rotulo-topo">Meu fatiador</span>
@@ -946,6 +950,14 @@
         <div class="aviso-revisao" id="o-aviso-revisao" hidden>
           <p><strong id="o-revisao-texto"></strong> Confirme os recebimentos para atualizar o financeiro.</p>
           <button type="button" class="botao-secundario" id="o-revisar">Revisar orçamentos</button>
+        </div>
+
+        <div class="aviso-revisao orc-enviar" id="o-enviar" hidden>
+          <p><strong id="o-enviar-texto"></strong> <span class="ajuda" id="o-enviar-falta"></span></p>
+          <div class="orc-enviar-botoes">
+            <button type="button" class="botao-primario botao-whatsapp" id="o-enviar-whatsapp">Enviar pelo WhatsApp</button>
+            <button type="button" class="botao-texto" id="o-enviar-fechar" aria-label="Fechar aviso">×</button>
+          </div>
         </div>
 
         <div class="orc-topo">
@@ -2431,6 +2443,12 @@
               <label class="campo"><span>Descrição complementar padrão</span><textarea id="c-orc-descricao" maxlength="1000" rows="3"></textarea></label>
               <label class="campo"><span>Observações padrão</span><textarea id="c-orc-obs" maxlength="1000" rows="3"></textarea></label>
 
+              <h3 class="subtitulo-config">Mensagem do WhatsApp</h3>
+              <div class="wpp-campos" id="c-wpp-campos" aria-label="Inserir campo na mensagem"></div>
+              <textarea id="c-orc-wpp" maxlength="1000" rows="3" aria-label="Mensagem do WhatsApp"></textarea>
+              <p class="wpp-previa"><span>Prévia</span><span id="c-wpp-previa"></span></p>
+              <button type="button" class="botao-texto" id="c-wpp-padrao">Voltar à mensagem padrão</button>
+
               <h3 class="subtitulo-config">Exibir no PDF</h3>
               <div class="chaves-grade" id="c-orc-pdf"></div>
               <div class="linha">
@@ -2507,13 +2525,10 @@
       <div class="lg-copo-corpo" id="lg-copo-corpo"></div>
     </dialog>
 
-    <dialog class="dialogo dialogo-novidade" id="dialogo-novidade" aria-labelledby="novidade-titulo">
-      <span class="novidade-icone" id="novidade-icone" aria-hidden="true"></span>
-      <h2 id="novidade-titulo"></h2>
-      <p id="novidade-texto"></p>
-      <ul id="novidade-itens"></ul>
-      <label class="chave-linha"><input type="checkbox" class="chave" role="switch" id="novidade-ocultar" /> Não mostrar novamente esta mensagem</label>
-      <div class="novidade-rodape"><button type="button" class="botao-primario" id="novidade-ok"></button></div>
+    <dialog class="dialogo dialogo-novidades" id="dialogo-novidades" aria-labelledby="novidades-titulo">
+      <h2 id="novidades-titulo">Novidades</h2>
+      <ul class="novidades-lista" id="novidades-lista"></ul>
+      <div class="novidade-rodape"><button type="button" class="botao-primario" id="novidades-fechar" autofocus>Fechar</button></div>
     </dialog>
 
     <dialog class="dialogo dialogo-pequeno dialogo-mensagem" id="dialogo-atualizacao" aria-labelledby="atualizacao-titulo" aria-describedby="atualizacao-texto">

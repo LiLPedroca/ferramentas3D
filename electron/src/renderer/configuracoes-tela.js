@@ -4,6 +4,9 @@ import { abrirSeletorFatiador } from "./fatiador-ui.js";
 import { aoMudarConfig, confirmar, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
 import { abrirImagem, arquivoEhHeic } from "./imagem-arquivo.js";
+import modeloWhatsapp from "../core/whatsapp-orcamento.cjs";
+
+const { CAMPOS_MENSAGEM, MENSAGEM_PADRAO, montarMensagem } = modeloWhatsapp;
 
 const $ = (id) => document.getElementById(id);
 
@@ -123,6 +126,8 @@ function preencher() {
   marcarChaves($("c-orc-formas"), o.formasPagamento ?? []);
   $("c-orc-descricao").value = o.descricaoComplementar ?? "";
   $("c-orc-obs").value = o.observacoes ?? "";
+  $("c-orc-wpp").value = o.mensagemWhatsapp || MENSAGEM_PADRAO;
+  mostrarPreviaWhatsapp();
   marcarChaves($("c-orc-pdf"), Object.entries(o.exibirPdf ?? {}).filter(([, v]) => v).map(([k2]) => k2));
   $("c-orc-arquivo").value = o.nomeArquivo === "manual" ? "manual" : "automatico";
   $("c-orc-numero").value = String(o.proximoNumero ?? 1);
@@ -182,6 +187,8 @@ async function salvarOrcamento(ev) {
       formasPagamento: chavesMarcadas($("c-orc-formas")),
       descricaoComplementar: $("c-orc-descricao").value,
       observacoes: $("c-orc-obs").value,
+      // Igual à padrão: guarda vazio, para seguir a padrão se ela mudar.
+      mensagemWhatsapp: $("c-orc-wpp").value.trim() === MENSAGEM_PADRAO ? "" : $("c-orc-wpp").value,
       exibirPdf: Object.fromEntries(CAMPOS_PDF.map(([k]) => [k, pdf.includes(k)])),
       nomeArquivo: $("c-orc-arquivo").value,
       proximoNumero: $("c-orc-numero").value,
@@ -268,7 +275,40 @@ async function mostrarPastas() {
   );
 }
 
+// ---------- Mensagem do WhatsApp ----------
+function mostrarPreviaWhatsapp() {
+  const validade = new Date(Date.now() + 7 * 864e5).toLocaleDateString("pt-BR");
+  $("c-wpp-previa").textContent = montarMensagem($("c-orc-wpp").value, { cliente: "Maria", numero: "0012", total: "R$ 330,00", validade });
+}
+
+function inserirCampoWhatsapp(chave) {
+  const t = $("c-orc-wpp");
+  const inicio = t.selectionStart ?? t.value.length;
+  const fim = t.selectionEnd ?? t.value.length;
+  t.setRangeText(`{${chave}}`, inicio, fim, "end");
+  t.focus();
+  mostrarPreviaWhatsapp();
+}
+
+function montarCamposWhatsapp() {
+  $("c-wpp-campos").replaceChildren(
+    ...CAMPOS_MENSAGEM.map((c) => {
+      const b = el("button", "botao-secundario wpp-campo", `+ ${c.rotulo}`);
+      b.type = "button";
+      b.title = `Inserir {${c.chave}}`;
+      b.addEventListener("click", () => inserirCampoWhatsapp(c.chave));
+      return b;
+    }),
+  );
+  $("c-orc-wpp").addEventListener("input", mostrarPreviaWhatsapp);
+  $("c-wpp-padrao").addEventListener("click", () => {
+    $("c-orc-wpp").value = MENSAGEM_PADRAO;
+    mostrarPreviaWhatsapp();
+  });
+}
+
 export function iniciarConfiguracoes() {
+  montarCamposWhatsapp();
   montarChaves($("c-orc-formas"), FORMAS, "c-orc-forma");
   montarChaves($("c-orc-pdf"), CAMPOS_PDF, "c-orc-pdf");
   for (const b of document.querySelectorAll(".config-aba")) b.addEventListener("click", () => mostrarSecao(b.dataset.secao));

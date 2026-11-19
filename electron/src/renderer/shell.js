@@ -2,7 +2,7 @@
 // verificação de atualizações e a pergunta do nome na primeira abertura.
 import { DESTAQUES, FERRAMENTAS, GRUPOS } from "../core/ferramentas.js";
 import { gruposVisiveis } from "../core/inicio.js";
-import { novidadeDaTela } from "../core/novidades.js";
+import { listaDeNovidades, temNovidade } from "../core/novidades.js";
 import { icone } from "./icones.js";
 
 const $ = (id) => document.getElementById(id);
@@ -98,40 +98,57 @@ export function irPara(destino, { voltando = false } = {}) {
   marcarMenuAtivo();
   fecharMenu();
   aoAbrir.get(destino)?.();
-  mostrarNovidade(destino);
 }
 
-// ---------- Aviso de novidade ----------
-let novidadeAberta = null;
+// ---------- Novidades (botão no topo) ----------
+// Depois de uma atualização, o botão chama atenção até a pessoa abrir a lista.
+const versaoAtual = () => (typeof __VERSAO__ === "undefined" ? "0.0.0" : __VERSAO__); // testes rodam sem o bundle
 
-function mostrarNovidade(tela) {
-  const versao = typeof __VERSAO__ === "undefined" ? "0.0.0" : __VERSAO__; // testes rodam sem o bundle
-  const n = novidadeDaTela(tela, estado.config, versao);
-  if (!n || $("dialogo-novidade").open) return;
-  novidadeAberta = n;
-  $("novidade-icone").innerHTML = icone(n.icone, 28);
-  $("novidade-titulo").textContent = n.titulo;
-  $("novidade-texto").textContent = n.texto;
-  $("novidade-itens").replaceChildren(
+function atualizarBotaoNovidades() {
+  $("novidades").classList.toggle("chamando", temNovidade(estado.config, versaoAtual()));
+}
+
+function cartaoNovidade(n) {
+  const li = document.createElement("li");
+  li.className = `novidade-cartao${n.nova ? " nova" : ""}`;
+  const iconeEl = document.createElement("span");
+  iconeEl.className = "novidade-icone";
+  iconeEl.innerHTML = icone(n.icone, 22);
+  const corpo = document.createElement("div");
+  const titulo = document.createElement("h3");
+  titulo.textContent = n.titulo;
+  if (n.nova) {
+    const chip = document.createElement("span");
+    chip.className = "novidade-chip";
+    chip.textContent = "Novo";
+    titulo.append(" ", chip);
+  }
+  const texto = document.createElement("p");
+  texto.textContent = n.texto;
+  const itens = document.createElement("ul");
+  itens.append(
     ...n.itens.map((t) => {
-      const li = document.createElement("li");
-      li.textContent = t;
-      return li;
+      const i = document.createElement("li");
+      i.textContent = t;
+      return i;
     }),
   );
-  $("novidade-ocultar").checked = false;
-  $("novidade-ok").textContent = `${n.botao} →`;
-  $("dialogo-novidade").showModal();
+  const versao = document.createElement("span");
+  versao.className = "novidade-versao";
+  versao.textContent = `Versão ${n.versao}`;
+  corpo.append(titulo, texto, itens, versao);
+  li.append(iconeEl, corpo);
+  return li;
 }
 
-async function fecharNovidade() {
-  const n = novidadeAberta;
-  novidadeAberta = null;
-  if ($("dialogo-novidade").open) $("dialogo-novidade").close();
-  if (!n) return;
-  const alteracao = { novidadesVistas: [...(estado.config.novidadesVistas ?? []), n.id] };
-  if ($("novidade-ocultar").checked) alteracao.ocultarNovidades = true;
-  await salvarConfig(alteracao);
+async function abrirNovidades() {
+  $("novidades-lista").replaceChildren(...listaDeNovidades(estado.config, versaoAtual()).map(cartaoNovidade));
+  $("dialogo-novidades").showModal();
+  $("novidades-lista").scrollTop = 0;
+  if ($("novidades").classList.contains("chamando")) {
+    $("novidades").classList.remove("chamando");
+    await salvarConfig({ novidadesVistoAte: versaoAtual() });
+  }
 }
 
 // ---------- Menu lateral ----------
@@ -431,6 +448,7 @@ export async function carregarConfig() {
   ouvintesConfig.forEach((f) => f(estado.config));
   // Primeira abertura registrada: quem já usava (nome já perguntado) vê as novidades desde o início.
   if (!estado.config.primeiraVersao) await salvarConfig({ primeiraVersao: estado.config.nomePerguntado ? "0.0.0" : __VERSAO__ });
+  atualizarBotaoNovidades();
   if (!estado.config.nomePerguntado) perguntarNome();
 }
 
@@ -456,11 +474,8 @@ export function iniciarShell() {
   $("atualizacao-agora").addEventListener("click", atualizarAgora);
   $("atualizacao-depois").addEventListener("click", () => $("dialogo-atualizacao-pronta").close());
   window.atualizacao?.aoFicarPronta?.(mostrarAtualizacaoPronta);
-  $("novidade-ok").addEventListener("click", fecharNovidade);
-  $("dialogo-novidade").addEventListener("cancel", (ev) => {
-    ev.preventDefault();
-    fecharNovidade();
-  });
+  $("novidades").addEventListener("click", abrirNovidades);
+  $("novidades-fechar").addEventListener("click", () => $("dialogo-novidades").close());
 
   $("form-boas-vindas").addEventListener("submit", aoEnviarNome);
   $("bv-pular").addEventListener("click", pularNome);

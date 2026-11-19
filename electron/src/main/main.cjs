@@ -142,6 +142,23 @@ async function verificarManualmente() {
   }
 }
 
+// Põe arquivos na área de transferência do jeito do Explorador (Ctrl+V cola o arquivo).
+// Os caminhos vão por variável de ambiente, nunca dentro do comando.
+function copiarArquivosParaAreaDeTransferencia(arquivos) {
+  const { execFile } = require("node:child_process");
+  const env = { ...process.env };
+  arquivos.forEach((c, i) => (env[`FERRAMENTAS_ARQ${i}`] = c));
+  const lista = arquivos.map((_c, i) => `$env:FERRAMENTAS_ARQ${i}`).join(",");
+  return new Promise((resolve) => {
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", `Set-Clipboard -LiteralPath @(${lista})`],
+      { env, windowsHide: true, timeout: 15000 },
+      (erro) => resolve(!erro),
+    );
+  });
+}
+
 // Só aceita chamadas vindas das páginas do próprio programa.
 const daTela = (evento) => evento.senderFrame?.url?.startsWith("file://");
 
@@ -485,6 +502,34 @@ function registrarDados() {
       })(),
     );
   });
+  // Orçamentos que já têm PDF gerado (o histórico mostra o botão do WhatsApp neles).
+  ipcMain.handle("orcamentos:com-pdf", comTela(() => pdfsOrcamentos.idsComPdf()));
+  // Enviar pelo WhatsApp (sem API): copia o PDF para a área de transferência (como o Explorador
+  // copia um arquivo) e abre a conversa do cliente direto no aplicativo, com a mensagem pronta.
+  // Se não der para copiar, abre a pasta com o PDF selecionado para arrastar.
+  ipcMain.handle(
+    "orcamentos:whatsapp",
+    comTela(async (_e, id) => {
+      const wpp = require("../core/whatsapp-orcamento.cjs");
+      const orcamento = (await orcamentos.listar()).find((o) => o.id === String(id));
+      if (!orcamento) throw new ErroValidacao("Este orçamento não existe mais.");
+      const numero = wpp.numeroWhatsapp(orcamento.cliente?.telefone);
+      if (!numero) throw new ErroValidacao("Cadastre o telefone do cliente.");
+      const arquivos = await pdfsOrcamentos.arquivos(orcamento.id);
+      if (!arquivos.length) throw new ErroValidacao("Gere o PDF do orçamento antes de enviar.");
+      const config = await configuracoes.ler();
+      const mensagem = wpp.montarMensagem(config.orcamento?.mensagemWhatsapp, wpp.valoresDaMensagem(orcamento));
+      const copiado = await copiarArquivosParaAreaDeTransferencia(arquivos);
+      if (process.env.FERRAMENTAS_CAPTURA) return { copiado, link: wpp.linkAppWhatsapp(numero, mensagem) };
+      if (!copiado) shell.showItemInFolder(arquivos[0]);
+      try {
+        await shell.openExternal(wpp.linkAppWhatsapp(numero, mensagem));
+      } catch {
+        await shell.openExternal(wpp.linkWebWhatsapp(numero, mensagem)); // sem o aplicativo: navegador
+      }
+      return { copiado };
+    }),
+  );
   // As duas versões do orçamento (gravação a laser: frente / frente e verso), uma em cada PDF,
   // na pasta Orçamentos. O cliente escolhe; o orçamento continua com a versão marcada.
   ipcMain.handle(
@@ -510,6 +555,7 @@ function registrarDados() {
         await gravarPdf(destino, pdf);
         caminhos.push(destino);
       }
+      await pdfsOrcamentos.lembrar(orcamento.id, caminhos);
       if (!process.env.FERRAMENTAS_PDF_DESTINO) for (const c of caminhos) shell.openPath(c);
       return { caminhos };
     }),
