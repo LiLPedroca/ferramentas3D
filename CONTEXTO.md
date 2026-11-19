@@ -895,6 +895,8 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 
 ## Trabalho do Claude Code (19/11/2026) — Copo 3 em multipartes (v0.71.0, PUBLICADA com 0.69.0/0.70.x)
 
+- **Release v0.71.0 publicada** (push da `electron` + 3 arquivos), levando 0.69.0, 0.70.0 e 0.70.1.
+
 - `assets/copos/3-multipartes.3mf` a partir de `Desktop/Modelagem/Copo 3 otimizados/Copo 3 {base,tubo,argola} otimizado.3mf` (divididos pelo Codex; originais não alterados): `preparar_multipartes.py --copo 3 --sem-assinatura ...`.
 - A base do Codex **já vem assinada**: lâmina 0–0,2 mm branca com logo/site/Instagram pintados em preto (`paint_color="4"`, 20.786 triângulos, lido certo de baixo). Mantida como está; o script agora conserva a pintura (`pintura_preto_branco`: "10"/vazias somem, 3º filamento vira branco) em vez de apagar tudo.
 - As malhas do Copo 3 vêm no meio da mesa (centro ≈ 128,128), não na origem: o script agora desconta o centro da peça na posição da placa.
