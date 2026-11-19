@@ -891,3 +891,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Novidade `copo2-multipartes` (texto aprovado pelo Pedro). Testes: 529 npm, 29 Python (`test_preparar_multipartes.py` novo).
 - **Não conferido:** abrir na janela do Anycubic; impressão física da assinatura e do encaixe base/tubo/argola do Copo 2 V6. O Copo 2 **completo** do catálogo continua sendo o Monster antigo (não é a V6).
 - **Pendente:** Pedro instalar `ProgramaFerramentas3D-Setup-0.70.0.exe` e testar; publicar só quando ele aprovar (a 0.69.0 também ainda não foi publicada).
+- **v0.70.1 (só local):** `copos.css` forçava `cursor: not-allowed` em "Exportar em multipartes" sempre (sobra do "Em breve"); o Pedro achou que estava bloqueado. Agora só `.copos-exportar button:disabled` (com opacidade). Conferido na captura: Copo 1/2 `pointer`, Copo 3 `not-allowed`.
