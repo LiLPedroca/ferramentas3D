@@ -867,3 +867,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - 518 testes. Conferido PDF com QR no modo de captura. **Não conferido:** ler o QR com app de banco.
 - **Pendente:** Pedro testar; publicar quando aprovar.
 - **19/11/2026:** Pedro leu o QR com o app do banco: valor e recebedor certos. QR do Pix conferido.
+- **19/11/2026:** Pedro aprovou ("pode publicar"). Release **v0.68.0 PUBLICADA**.
