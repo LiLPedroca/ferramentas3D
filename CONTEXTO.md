@@ -943,3 +943,13 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Tela: cartão "Seus STL e 3MF no Google Drive" em Conta e nuvem com 3 estados (sem Drive: 3 passos + "Baixar o Google Drive"/"Já instalei"; achado: "Usar o Google Drive"; em uso: ✓ e o caminho). Reconfere ao voltar para a janela. Depois do primeiro login no PC (`localStorage` `drive-perguntado`) pergunta "Guardar seus STL e 3MF no Google Drive?".
 - Novidade `drive-modelos` (texto precisa da aprovação do Pedro). 557 testes (6 novos em `google-drive.test.js`). Conferido no modo de captura: os 3 estados e a cópia de 2 arquivos para um "Meu Drive" falso com espaço/acento.
 - **Não conferido:** com o Google Drive para computador de verdade; a pergunta depois do login (precisa de login real).
+
+## Trabalho do Claude Code (21/11/2026) — PDFs na nuvem da conta (v0.74.0, só local)
+
+- **Pedido do Pedro:** no PC de casa as pastas Orçamentos/Recibos/Etiquetas estavam vazias (a nuvem levava só os dados). Ele escolheu **subir o PDF original** (não refazer: o PDF refeito pode sair diferente do que o cliente recebeu, se logo/Pix/empresa mudaram). Compressão só sem perda.
+- `main/pdfs-nuvem.cjs`: `pdfs.json` (lista sincronizada: `id` = `pdf-` + sha1 de `tipo/nome`, `tipo`, `nome`, `tamanho`, `sha` sha256, datas) + `pdfs-locais.json` (só do PC: id -> caminho). `registrar(tipo, caminho, bytes)` é chamado depois de cada PDF gravado (orçamento, orçamento com versões, recibo, etiquetas). `registrarPastas()` inclui os PDFs que já estavam nas 3 pastas (ao abrir com sessão e ao entrar).
+- Conteúdo: gzip nível 9 (sem perda) em bytes (`bytesValue`, não base64 guardado) em `usuarios/<uid>/arquivos/<id>~<sha16>~<n>` (partes de 900 KB) + `usuarios/<uid>/arquivos/<id>~<sha16>` com `partes` (gravado por último). `nuvem.gravarArquivo`/`lerArquivo`.
+- Motor: ganchos por coleção `antesDeEnviar` (sobe o arquivo; PDF apagado/trocado aqui fica fora) e `depoisDeReceber` (baixa, confere o sha256, grava na pasta do tipo em Minhas pastas). Nunca sobrescreve arquivo do usuário com o mesmo nome: vira `nome (2).pdf`. Substitui só a cópia que ele mesmo baixou (PDF refeito no outro PC).
+- **Não muda:** o mapa `pdfs-orcamentos.json` (orçamento -> PDF) continua por PC; no outro PC "Gerar PDF" ainda pergunta onde salvar. Etiquetas/PDFs salvos fora das 3 pastas sobem, mas descem nas pastas do programa.
+- Novidade `pdfs-nuvem` (texto precisa da aprovação do Pedro). 564 testes (7 em `pdfs-nuvem.test.js`). Conferido no modo de captura: PDF real de orçamento (56 KB) entra em `pdfs.json`.
+- **Não conferido:** subir/baixar contra o Firestore de verdade (regras já cobrem `usuarios/<uid>/arquivos`).

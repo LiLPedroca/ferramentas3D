@@ -59,7 +59,45 @@ function criarNuvem({ projectId, token, fetch = globalThis.fetch }) {
     ];
   }
 
+  // Arquivos (PDFs): bytes em partes de até 900 KB em usuarios/<uid>/arquivos/<chave>~<n>,
+  // e o documento usuarios/<uid>/arquivos/<chave> diz quantas partes há (gravado por último).
+  const PARTE_BYTES = 900_000;
+  const nomeArquivo = (uid, chave, n) => `${raiz}/usuarios/${uid}/arquivos/${chave}${n === undefined ? "" : `~${n}`}`;
+
+  async function gravarArquivo(uid, chave, bytes) {
+    const partes = Math.max(1, Math.ceil(bytes.length / PARTE_BYTES));
+    let lote = [];
+    let tamanho = 0;
+    for (let n = 0; n < partes; n++) {
+      const pedaco = Buffer.from(bytes.subarray(n * PARTE_BYTES, (n + 1) * PARTE_BYTES)).toString("base64");
+      if (lote.length && tamanho + pedaco.length > LIMITE_COMMIT) {
+        await chamar(":commit", { writes: lote });
+        lote = [];
+        tamanho = 0;
+      }
+      lote.push({ update: { name: nomeArquivo(uid, chave, n), fields: { dados: { bytesValue: pedaco } } } });
+      tamanho += pedaco.length;
+    }
+    lote.push({ update: { name: nomeArquivo(uid, chave), fields: { partes: { integerValue: String(partes) }, tamanho: { integerValue: String(bytes.length) } } } });
+    await chamar(":commit", { writes: lote });
+  }
+
+  async function lerArquivo(uid, chave) {
+    const principal = await chamar(`/usuarios/${uid}/arquivos/${chave}`, undefined, "GET");
+    const partes = Number(principal?.fields?.partes?.integerValue ?? 0);
+    if (!partes) throw new ErroNuvem("Arquivo incompleto na nuvem.", 404);
+    const pedacos = [];
+    for (let n = 0; n < partes; n++) {
+      const doc = await chamar(`/usuarios/${uid}/arquivos/${chave}~${n}`, undefined, "GET");
+      pedacos.push(Buffer.from(doc?.fields?.dados?.bytesValue ?? "", "base64"));
+    }
+    return Buffer.concat(pedacos);
+  }
+
   return {
+    gravarArquivo,
+    lerArquivo,
+
     // alteracoes: [{ id, item | null }]. Junta em poucas gravações, cada uma atômica.
     async gravar(uid, colecao, alteracoes) {
       let lote = [];

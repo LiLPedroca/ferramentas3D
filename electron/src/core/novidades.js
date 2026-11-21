@@ -534,6 +534,16 @@ export const NOVIDADES = [
     itens: ["Em Configurações > Conta e nuvem", "O programa acha o Google Drive sozinho", "Os modelos que você já tem são copiados"],
     botao: "Usar o Google Drive",
   },
+  {
+    id: "pdfs-nuvem",
+    versao: "0.74.0",
+    tela: "orcamentos",
+    icone: "orcamentos",
+    titulo: "Seus PDFs em qualquer PC",
+    texto: "Com a conta, os PDFs que você gera vão junto para os outros PCs, iguaizinhos ao que o cliente recebeu.",
+    itens: ["Orçamentos, recibos e etiquetas", "Aparecem nas pastas do programa nos outros PCs", "Nada é refeito: é o mesmo arquivo"],
+    botao: "Ver orçamentos",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

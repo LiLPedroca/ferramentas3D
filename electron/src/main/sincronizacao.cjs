@@ -45,7 +45,8 @@ function criarSincronizacao({ pasta, conta, nuvem, colecoes, configuracoes, aoMu
   const desdeCom = (ultimo) => (ultimo ? new Date(Math.max(0, Date.parse(ultimo) - MARGEM_MS)).toISOString() : "");
 
   // Uma coleção (ou as configurações): desce, junta, sobe. Devolve true se mudou algo aqui.
-  async function sincronizarUma(uid, estado, nome, { ler, gravar, validar }) {
+  // antesDeEnviar(uid, itens) -> itens que podem subir; depoisDeReceber(uid, itens): ganchos dos PDFs.
+  async function sincronizarUma(uid, estado, nome, { ler, gravar, validar, antesDeEnviar, depoisDeReceber }) {
     const st = estado.colecoes[nome] ?? { ultimo: "", base: {} };
     const { remotos, ultimo } = await nuvem.mudancas(uid, nome, desdeCom(st.ultimo));
 
@@ -58,10 +59,18 @@ function criarSincronizacao({ pasta, conta, nuvem, colecoes, configuracoes, aoMu
     st.ultimo = ultimo || st.ultimo;
     estado.colecoes[nome] = st;
 
-    const alteracoes = [...m.enviar.map((item) => ({ id: item.id, item })), ...m.excluir.map((id) => ({ id, item: null }))];
+    if (depoisDeReceber) {
+      // Itens da nuvem que valem aqui (inclusive os já conhecidos, se o arquivo faltar).
+      const finais = new Map(m.itens.map((i) => [i.id, resumo(i)]));
+      const valem = remotos.filter((r) => r.item && finais.get(r.id) === resumo(r.item)).map((r) => r.item);
+      if (valem.length) await depoisDeReceber(uid, valem);
+    }
+
+    const enviar = antesDeEnviar && m.enviar.length ? await antesDeEnviar(uid, m.enviar) : m.enviar;
+    const alteracoes = [...enviar.map((item) => ({ id: item.id, item })), ...m.excluir.map((id) => ({ id, item: null }))];
     if (alteracoes.length) {
       await nuvem.gravar(uid, nome, alteracoes);
-      for (const item of m.enviar) st.base[item.id] = resumo(item);
+      for (const item of enviar) st.base[item.id] = resumo(item);
       for (const id of m.excluir) delete st.base[id];
     }
     await gravarEstado(estado);
@@ -78,9 +87,11 @@ function criarSincronizacao({ pasta, conta, nuvem, colecoes, configuracoes, aoMu
       let estado = await lerEstado();
       if (estado.uid !== sessao.uid) estado = { versao: 1, uid: sessao.uid, ultima: "", colecoes: {} };
 
-      for (const [nome, { colecao, validar }] of Object.entries(colecoes)) {
+      for (const [nome, { colecao, validar, antesDeEnviar, depoisDeReceber }] of Object.entries(colecoes)) {
         const mudou = await sincronizarUma(sessao.uid, estado, nome, {
           validar,
+          antesDeEnviar,
+          depoisDeReceber,
           ler: () => colecao.ler(),
           gravar: (juntar) =>
             colecao.alterar(async (itens) => {

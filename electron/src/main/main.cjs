@@ -516,6 +516,7 @@ function registrarDados() {
           footerTemplate: RODAPE_PDF,
         });
         await gravarPdf(destino, pdf);
+        await guardarPdf("orcamentos", destino, pdf);
         await pdfsOrcamentos.lembrar(id, destino);
         if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
         return { caminho: destino, atualizado };
@@ -568,6 +569,7 @@ function registrarDados() {
     }
     const pdf = await htmlParaPdf(rec.gerarHtmlRecibo({ venda, orcamento, empresa: config.empresa, linha, numero, assinar: assinar === true }));
     await gravarPdf(destino, pdf);
+    await guardarPdf("recibos", destino, pdf);
     await financeiro.registrarRecibo(venda.id, { numero, pagamentoId: linha.pagamento.id, tipo: linha.tipo, data: linha.pagamento.data, valorCentavos: linha.pagamento.valorCentavos, caminho: destino });
     if (!linha.recibo) await configuracoes.salvar({ ultimoRecibo: numero });
     return { numero, caminho: destino, venda, orcamento };
@@ -615,6 +617,7 @@ function registrarDados() {
         });
         const destino = path.join(pasta, `${base} - ${rotulo}.pdf`);
         await gravarPdf(destino, pdf);
+        await guardarPdf("orcamentos", destino, pdf);
         caminhos.push(destino);
       }
       await pdfsOrcamentos.lembrar(orcamento.id, caminhos);
@@ -659,6 +662,7 @@ function registrarDados() {
         }
         const pdf = await htmlParaPdf(html);
         await require("node:fs/promises").writeFile(destino, pdf);
+        await guardarPdf("etiquetas", destino, pdf);
         if (!process.env.FERRAMENTAS_PDF_DESTINO) shell.openPath(destino);
         return { destino, quantidade: etiquetas.length };
       })(),
@@ -680,6 +684,9 @@ function registrarDados() {
   // FERRAMENTAS_PASTAS (testes) troca Documentos\Programa Ferramentas 3D por outra pasta.
   const pastasUsuario = criarPastasUsuario(process.env.FERRAMENTAS_PASTAS || path.join(app.getPath("documents"), NOME_RAIZ));
   const pdfsOrcamentos = criarPdfsOrcamentos(pasta);
+  // PDFs gerados aqui vão para a nuvem da conta (e descem nos outros PCs).
+  const pdfsNuvem = require("./pdfs-nuvem.cjs").criarPdfsNuvem({ pasta, pastaDe: (tipo) => pastasUsuario.garantir(tipo) });
+  const guardarPdf = (tipo, caminho, bytes) => pdfsNuvem.registrar(tipo, caminho, Buffer.from(bytes)).catch((erro) => console.error("PDF na nuvem:", erro));
   ipcMain.handle("rascunho:ler", comTela(() => rascunho.ler()));
   ipcMain.handle(
     "rascunho:salvar",
@@ -835,27 +842,39 @@ function registrarDados() {
   const { validarFilamento } = require("../core/filamento.cjs");
   const { validarVenda, validarDespesa } = require("../core/financeiro.cjs");
   const validadores = { produtos: validarProduto, clientes: validarCliente, orcamentos: validarOrcamento, favoritos: validarFavorito, projetos: validarProjeto, filamentos: validarFilamento, vendas: validarVenda, despesas: validarDespesa };
+  const nuvem = criarNuvem({ projectId: firebaseConfig.projectId, token: () => conta.token() });
   const sincronizacao = criarSincronizacao({
     pasta,
     conta,
-    nuvem: criarNuvem({ projectId: firebaseConfig.projectId, token: () => conta.token() }),
-    colecoes: Object.fromEntries(COLECOES_NUVEM.map((n) => [n, { colecao: servicosNuvem[n].colecao, validar: validadores[n] }])),
+    nuvem,
+    colecoes: {
+      ...Object.fromEntries(COLECOES_NUVEM.map((n) => [n, { colecao: servicosNuvem[n].colecao, validar: validadores[n] }])),
+      // PDFs: a lista sincroniza como os cadastros; o arquivo sobe/desce pelos ganchos.
+      pdfs: {
+        colecao: pdfsNuvem.colecao,
+        validar: pdfsNuvem.validar,
+        antesDeEnviar: (uid, itens) => pdfsNuvem.antesDeEnviar(nuvem, uid, itens),
+        depoisDeReceber: (uid, itens) => pdfsNuvem.depoisDeReceber(nuvem, uid, itens),
+      },
+    },
     configuracoes,
     aoMudar: (aviso) => {
       for (const j of BrowserWindow.getAllWindows()) if (!j.isDestroyed()) j.webContents.send("conta:mudou", aviso);
     },
   });
-  const ARQUIVOS_NUVEM = new Set([...COLECOES_NUVEM, "configuracoes"]);
+  const ARQUIVOS_NUVEM = new Set([...COLECOES_NUVEM, "configuracoes", "pdfs"]);
   aoGravar((nome) => {
     if (ARQUIVOS_NUVEM.has(nome)) conta.estado().then((s) => s && sincronizacao.pedir());
   });
   const resumoConta = async () => ({ conta: await conta.estado(), google: conta.googleDisponivel(), ...(await sincronizacao.situacao()) });
   // Depois de entrar: sincroniza em segundo plano (a tela acompanha pelo aviso conta:mudou).
+  // Antes de sincronizar ao entrar/abrir: PDFs que já estavam nas pastas entram na lista.
+  const comPdfsDasPastas = () => pdfsNuvem.registrarPastas().catch((erro) => console.error("PDFs das pastas:", erro));
   const entrou = async (promessa) => {
     await promessa;
     await sincronizacao.esquecer();
     sincronizacao.iniciarRelogio();
-    sincronizacao.sincronizar();
+    comPdfsDasPastas().then(() => sincronizacao.sincronizar());
     return resumoConta();
   };
   ipcMain.handle("conta:estado", comTela(() => resumoConta()));
@@ -878,7 +897,7 @@ function registrarDados() {
     conta.estado().then((s) => {
       if (!s) return;
       sincronizacao.iniciarRelogio();
-      prontoTeste.then(() => sincronizacao.sincronizar());
+      prontoTeste.then(comPdfsDasPastas).then(() => sincronizacao.sincronizar());
     });
     let ultimoFoco = 0;
     app.on("browser-window-focus", () => {
