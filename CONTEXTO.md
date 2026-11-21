@@ -905,7 +905,10 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Sem entrada nova em NOVIDADES (texto precisa de aprovação do Pedro); o botão mostra as da 0.70.0.
 - **Não conferido:** janela do Anycubic; impressão/encaixe das peças do Copo 3.
 
-## Trabalho do Claude Code (21/11/2026) — Conta e sincronização na nuvem (v0.72.0, só local)
+## Trabalho do Claude Code (21/11/2026) — Conta e sincronização na nuvem (v0.72.1, PUBLICADA)
+
+- **Release v0.72.1 publicada** (push da `electron` + 3 arquivos), aprovada pelo Pedro junto com o texto da novidade `conta-nuvem`. Os commits locais da 0.72.0/0.72.1 foram juntados num só antes do push (autorizado pelo Pedro) para tirar o cliente OAuth do histórico.
+
 
 - **Pedido do Pedro:** entrar no trabalho e em casa e ver os mesmos dados. Login opcional; STL/3MF não vão para a nuvem (ficam na pasta Modelos 3D, que pode ir para o Google Drive).
 - **Firebase** (projeto `ferramenta3d-af2c6`, plano Spark, criado pelo Pedro): Authentication com e-mail/senha e Google; Firestore em São Paulo. Sem SDK: tudo pela API REST no processo principal (a CSP da tela não mudou).
@@ -927,7 +930,7 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
     }
   }
   ```
-- Novidade `conta-nuvem` (texto ainda precisa da aprovação do Pedro). 551 testes (21 novos em `sincronizacao.test.js`, 1 em `pastas-usuario.test.js`). Conferido no modo de captura: aba Conta (erro de e-mail) e mudar a pasta para caminho com espaço/acento.
+- Novidade `conta-nuvem` (texto aprovado pelo Pedro). 551 testes (21 novos em `sincronizacao.test.js`, 1 em `pastas-usuario.test.js`). Conferido no modo de captura: aba Conta (erro de e-mail) e mudar a pasta para caminho com espaço/acento.
 - **v0.72.1:** cliente OAuth "App para computador" (`Programa`); botão "Entrar com Google" visível. O ID e a chave do cliente ficam em `electron/src/main/google-oauth.local.cjs`, **fora do git** (`.gitignore`; o GitHub bloqueou o push por ser repositório público), mas entram no instalador. Sem esse arquivo o botão do Google some; e-mail/senha continuam. O arquivo está só no PC do Pedro (cópia do JSON baixado do Google Cloud). Regras do Firestore publicadas pelo Pedro. **Conferido pelo Pedro no programa instalado:** login funcionou (recebeu o e-mail de aviso do Google).
 - **Conferido pelo Pedro (21/11):** instalou a 0.72.1 no PC de casa (via Parsec), entrou na mesma conta e os dados do PC do trabalho desceram (inclusive os de 19/11, de antes da sincronização existir).
 - **Limites conhecidos:** entrar numa conta diferente no mesmo PC junta os dados do PC na conta nova. Número do orçamento (`proximoNumero`) pode repetir se dois PCs criarem orçamentos sem internet ao mesmo tempo. Remoções na nuvem ficam como marca `excluido` (não somem).
