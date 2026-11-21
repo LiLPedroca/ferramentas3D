@@ -955,4 +955,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Motor: ganchos por coleção `antesDeEnviar` (sobe o arquivo; PDF apagado/trocado aqui fica fora) e `depoisDeReceber` (baixa, confere o sha256, grava na pasta do tipo em Minhas pastas). Nunca sobrescreve arquivo do usuário com o mesmo nome: vira `nome (2).pdf`. Substitui só a cópia que ele mesmo baixou (PDF refeito no outro PC).
 - **Não muda:** o mapa `pdfs-orcamentos.json` (orçamento -> PDF) continua por PC; no outro PC "Gerar PDF" ainda pergunta onde salvar. Etiquetas/PDFs salvos fora das 3 pastas sobem, mas descem nas pastas do programa.
 - Novidade `pdfs-nuvem` (publicada na v0.74.0). 564 testes (7 em `pdfs-nuvem.test.js`). Conferido no modo de captura: PDF real de orçamento (56 KB) entra em `pdfs.json`.
-- **Não conferido:** subir/baixar contra o Firestore de verdade (regras já cobrem `usuarios/<uid>/arquivos`).
+- **Conferido pelo Pedro (21/11):** com os dois PCs na v0.74.0, o PDF do orçamento sincronizou e apareceu nos dois.
