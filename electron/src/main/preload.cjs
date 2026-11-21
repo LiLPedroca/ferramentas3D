@@ -47,6 +47,18 @@ contextBridge.exposeInMainWorld("fatiador", {
   abrir: (bytes, nome, extensao) => ipcRenderer.invoke("fatiador:abrir", bytes ?? null, nome ?? null, extensao ?? null),
 });
 
+contextBridge.exposeInMainWorld("conta", {
+  estado: () => ipcRenderer.invoke("conta:estado"),
+  entrar: (email, senha) => ipcRenderer.invoke("conta:entrar", email, senha),
+  criar: (email, senha) => ipcRenderer.invoke("conta:criar", email, senha),
+  google: () => ipcRenderer.invoke("conta:google"),
+  esqueci: (email) => ipcRenderer.invoke("conta:esqueci", email),
+  sincronizar: () => ipcRenderer.invoke("conta:sincronizar"),
+  sair: () => ipcRenderer.invoke("conta:sair"),
+  // funcao({ nomes, estado }): dados que desceram da nuvem e a situação da sincronização.
+  aoMudar: (funcao) => ipcRenderer.on("conta:mudou", (_e, aviso) => funcao(aviso)),
+});
+
 contextBridge.exposeInMainWorld("backup", {
   resumo: () => ipcRenderer.invoke("backup:resumo"),
   exportar: () => ipcRenderer.invoke("backup:exportar"),
@@ -110,6 +122,7 @@ contextBridge.exposeInMainWorld("dados", {
   pastas: {
     listar: () => ipcRenderer.invoke("pastas:listar"),
     abrir: (tipo) => ipcRenderer.invoke("pastas:abrir", tipo),
+    mudar: (tipo, padrao = false) => ipcRenderer.invoke("pastas:mudar", tipo, padrao),
   },
   config: {
     ler: () => ipcRenderer.invoke("config:ler"),

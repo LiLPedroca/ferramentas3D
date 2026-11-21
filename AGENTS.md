@@ -29,6 +29,9 @@ toda em **português do Brasil**.
 4. **Nunca apagar dados do usuário. Nunca apagar arquivos sem perguntar** (isso inclui código que
    parece morto, ver seção 8).
 5. **Não guardar dados pessoais nem chaves de API no código.**
+   Exceção combinada em 21/11/2026: a configuração do Firebase (`src/main/firebase-config.cjs`, com a
+   `apiKey`) vai no programa. Ela só identifica o projeto; quem protege os dados são as regras do
+   Firestore (cada conta só acessa `usuarios/<seu uid>`).
 6. **Cada mudança no programa vira uma release nova** (seção 5). Mudança só de documentação não
    precisa de release.
 7. `dev/statusline.py` **não** entra no repositório.

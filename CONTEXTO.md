@@ -904,3 +904,30 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - Fatiado (linha de comando, Kobra X 0.4, PETG 0,20): base 3 1h43m03s / 43,4 g; tubo 3 4h35m17s / 81,9 g; argola 3 41m31s / 14,3 g; total ≈ 7h00m / 140 g. Exportado pelo programa em 0,4 s com nomes `base 3`/`tubo 3`/`argola 3`.
 - Sem entrada nova em NOVIDADES (texto precisa de aprovação do Pedro); o botão mostra as da 0.70.0.
 - **Não conferido:** janela do Anycubic; impressão/encaixe das peças do Copo 3.
+
+## Trabalho do Claude Code (21/11/2026) — Conta e sincronização na nuvem (v0.72.0, só local)
+
+- **Pedido do Pedro:** entrar no trabalho e em casa e ver os mesmos dados. Login opcional; STL/3MF não vão para a nuvem (ficam na pasta Modelos 3D, que pode ir para o Google Drive).
+- **Firebase** (projeto `ferramenta3d-af2c6`, plano Spark, criado pelo Pedro): Authentication com e-mail/senha e Google; Firestore em São Paulo. Sem SDK: tudo pela API REST no processo principal (a CSP da tela não mudou).
+  - `main/firebase-config.cjs`: apiKey/projectId (não é segredo, ver AGENTS.md regra 5). `googleClientId` vazio = botão "Entrar com Google" escondido (falta o Pedro criar o cliente OAuth "App para computador" no Google Cloud).
+  - `main/conta.cjs`: entrar, criar conta, esqueci a senha, Google pelo navegador (PKCE + 127.0.0.1), renovação do token. Sessão em `conta.json` na pasta de dados, token de renovação cifrado com `safeStorage`.
+  - `main/nuvem.cjs`: Firestore REST. Documentos em `usuarios/<uid>/<colecao>/<id>` com `json`, `atualizadoEm`, `servidorEm` (hora do servidor) ou `excluido: true`. Item > 700 mil caracteres vai em `usuarios/<uid>/partes/<colecao>~<id>~<n>` na mesma gravação (Meus modelos com imagem de até 2 MB; o limite do Firestore é 1 MiB por documento). As imagens NÃO são reduzidas (mudaria o modelo gerado).
+  - `core/sincronizacao.cjs` (`mesclar`): compara com o resumo (sha1) da última sincronização. Mudou só aqui sobe; só lá desce; nos dois fica o `atualizadoEm` mais novo; empate no primeiro contato vale a nuvem (senão um PC novo, com configurações padrão, apagaria as da conta); excluído num PC e editado no outro mantém a edição. Releitura da mesma versão é ignorada.
+  - `main/sincronizacao.cjs`: busca só o que mudou (`servidorEm >` último, relendo 1 minuto de margem), junta dentro da fila de gravação do `Armazem` (gravação silenciosa, sem eco), sobe, grava o estado em `sincronizacao.json`. Dispara 3 s depois de cada gravação (`aoGravar` em `armazenamento.cjs`), ao abrir, a cada 5 min e ao voltar para a janela (no máx. 1 por minuto). Desligado no modo de captura.
+  - Sincronizam: produtos, clientes, orçamentos, favoritos, projetos, filamentos, vendas, despesas e as configurações da conta (`CONFIG_NUVEM`: nome, empresa, orçamento, calculadora, categorias, último recibo, calibrações, medidas, estoque). Ficam no PC: fatiador, novidades vistas, Minhas Impressões (depende dos arquivos), rascunho, PDFs.
+- **Tela:** Configurações > "Conta e nuvem" (primeira aba, `conta-tela.js`). Aviso "Chegaram dados de outro PC" com "Atualizar tela". Minhas pastas: "Mudar lugar"/"Voltar ao padrão" na pasta Modelos 3D (`pastas-locais.json`, vale só no PC; `FERRAMENTAS_PASTA_ESCOLHIDA` evita a janela no modo de captura).
+- **Regras do Firestore** (o Pedro cola em Firestore > Regras):
+  ```
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /usuarios/{uid}/{documento=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+  ```
+- Novidade `conta-nuvem` (texto ainda precisa da aprovação do Pedro). 551 testes (21 novos em `sincronizacao.test.js`, 1 em `pastas-usuario.test.js`). Conferido no modo de captura: aba Conta (erro de e-mail) e mudar a pasta para caminho com espaço/acento.
+- **v0.72.1:** cliente OAuth "App para computador" (`Programa`); botão "Entrar com Google" visível. O ID e a chave do cliente ficam em `electron/src/main/google-oauth.local.cjs`, **fora do git** (`.gitignore`; o GitHub bloqueou o push por ser repositório público), mas entram no instalador. Sem esse arquivo o botão do Google some; e-mail/senha continuam. O arquivo está só no PC do Pedro (cópia do JSON baixado do Google Cloud). Regras do Firestore publicadas pelo Pedro. **Conferido pelo Pedro no programa instalado:** login funcionou (recebeu o e-mail de aviso do Google).
+- **Conferido pelo Pedro (21/11):** instalou a 0.72.1 no PC de casa (via Parsec), entrou na mesma conta e os dados do PC do trabalho desceram (inclusive os de 19/11, de antes da sincronização existir).
+- **Limites conhecidos:** entrar numa conta diferente no mesmo PC junta os dados do PC na conta nova. Número do orçamento (`proximoNumero`) pode repetir se dois PCs criarem orçamentos sem internet ao mesmo tempo. Remoções na nuvem ficam como marca `excluido` (não somem).

@@ -10,7 +10,12 @@ const { criarServicoFavoritos } = require("./favoritos.cjs");
 const { criarServicoPrintables } = require("./printables.cjs");
 const { criarServicoProjetos } = require("./projetos.cjs");
 const { criarServicoFilamentos } = require("./filamentos.cjs");
-const { Documento } = require("./armazenamento.cjs");
+const { Documento, aoGravar } = require("./armazenamento.cjs");
+const { criarConta } = require("./conta.cjs");
+const { criarNuvem } = require("./nuvem.cjs");
+const { criarSincronizacao } = require("./sincronizacao.cjs");
+const firebaseConfig = require("./firebase-config.cjs");
+const { COLECOES_NUVEM } = require("../core/sincronizacao.cjs");
 const { criarPdfsOrcamentos, gravarPdf } = require("./pdfs-orcamentos.cjs");
 const { NOME_RAIZ, criarPastasUsuario } = require("./pastas-usuario.cjs");
 const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
@@ -716,7 +721,10 @@ function registrarDados() {
     daTela(e) ? responderConfig(configuracoes.salvar(alteracao)) : negado,
   );
   // Minhas pastas (Configurações): lista e abre no Explorador. "raiz" abre a pasta principal.
-  ipcMain.handle("pastas:listar", comTela(() => ({ raiz: pastasUsuario.raiz, pastas: pastasUsuario.listar(), dados: pasta })));
+  ipcMain.handle("pastas:listar", comTela(async () => {
+    await prontoPastas;
+    return { raiz: pastasUsuario.raiz, pastas: pastasUsuario.listar(), dados: pasta };
+  }));
   ipcMain.handle(
     "pastas:abrir",
     comTela(async (_e, tipo) => {
@@ -733,6 +741,117 @@ function registrarDados() {
       return alvo;
     }),
   );
+  // Pastas que mudam de lugar (ex.: "Modelos 3D" no Google Drive). Valem só neste PC: ficam em
+  // pastas-locais.json, fora da nuvem e do backup.
+  const pastasLocais = new Documento(pasta, "pastas-locais");
+  const prontoPastas = pastasLocais
+    .ler()
+    .then((d) => {
+      for (const [tipo, caminho] of Object.entries(d ?? {})) {
+        try {
+          pastasUsuario.escolher(tipo, caminho);
+        } catch {
+          /* tipo antigo ou inválido: ignora */
+        }
+      }
+    })
+    .catch(() => {});
+  ipcMain.handle(
+    "pastas:mudar",
+    comTela(async (e, tipo, padrao) => {
+      await prontoPastas;
+      let novo = "";
+      if (!padrao) {
+        if (process.env.FERRAMENTAS_PASTA_ESCOLHIDA) novo = process.env.FERRAMENTAS_PASTA_ESCOLHIDA;
+        else {
+          const escolha = await dialog.showOpenDialog(janelaDe(e), {
+            title: "Escolha onde guardar os modelos 3D",
+            defaultPath: pastasUsuario.caminho(tipo),
+            properties: ["openDirectory", "createDirectory"],
+          });
+          if (escolha.canceled || !escolha.filePaths[0]) return null;
+          novo = escolha.filePaths[0];
+        }
+      }
+      pastasUsuario.escolher(String(tipo), novo);
+      await pastasLocais.alterarValor(async () => ({ novo: pastasUsuario.escolhidas(), resultado: true }));
+      return pastasUsuario.caminho(String(tipo));
+    }),
+  );
+
+  // ---------- Conta e sincronização com a nuvem ----------
+  const { safeStorage } = require("electron");
+  const conta = criarConta({
+    pasta,
+    apiKey: firebaseConfig.apiKey,
+    googleClientId: firebaseConfig.googleClientId,
+    googleClientSecret: firebaseConfig.googleClientSecret,
+    cifrar: (t) => (safeStorage.isEncryptionAvailable() ? `w:${safeStorage.encryptString(t).toString("base64")}` : `p:${t}`),
+    decifrar: (t) => (String(t).startsWith("w:") ? safeStorage.decryptString(Buffer.from(String(t).slice(2), "base64")) : String(t).slice(2)),
+    abrirNavegador: (url) => shell.openExternal(url),
+  });
+  const servicosNuvem = { produtos, clientes, orcamentos, favoritos, projetos, filamentos, vendas: financeiro.vendas, despesas: financeiro.despesas };
+  const { validarProduto } = require("../core/produto.cjs");
+  const { validarCliente } = require("../core/cliente.cjs");
+  const { validarOrcamento } = require("../core/orcamento.cjs");
+  const { validarFavorito } = require("../core/stl.cjs");
+  const { validarProjeto } = require("../core/projeto.cjs");
+  const { validarFilamento } = require("../core/filamento.cjs");
+  const { validarVenda, validarDespesa } = require("../core/financeiro.cjs");
+  const validadores = { produtos: validarProduto, clientes: validarCliente, orcamentos: validarOrcamento, favoritos: validarFavorito, projetos: validarProjeto, filamentos: validarFilamento, vendas: validarVenda, despesas: validarDespesa };
+  const sincronizacao = criarSincronizacao({
+    pasta,
+    conta,
+    nuvem: criarNuvem({ projectId: firebaseConfig.projectId, token: () => conta.token() }),
+    colecoes: Object.fromEntries(COLECOES_NUVEM.map((n) => [n, { colecao: servicosNuvem[n].colecao, validar: validadores[n] }])),
+    configuracoes,
+    aoMudar: (aviso) => {
+      for (const j of BrowserWindow.getAllWindows()) if (!j.isDestroyed()) j.webContents.send("conta:mudou", aviso);
+    },
+  });
+  const ARQUIVOS_NUVEM = new Set([...COLECOES_NUVEM, "configuracoes"]);
+  aoGravar((nome) => {
+    if (ARQUIVOS_NUVEM.has(nome)) conta.estado().then((s) => s && sincronizacao.pedir());
+  });
+  const resumoConta = async () => ({ conta: await conta.estado(), google: conta.googleDisponivel(), ...(await sincronizacao.situacao()) });
+  // Depois de entrar: sincroniza em segundo plano (a tela acompanha pelo aviso conta:mudou).
+  const entrou = async (promessa) => {
+    await promessa;
+    await sincronizacao.esquecer();
+    sincronizacao.iniciarRelogio();
+    sincronizacao.sincronizar();
+    return resumoConta();
+  };
+  ipcMain.handle("conta:estado", comTela(() => resumoConta()));
+  ipcMain.handle("conta:entrar", comTela((_e, email, senha) => entrou(conta.entrar(email, senha))));
+  ipcMain.handle("conta:criar", comTela((_e, email, senha) => entrou(conta.criar(email, senha))));
+  ipcMain.handle("conta:google", comTela(() => entrou(conta.entrarComGoogle())));
+  ipcMain.handle("conta:esqueci", comTela((_e, email) => conta.esqueciSenha(email)));
+  ipcMain.handle("conta:sincronizar", comTela(async () => {
+    await sincronizacao.sincronizar();
+    return resumoConta();
+  }));
+  ipcMain.handle("conta:sair", comTela(async () => {
+    sincronizacao.pararRelogio();
+    await conta.sair();
+    await sincronizacao.esquecer();
+    return resumoConta();
+  }));
+  // Ao abrir o programa (com sessão): sincroniza e repete a cada 5 minutos e ao voltar para a janela.
+  if (!process.env.FERRAMENTAS_CAPTURA) {
+    conta.estado().then((s) => {
+      if (!s) return;
+      sincronizacao.iniciarRelogio();
+      prontoTeste.then(() => sincronizacao.sincronizar());
+    });
+    let ultimoFoco = 0;
+    app.on("browser-window-focus", () => {
+      if (Date.now() - ultimoFoco < 60_000) return;
+      ultimoFoco = Date.now();
+      conta.estado().then((s) => s && sincronizacao.sincronizar());
+    });
+  }
+
   ipcMain.handle("dados:abrir-pasta", async (e) => {
     if (!daTela(e)) return negado;
     await require("node:fs/promises").mkdir(pasta, { recursive: true });

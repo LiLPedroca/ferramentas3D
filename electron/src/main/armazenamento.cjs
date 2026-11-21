@@ -38,6 +38,13 @@ async function gravarJson(arquivo, campo, valor) {
   await fs.rename(temporario, arquivo);
 }
 
+// Quem quer saber de cada gravação (a sincronização com a nuvem). Recebe o nome do arquivo.
+const ouvintes = new Set();
+function aoGravar(funcao) {
+  ouvintes.add(funcao);
+  return () => ouvintes.delete(funcao);
+}
+
 // Base comum: uma alteração de cada vez (sem gravações simultâneas).
 class Armazem {
   constructor(pasta, nome, campo, valido, vazio) {
@@ -45,6 +52,7 @@ class Armazem {
     this.campo = campo;
     this.valido = valido;
     this.vazio = vazio;
+    this.nome = nome;
     this.fila = Promise.resolve();
   }
 
@@ -52,11 +60,12 @@ class Armazem {
     return lerJson(this.arquivo, this.campo, this.valido, this.vazio);
   }
 
-  // funcao(atual) devolve { novo, resultado }.
-  alterarValor(funcao) {
+  // funcao(atual) devolve { novo, resultado }. silencioso: não avisa os ouvintes (gravação da própria nuvem).
+  alterarValor(funcao, { silencioso = false } = {}) {
     const tarefa = this.fila.then(async () => {
       const { novo, resultado } = await funcao(await this.ler());
       await gravarJson(this.arquivo, this.campo, novo);
+      if (!silencioso) for (const o of ouvintes) o(this.nome);
       return resultado;
     });
     this.fila = tarefa.catch(() => {});
@@ -71,11 +80,11 @@ class Colecao extends Armazem {
   }
 
   // funcao(itens) devolve { itens, resultado }.
-  alterar(funcao) {
+  alterar(funcao, opcoes) {
     return this.alterarValor(async (itens) => {
       const { itens: novos, resultado } = await funcao(itens);
       return { novo: novos, resultado };
-    });
+    }, opcoes);
   }
 }
 
@@ -86,4 +95,4 @@ class Documento extends Armazem {
   }
 }
 
-module.exports = { Colecao, Documento };
+module.exports = { Colecao, Documento, aoGravar };

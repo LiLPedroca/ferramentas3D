@@ -514,6 +514,16 @@ export const NOVIDADES = [
     itens: ["Base, tubo e argola, cada um na sua placa", "Assinatura Criae3D no fundo da base", "Exportar em multipartes ficou bem mais rápido"],
     botao: "Ver",
   },
+  {
+    id: "conta-nuvem",
+    versao: "0.72.0",
+    tela: "configuracoes",
+    icone: "backup",
+    titulo: "Seus dados em qualquer PC",
+    texto: "Entre na sua conta e seus dados aparecem no trabalho e em casa.",
+    itens: ["Entre com e-mail e senha em Configurações > Conta e nuvem", "Produtos, clientes, orçamentos e vendas sincronizam sozinhos", "STL e 3MF: a pasta Modelos 3D pode ficar no Google Drive"],
+    botao: "Entrar na conta",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

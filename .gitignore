@@ -19,3 +19,6 @@ dev/
 # Electron
 electron/node_modules/
 electron/release/
+
+# Cliente OAuth do Google (fica só no PC que gera o instalador)
+electron/src/main/google-oauth.local.cjs

@@ -39,6 +39,7 @@ const ELEMENTOS = [...new Set([...Object.values(TELAS).map((t) => t.elemento), "
 const aoAbrir = new Map(); // tela -> função chamada ao entrar
 let telaAtual = "inicio";
 export const estado = { config: { nome: "", nomePerguntado: true } };
+export const telaAberta = () => telaAtual;
 
 export function registrarAoAbrir(tela, funcao) {
   aoAbrir.set(tela, funcao);

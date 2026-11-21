@@ -29,4 +29,21 @@ describe("Minhas pastas", () => {
     expect((await fs.readdir(raiz)).sort()).toEqual(Object.values(PASTAS).map(([n]) => n).sort());
     expect(p.listar().map((x) => x.tipo)).toEqual(["orcamentos", "recibos", "etiquetas", "modelos", "backups", "produtos"]);
   });
+
+  it("a pasta Modelos 3D pode mudar de lugar (ex.: Google Drive) e voltar ao padrão", async () => {
+    const base = await fs.mkdtemp(path.join(os.tmpdir(), "pastas ção "));
+    pastas.push(base);
+    const raiz = path.join(base, "Programa Ferramentas 3D");
+    const drive = path.join(base, "Meu Drive", "Modelos");
+    const p = criarPastasUsuario(raiz);
+    p.escolher("modelos", drive);
+    expect(p.caminho("modelos")).toBe(drive);
+    expect(await p.garantir("modelos")).toBe(drive);
+    expect(p.listar().find((x) => x.tipo === "modelos")).toMatchObject({ trocavel: true, escolhida: true, caminho: drive });
+    expect(p.escolhidas()).toEqual({ modelos: drive });
+    expect(() => p.escolher("orcamentos", drive)).toThrow();
+    p.escolher("modelos", "relativo/nao");
+    expect(p.caminho("modelos")).toBe(path.join(raiz, "Modelos 3D"));
+    expect(p.escolhidas()).toEqual({});
+  });
 });

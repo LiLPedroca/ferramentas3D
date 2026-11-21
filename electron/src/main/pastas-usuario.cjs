@@ -17,15 +17,26 @@ const PASTAS = {
   produtos: ["Produtos", "Produtos exportados para outro PC"],
 };
 
+// Pastas que o usuário pode trocar de lugar (ex.: "Modelos 3D" dentro do Google Drive).
+const TROCAVEIS = ["modelos"];
+
 function criarPastasUsuario(raiz) {
+  const escolhidas = {}; // tipo -> caminho escolhido pelo usuário (vale só neste PC)
   const caminho = (tipo) => {
     if (tipo === "raiz") return raiz;
     if (!Object.hasOwn(PASTAS, tipo)) throw new Error(`Pasta desconhecida: ${tipo}`);
-    return path.join(raiz, PASTAS[tipo][0]);
+    return escolhidas[tipo] ?? path.join(raiz, PASTAS[tipo][0]);
   };
   return {
     raiz,
     caminho,
+    // caminho vazio volta ao padrão (Documentos\Programa Ferramentas 3D\...).
+    escolher(tipo, novo) {
+      if (!TROCAVEIS.includes(tipo)) throw new Error(`Esta pasta não pode mudar de lugar: ${tipo}`);
+      if (novo && typeof novo === "string" && path.isAbsolute(novo)) escolhidas[tipo] = novo;
+      else delete escolhidas[tipo];
+    },
+    escolhidas: () => ({ ...escolhidas }),
     // Cria a pasta (se ainda não existe) e devolve o caminho.
     async garantir(tipo) {
       const c = caminho(tipo);
@@ -37,9 +48,16 @@ function criarPastasUsuario(raiz) {
       return raiz;
     },
     listar() {
-      return Object.entries(PASTAS).map(([tipo, [nome, descricao]]) => ({ tipo, nome, descricao, caminho: caminho(tipo) }));
+      return Object.entries(PASTAS).map(([tipo, [nome, descricao]]) => ({
+        tipo,
+        nome,
+        descricao,
+        caminho: caminho(tipo),
+        trocavel: TROCAVEIS.includes(tipo),
+        escolhida: Object.hasOwn(escolhidas, tipo),
+      }));
     },
   };
 }
 
-module.exports = { NOME_RAIZ, PASTAS, criarPastasUsuario };
+module.exports = { NOME_RAIZ, PASTAS, TROCAVEIS, criarPastasUsuario };

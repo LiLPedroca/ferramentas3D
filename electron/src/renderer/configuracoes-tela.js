@@ -3,6 +3,7 @@ import { formatarDocumento, formatarTelefone } from "../core/formatos.js";
 import { abrirSeletorFatiador } from "./fatiador-ui.js";
 import { aoMudarConfig, confirmar, estado, mostrarAviso, registrarAoAbrir, salvarConfig } from "./shell.js";
 import { el } from "./util-tela.js";
+import { atualizarConta } from "./conta-tela.js";
 import { abrirImagem, arquivoEhHeic } from "./imagem-arquivo.js";
 import modeloWhatsapp from "../core/whatsapp-orcamento.cjs";
 import modeloPix from "../core/pix.cjs";
@@ -48,7 +49,7 @@ export const CAMPOS_PDF = [
 const LOGO_LADO_MAX = 600;
 const LOGO_ARQUIVO_MAX = 2 * 1024 * 1024;
 let logoAtual = ""; // data URL da logo em edição
-let secaoAtual = "cfg-calculadora";
+let secaoAtual = "cfg-conta";
 
 // "0.9" -> "0,90" para os campos em reais; outros números com vírgula.
 const virgula = (t) => String(t ?? "").replace(".", ",");
@@ -265,11 +266,18 @@ async function abrirPastaDo(tipo) {
   if (!resposta.ok) mostrarAviso(resposta.erro);
 }
 
+async function mudarPasta(tipo, padrao) {
+  const r = await window.dados.pastas.mudar(tipo, padrao);
+  if (!r.ok) return mostrarAviso(r.erro);
+  if (r.dados) mostrarAviso(padrao ? "A pasta voltou para Documentos." : "Pronto! Os modelos 3D vão ser salvos nessa pasta.");
+  mostrarPastas();
+}
+
 async function mostrarPastas() {
   const r = await window.dados.pastas.listar();
   if (!r.ok) return;
   $("c-pastas-raiz").textContent = `Tudo o que você salva fica em ${r.dados.raiz}, separado por tipo.`;
-  const linha = (nome, descricao, caminho, tipo) => {
+  const linha = (nome, descricao, caminho, tipo, extra) => {
     const item = document.createElement("div");
     item.className = "pasta-item";
     const texto = document.createElement("div");
@@ -280,17 +288,29 @@ async function mostrarPastas() {
     sub.textContent = descricao;
     sub.title = caminho;
     texto.append(forte, sub);
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "botao-secundario";
-    b.textContent = "Abrir";
-    b.setAttribute("aria-label", `Abrir a pasta ${nome}`);
-    b.addEventListener("click", () => abrirPastaDo(tipo));
-    item.append(texto, b);
+    const botao = (rotulo, aria, aoClicar) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "botao-secundario";
+      b.textContent = rotulo;
+      b.setAttribute("aria-label", aria);
+      b.addEventListener("click", aoClicar);
+      return b;
+    };
+    const botoes = document.createElement("div");
+    botoes.className = "pasta-botoes";
+    botoes.append(botao("Abrir", `Abrir a pasta ${nome}`, () => abrirPastaDo(tipo)));
+    // "Modelos 3D" pode ficar em outro lugar (ex.: Google Drive, para ter os STL em outro PC).
+    if (extra?.trocavel) {
+      sub.textContent = extra.escolhida ? `${descricao}. Fica em ${caminho}` : `${descricao}. Pode ficar no Google Drive`;
+      botoes.append(botao("Mudar lugar", `Mudar o lugar da pasta ${nome}`, () => mudarPasta(tipo, false)));
+      if (extra.escolhida) botoes.append(botao("Voltar ao padrão", `Voltar a pasta ${nome} para Documentos`, () => mudarPasta(tipo, true)));
+    }
+    item.append(texto, botoes);
     return item;
   };
   $("c-pastas").replaceChildren(
-    ...r.dados.pastas.map((p) => linha(p.nome, p.descricao, p.caminho, p.tipo)),
+    ...r.dados.pastas.map((p) => linha(p.nome, p.descricao, p.caminho, p.tipo, p)),
     linha("Dados do programa", "Produtos, clientes, orçamentos e configurações (com cópia automática)", r.dados.dados, "dados"),
   );
 }
@@ -431,6 +451,7 @@ export function iniciarConfiguracoes() {
   $("c-escolher-fatiador").addEventListener("click", () => abrirSeletorFatiador());
   aoMudarConfig(mostrarFatiador);
   registrarAoAbrir("configuracoes", () => {
+    atualizarConta();
     mostrarPastas();
     preencher();
     mostrarSecao(secaoAtual);
