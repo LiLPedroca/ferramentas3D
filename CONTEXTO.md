@@ -956,3 +956,10 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Não muda:** o mapa `pdfs-orcamentos.json` (orçamento -> PDF) continua por PC; no outro PC "Gerar PDF" ainda pergunta onde salvar. Etiquetas/PDFs salvos fora das 3 pastas sobem, mas descem nas pastas do programa.
 - Novidade `pdfs-nuvem` (publicada na v0.74.0). 564 testes (7 em `pdfs-nuvem.test.js`). Conferido no modo de captura: PDF real de orçamento (56 KB) entra em `pdfs.json`.
 - **Conferido pelo Pedro (21/11):** com os dois PCs na v0.74.0, o PDF do orçamento sincronizou e apareceu nos dois.
+
+## Trabalho do Claude Code (21/11/2026) — Drive em qualquer idioma e instalador mais leve (v0.74.1, PUBLICADA)
+
+- **Drive não achado no notebook:** o notebook tem Windows Home **Single Language em português de Portugal** (a licença não deixa trocar o idioma) e o Drive chama a pasta de **"O meu disco"**. `google-drive.cjs`: `NOMES` em vários idiomas + `pelaLetra`: letra cujo volume (`vol X:`) se chama "Google Drive" e tem uma só pasta visível na raiz (fora "Drives partilhados"/"Outros computadores" etc.). Teste novo com raízes falsas.
+- **Instalador mais leve sem tirar nada:** `manifold-3d`, `opentype.js`, `three` e `three-mesh-bvh` foram para `devDependencies` (o esbuild já os põe no `app.js`; antes iam também em `node_modules` do `app.asar`, junto com `@gltf-transform` e `sharp`/`@img` ~40 MB que o Manifold puxava e nunca foram usados). `build.electronLanguages`: só `pt-BR`, `pt-PT`, `en-US` (eram 50 idiomas do Chromium; `pt-PT` fica para PCs como o notebook). Instalador 316 → 297 MB; instalado 606 → 511 MB. Os copos (179 MB) continuam no instalador (decisão do Pedro; recomprimir não ganha nada).
+- Conferido no programa empacotado (modo de captura): WASM do Manifold, Copo 1, PDF de orçamento, Drive (`G:\O meu disco`), chaveiro com fonte e prévia 3D. 565 testes.
+- Sem entrada em NOVIDADES (pedido do Pedro). Publicada a pedido dele ("lance no github").

@@ -5,7 +5,10 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
-const NOMES = ["Meu Drive", "My Drive"];
+// "Meu Drive" muda de nome com o idioma do Windows (ex.: notebook em português de Portugal).
+const NOMES = ["Meu Drive", "My Drive", "O meu disco", "Mi unidad", "Mon Drive", "Meine Ablage", "Il mio Drive", "Mijn Drive", "Mój dysk", "Мой диск"];
+// Pastas da raiz do Drive que não são o "Meu Drive" (usadas quando o nome é desconhecido).
+const OUTRAS = ["drives compartilhados", "drives partilhados", "shared drives", "unidades compartidas", "outros computadores", "other computers", "otros ordenadores", "computadores"];
 const DESTINO = ["Programa Ferramentas 3D", "Modelos 3D"];
 const PAGINA_DOWNLOAD = "https://www.google.com/drive/download/";
 
@@ -30,9 +33,35 @@ function candidatos({ letras = "DEFGHIJKLMNOPQRSTUVWXYZ", pessoal = process.env.
   return lista;
 }
 
-async function acharMeuDrive(lista = candidatos()) {
-  for (const c of lista) if (await ehPasta(c)) return c;
+// Nome do volume da letra (ex.: "Google Drive"), pelo comando "vol" do Windows.
+function rotuloDoVolume(letra) {
+  return new Promise((ok) => {
+    require("node:child_process").execFile("cmd.exe", ["/d", "/c", "vol", `${letra}:`], { windowsHide: true, timeout: 5000 }, (_erro, saida) => ok(String(saida ?? "")));
+  });
+}
+
+// Pelo nome do volume "Google Drive": a pasta da raiz que sobra (o "Meu Drive" em qualquer idioma).
+async function pelaLetra(letras, rotulo, raizDe = (letra) => `${letra}:\\`) {
+  for (const letra of letras) {
+    const raiz = raizDe(letra);
+    if (!(await ehPasta(raiz))) continue;
+    if (!/google drive/i.test(await rotulo(letra))) continue;
+    let nomes = [];
+    try {
+      nomes = (await fs.readdir(raiz, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
+    } catch {
+      continue;
+    }
+    const restantes = nomes.filter((n) => !/^[.$]/.test(n) && n !== "System Volume Information" && !OUTRAS.includes(n.toLowerCase()));
+    if (restantes.length === 1) return path.join(raiz, restantes[0]);
+  }
   return "";
+}
+
+// opcoes (testes): { lista, letras, rotulo }
+async function acharMeuDrive({ lista = candidatos(), letras = "DEFGHIJKLMNOPQRSTUVWXYZ", rotulo = rotuloDoVolume, raizDe } = {}) {
+  for (const c of lista) if (await ehPasta(c)) return c;
+  return pelaLetra(letras, rotulo, raizDe);
 }
 
 const destinoNoDrive = (meuDrive) => path.join(meuDrive, ...DESTINO);

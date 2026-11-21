@@ -19,8 +19,21 @@ describe("Google Drive para computador", () => {
     const base = await temporaria();
     const meu = join(base, "Meu Drive");
     await mkdir(meu);
-    expect(await drive.acharMeuDrive([join(base, "nada"), meu])).toBe(meu);
-    expect(await drive.acharMeuDrive([join(base, "nada")])).toBe("");
+    expect(await drive.acharMeuDrive({ lista: [join(base, "nada"), meu], letras: "" })).toBe(meu);
+    expect(await drive.acharMeuDrive({ lista: [join(base, "nada")], letras: "" })).toBe("");
+  });
+
+  it("acha pelo nome do volume \"Google Drive\" quando a pasta tem nome desconhecido", async () => {
+    const base = await temporaria();
+    const raizG = join(base, "G");
+    await mkdir(join(raizG, "Unidade X"), { recursive: true });
+    await mkdir(join(raizG, "Drives partilhados"));
+    await mkdir(join(raizG, ".shortcut-targets-by-id"));
+    const raizH = join(base, "H");
+    await mkdir(join(raizH, "Coisas"), { recursive: true });
+    const opcoes = { lista: [], letras: "HG", raizDe: (l) => join(base, l), rotulo: async (l) => (l === "G" ? " O volume na unidade G é Google Drive" : " Volume in drive H is Dados") };
+    expect(await drive.acharMeuDrive(opcoes)).toBe(join(raizG, "Unidade X"));
+    expect(await drive.acharMeuDrive({ ...opcoes, letras: "H" })).toBe("");
   });
 
   it("procura nas letras e na pasta do usuário", () => {
