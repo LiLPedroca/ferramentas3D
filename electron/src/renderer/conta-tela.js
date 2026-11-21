@@ -79,6 +79,50 @@ function depoisDeEntrar(dados) {
   $("conta-senha").value = "";
   mostrar(dados);
   mostrarAviso("Pronto! Seus dados estão sendo sincronizados.");
+  perguntarDrive();
+}
+
+// ---------- Google Drive para os STL e 3MF ----------
+let drive = null;
+
+function mostrarDrive(d) {
+  drive = d;
+  $("drive-sem").hidden = d.instalado;
+  $("drive-pronto").hidden = !d.instalado || d.usando;
+  $("drive-usando").hidden = !d.usando;
+  $("drive-achado").textContent = `Google Drive encontrado em ${d.meuDrive}. Seus modelos 3D vão para lá e os que você já tem são copiados.`;
+  $("drive-caminho").textContent = d.modelos;
+}
+
+async function verificarDrive() {
+  const r = await window.drive.estado();
+  if (r.ok) mostrarDrive(r.dados);
+  return r.ok ? r.dados : null;
+}
+
+async function usarDrive() {
+  const r = await acao(() => window.drive.usar(), "drive-erro");
+  if (!r) return;
+  mostrarDrive(r.dados);
+  const n = r.dados.copiados;
+  mostrarAviso(n ? `Pronto! ${n} ${n === 1 ? "arquivo copiado" : "arquivos copiados"} para o Google Drive.` : "Pronto! Seus modelos vão para o Google Drive.", { duracao: 5000 });
+}
+
+// Logo depois do primeiro login neste PC: oferece guardar os STL e 3MF no Google Drive.
+async function perguntarDrive() {
+  if (localStorage.getItem("drive-perguntado")) return;
+  localStorage.setItem("drive-perguntado", "1");
+  const d = await verificarDrive();
+  if (!d || d.usando) return;
+  const sim = await confirmar({
+    titulo: "Guardar seus STL e 3MF no Google Drive?",
+    texto: "Assim seus modelos 3D também aparecem nos outros PCs.",
+    botao: d.instalado ? "Usar o Google Drive" : "Ver como fazer",
+    botaoNao: "Agora não",
+  });
+  if (!sim) return;
+  if (d.instalado) usarDrive();
+  else $("drive-cartao").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function sair() {
@@ -118,7 +162,22 @@ export function iniciarConta() {
   $("conta-sair").addEventListener("click", sair);
   $("conta-sincronizar").addEventListener("click", sincronizarAgora);
   window.conta.aoMudar(aoMudar);
+  $("drive-baixar").addEventListener("click", () => window.drive.baixar());
+  $("drive-verificar").addEventListener("click", async () => {
+    const d = await verificarDrive();
+    if (d && !d.instalado) $("drive-erro").textContent = "Ainda não achei o Google Drive. Confira se ele terminou de instalar e se você entrou na conta.";
+    else $("drive-erro").textContent = "";
+  });
+  $("drive-usar").addEventListener("click", usarDrive);
+  // Ao voltar para o programa (ex.: depois de instalar o Drive), confere de novo.
+  window.addEventListener("focus", () => {
+    if (drive && !drive.instalado) verificarDrive();
+  });
   atualizar();
+  verificarDrive();
 }
 
-export { atualizar as atualizarConta };
+export function atualizarConta() {
+  atualizar();
+  verificarDrive();
+}

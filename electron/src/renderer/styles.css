@@ -7355,6 +7355,20 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
+.passos-drive {
+  margin: 6px 0 12px;
+  padding-left: 20px;
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.drive-ok {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--verde);
+}
+
 .pasta-botoes {
   display: flex;
   flex-wrap: wrap;

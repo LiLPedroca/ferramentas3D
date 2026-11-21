@@ -59,6 +59,12 @@ contextBridge.exposeInMainWorld("conta", {
   aoMudar: (funcao) => ipcRenderer.on("conta:mudou", (_e, aviso) => funcao(aviso)),
 });
 
+contextBridge.exposeInMainWorld("drive", {
+  estado: () => ipcRenderer.invoke("drive:estado"),
+  usar: () => ipcRenderer.invoke("drive:usar"),
+  baixar: () => ipcRenderer.invoke("drive:baixar"),
+});
+
 contextBridge.exposeInMainWorld("backup", {
   resumo: () => ipcRenderer.invoke("backup:resumo"),
   exportar: () => ipcRenderer.invoke("backup:exportar"),

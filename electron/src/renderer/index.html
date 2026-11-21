@@ -2390,7 +2390,7 @@
             <section class="painel cartao-config config-secao" id="cfg-conta" hidden>
               <h2>Conta e nuvem</h2>
               <div id="conta-fora">
-                <p class="ajuda">Entre na sua conta para guardar seus dados na nuvem e usar em qualquer PC. Arquivos STL e 3MF não vão para a nuvem: guarde-os na pasta Modelos 3D (ela pode ficar no Google Drive, em Minhas pastas).</p>
+                <p class="ajuda">Entre na sua conta para guardar seus dados na nuvem e usar em qualquer PC. Arquivos STL e 3MF não entram: para eles, use o Google Drive (logo abaixo).</p>
                 <form id="conta-form" novalidate>
                   <div class="linha">
                     <label class="campo"><span>E-mail</span><div class="entrada"><input id="conta-email" type="email" autocomplete="email" maxlength="200" /></div></label>
@@ -2416,6 +2416,32 @@
                   <button class="botao-secundario" type="button" id="conta-sair">Sair da conta</button>
                 </div>
                 <p class="ajuda">Vão para a nuvem: produtos, clientes, orçamentos, vendas, despesas, filamentos, Meus modelos, favoritos e configurações. Ficam só neste PC: arquivos STL e 3MF e Minhas Impressões.</p>
+              </div>
+              <div class="cartao-drive" id="drive-cartao">
+                <h3 class="subtitulo-config">Seus STL e 3MF no Google Drive</h3>
+                <div id="drive-sem" hidden>
+                  <p class="ajuda">Para ter seus modelos 3D em qualquer PC, instale o Google Drive:</p>
+                  <ol class="passos-drive">
+                    <li>Baixe e instale o Google Drive para computador.</li>
+                    <li>Entre com a sua conta Google.</li>
+                    <li>Volte aqui e clique em Usar o Google Drive.</li>
+                  </ol>
+                  <div class="acoes-form">
+                    <button class="botao-secundario" type="button" id="drive-baixar">Baixar o Google Drive</button>
+                    <button class="botao-secundario" type="button" id="drive-verificar">Já instalei</button>
+                  </div>
+                </div>
+                <div id="drive-pronto" hidden>
+                  <p class="ajuda" id="drive-achado"></p>
+                  <div class="acoes-form">
+                    <button class="botao-primario" type="button" id="drive-usar">Usar o Google Drive</button>
+                  </div>
+                </div>
+                <div id="drive-usando" hidden>
+                  <p class="drive-ok">✓ Seus modelos vão para o Google Drive.</p>
+                  <p class="ajuda" id="drive-caminho"></p>
+                </div>
+                <p class="erro" id="drive-erro" role="alert"></p>
               </div>
             </section>
 

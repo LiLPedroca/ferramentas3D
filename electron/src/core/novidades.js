@@ -524,6 +524,16 @@ export const NOVIDADES = [
     itens: ["Entre com e-mail e senha em Configurações > Conta e nuvem", "Produtos, clientes, orçamentos e vendas sincronizam sozinhos", "STL e 3MF: a pasta Modelos 3D pode ficar no Google Drive"],
     botao: "Entrar na conta",
   },
+  {
+    id: "drive-modelos",
+    versao: "0.73.0",
+    tela: "configuracoes",
+    icone: "backup",
+    titulo: "Seus STL e 3MF no Google Drive",
+    texto: "Com um clique, seus modelos 3D vão para o Google Drive e aparecem em qualquer PC.",
+    itens: ["Em Configurações > Conta e nuvem", "O programa acha o Google Drive sozinho", "Os modelos que você já tem são copiados"],
+    botao: "Usar o Google Drive",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -779,6 +779,42 @@ function registrarDados() {
     }),
   );
 
+  // ---------- Google Drive para os STL e 3MF ----------
+  // FERRAMENTAS_MEU_DRIVE (testes) faz de conta que o Meu Drive está nessa pasta ("nenhum" = não instalado).
+  const drive = require("./google-drive.cjs");
+  const acharMeuDrive = () => {
+    const teste = process.env.FERRAMENTAS_MEU_DRIVE;
+    if (teste) return Promise.resolve(teste === "nenhum" ? "" : teste);
+    return drive.acharMeuDrive();
+  };
+  const estadoDrive = async () => {
+    await prontoPastas;
+    const meuDrive = await acharMeuDrive();
+    const modelos = pastasUsuario.caminho("modelos");
+    return { instalado: Boolean(meuDrive), meuDrive, modelos, usando: drive.dentroDe(modelos, meuDrive) };
+  };
+  ipcMain.handle("drive:estado", comTela(() => estadoDrive()));
+  ipcMain.handle(
+    "drive:usar",
+    comTela(async () => {
+      await prontoPastas;
+      const meuDrive = await acharMeuDrive();
+      if (!meuDrive) throw new ErroValidacao("Não achei o Google Drive neste PC. Instale e entre na sua conta Google.");
+      const destino = drive.destinoNoDrive(meuDrive);
+      const copiados = await drive.copiarModelos(pastasUsuario.caminho("modelos"), destino);
+      pastasUsuario.escolher("modelos", destino);
+      await pastasLocais.alterarValor(async () => ({ novo: pastasUsuario.escolhidas(), resultado: true }));
+      return { ...(await estadoDrive()), copiados };
+    }),
+  );
+  ipcMain.handle(
+    "drive:baixar",
+    comTela(async () => {
+      if (!process.env.FERRAMENTAS_CAPTURA) await shell.openExternal(drive.PAGINA_DOWNLOAD);
+      return true;
+    }),
+  );
+
   // ---------- Conta e sincronização com a nuvem ----------
   const { safeStorage } = require("electron");
   const conta = criarConta({
