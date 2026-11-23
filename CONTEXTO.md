@@ -963,3 +963,11 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
 - **Instalador mais leve sem tirar nada:** `manifold-3d`, `opentype.js`, `three` e `three-mesh-bvh` foram para `devDependencies` (o esbuild já os põe no `app.js`; antes iam também em `node_modules` do `app.asar`, junto com `@gltf-transform` e `sharp`/`@img` ~40 MB que o Manifold puxava e nunca foram usados). `build.electronLanguages`: só `pt-BR`, `pt-PT`, `en-US` (eram 50 idiomas do Chromium; `pt-PT` fica para PCs como o notebook). Instalador 316 → 297 MB; instalado 606 → 511 MB. Os copos (179 MB) continuam no instalador (decisão do Pedro; recomprimir não ganha nada).
 - Conferido no programa empacotado (modo de captura): WASM do Manifold, Copo 1, PDF de orçamento, Drive (`G:\O meu disco`), chaveiro com fonte e prévia 3D. 565 testes.
 - Sem entrada em NOVIDADES (pedido do Pedro). Publicada a pedido dele ("lance no github").
+
+## Trabalho do Claude Code (23/11/2026) — Ícone do Anycubic Slicer Next (v0.74.2, só local)
+
+- O `AnycubicSlicerNext.exe` é um lançador de 65 KB sem ícone embutido: `app.getFileIcon` devolvia o
+  ícone genérico do Windows. Agora `CANDIDATOS` aceita `icone` (um .ico na pasta do programa) e
+  `arquivoDeIcone()` (`main/fatiador.cjs`) aponta `resources/images/AnycubicSlicer.ico`; o canal
+  `fatiador:icone` lê esse .ico com `nativeImage` (32 px) e só cai no ícone do .exe se ele não existir.
+- Conferido no modo de captura no PC do Pedro. Instalador gerado, sem release no GitHub.

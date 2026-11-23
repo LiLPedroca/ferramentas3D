@@ -1,6 +1,6 @@
 // Processo principal do Electron: cria a janela e cuida da atualização pelo GitHub.
 const path = require("node:path");
-const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } = require("electron");
 const { criarServicoProdutos, responder } = require("./produtos.cjs");
 const { criarServicoClientes } = require("./clientes.cjs");
 const { criarServicoOrcamentos } = require("./orcamentos.cjs");
@@ -18,7 +18,7 @@ const firebaseConfig = require("./firebase-config.cjs");
 const { COLECOES_NUVEM } = require("../core/sincronizacao.cjs");
 const { criarPdfsOrcamentos, gravarPdf } = require("./pdfs-orcamentos.cjs");
 const { NOME_RAIZ, criarPastasUsuario } = require("./pastas-usuario.cjs");
-const { CANDIDATOS, abrirFatiador, detectarFatiadores } = require("./fatiador.cjs");
+const { CANDIDATOS, abrirFatiador, arquivoDeIcone, detectarFatiadores } = require("./fatiador.cjs");
 const { nomeBackup } = require("../core/backup.cjs");
 const backupZip = require("./backup-zip.cjs");
 const { RODAPE_PDF, gerarHtmlOrcamento, nomeArquivoPdf } = require("../core/orcamento-pdf.cjs");
@@ -438,6 +438,9 @@ function registrarDados() {
     "fatiador:icone",
     comTela(async (_e, caminho) => {
       if (typeof caminho !== "string" || !path.isAbsolute(caminho) || !/\.exe$/i.test(caminho)) throw new ErroValidacao("Caminho inválido.");
+      const ico = await arquivoDeIcone(caminho);
+      const doIco = ico ? nativeImage.createFromPath(ico) : null;
+      if (doIco && !doIco.isEmpty()) return doIco.resize({ width: 32, height: 32, quality: "best" }).toDataURL();
       const imagem = await app.getFileIcon(caminho, { size: "normal" });
       return imagem.isEmpty() ? null : imagem.toDataURL();
     }),

@@ -7,6 +7,7 @@ const { spawn } = require("node:child_process");
 const { ErroValidacao } = require("../core/validacao.cjs");
 
 // pasta: caminho fixo. prefixo: pasta cujo nome muda com a versão (ex.: "UltiMaker Cura 5.8.1").
+// icone: .ico na pasta do programa, para quando o .exe não traz ícone próprio.
 const CANDIDATOS = [
   { nome: "Bambu Studio", pasta: "Bambu Studio", exe: "bambu-studio.exe" },
   { nome: "OrcaSlicer", pasta: "OrcaSlicer", exe: "orca-slicer.exe" },
@@ -14,7 +15,7 @@ const CANDIDATOS = [
   { nome: "Creality Print", prefixo: path.join("Creality", "Creality Print"), exe: "CrealityPrint.exe" },
   { nome: "UltiMaker Cura", prefixo: "UltiMaker Cura", exe: "UltiMaker-Cura.exe" },
   { nome: "Ultimaker Cura", prefixo: "Ultimaker Cura", exe: "Cura.exe" },
-  { nome: "Anycubic Slicer Next", pasta: "AnycubicSlicerNext", exe: "AnycubicSlicerNext.exe" },
+  { nome: "Anycubic Slicer Next", pasta: "AnycubicSlicerNext", exe: "AnycubicSlicerNext.exe", icone: path.join("resources", "images", "AnycubicSlicer.ico") },
   { nome: "ElegooSlicer", pasta: "ElegooSlicer", exe: "elegoo-slicer.exe" },
 ];
 
@@ -72,4 +73,14 @@ async function abrirFatiador(caminhoExe, arquivo, { iniciar = spawn } = {}) {
   return true;
 }
 
-module.exports = { CANDIDATOS, abrirFatiador, detectarFatiadores, pastasBase };
+// Arquivo .ico do fatiador quando o .exe é só um lançador sem ícone (ex.: Anycubic Slicer Next).
+// Devolve o caminho se o arquivo existir; senão, null (usa o ícone do próprio .exe).
+async function arquivoDeIcone(caminhoExe) {
+  const exe = path.basename(caminhoExe).toLowerCase();
+  const c = CANDIDATOS.find((x) => x.icone && x.exe.toLowerCase() === exe);
+  if (!c) return null;
+  const ico = path.join(path.dirname(caminhoExe), c.icone);
+  return (await existe(ico)) ? ico : null;
+}
+
+module.exports = { CANDIDATOS, abrirFatiador, arquivoDeIcone, detectarFatiadores, pastasBase };

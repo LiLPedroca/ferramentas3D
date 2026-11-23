@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fatiadorMod from "../src/main/fatiador.cjs";
 
-const { abrirFatiador, detectarFatiadores } = fatiadorMod;
+const { abrirFatiador, arquivoDeIcone, detectarFatiadores } = fatiadorMod;
 
 describe("Meu fatiador", () => {
   let base;
@@ -27,6 +27,16 @@ describe("Meu fatiador", () => {
     await criar("OrcaSlicer", "leia-me.txt"); // pasta sem o programa: não conta
     const achados = await detectarFatiadores([base]);
     expect(achados.map((a) => a.nome)).toEqual(["Bambu Studio", "UltiMaker Cura 5.8.1"]);
+  });
+
+  it("usa o .ico da pasta do Anycubic (o .exe dele não tem ícone)", async () => {
+    await criar("AnycubicSlicerNext", "AnycubicSlicerNext.exe");
+    const exe = join(base, "AnycubicSlicerNext", "AnycubicSlicerNext.exe");
+    expect(await arquivoDeIcone(exe)).toBeNull(); // sem o .ico: fica o ícone do .exe
+    await criar("AnycubicSlicerNext", "resources", "images", "AnycubicSlicer.ico");
+    expect(await arquivoDeIcone(exe)).toBe(join(base, "AnycubicSlicerNext", "resources", "images", "AnycubicSlicer.ico"));
+    await criar("OrcaSlicer", "orca-slicer.exe");
+    expect(await arquivoDeIcone(join(base, "OrcaSlicer", "orca-slicer.exe"))).toBeNull();
   });
 
   it("abre com o arquivo do modelo como argumento", async () => {
