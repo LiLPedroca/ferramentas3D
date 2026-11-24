@@ -1,12 +1,22 @@
 import referencia from '../assets/copos/perfil-petg.json' with { type: 'json' };
+import kobra from '../assets/fatiador/projeto-kobra-x.json' with { type: 'json' };
+
+const POR_FILAMENTO = new Set(kobra.porFilamento);
 
 // Preset oficial Kobra X/PETG com processo de copos; sempre clona os vetores,
 // pois as cores de um arquivo não podem mudar a exportação seguinte.
-export function perfilCopo(cores) {
+// material: 'PETG' (padrão do preset) ou 'PLA' (troca só os ajustes de filamento pelos do PLA da Kobra X).
+export function perfilCopo(cores, material = 'PETG') {
   const perfil = structuredClone(referencia);
   const numero = cores.length;
+  if (material === 'PLA') {
+    for (const chave of kobra.porFilamento) {
+      const valor = kobra.materiais.PLA[chave];
+      if (Array.isArray(valor)) perfil[chave] = [valor[0]];
+    }
+  }
   for (const [chave, valor] of Object.entries(perfil)) {
-    if (chave.startsWith('filament_') && Array.isArray(valor)) perfil[chave] = cores.map((_cor, i) => valor[i] ?? valor[0]);
+    if ((chave.startsWith('filament_') || POR_FILAMENTO.has(chave)) && Array.isArray(valor)) perfil[chave] = cores.map((_cor, i) => valor[i] ?? valor[0]);
   }
   perfil.filament_colour = [...cores];
   perfil.filament_colour_info = [...cores]; // bolinhas da lista de filamentos na janela do Anycubic

@@ -7,7 +7,7 @@ vi.mock('../src/renderer/shell.js', () => ({ registrarAoAbrir: (_id, fn) => { es
 vi.mock('../src/renderer/modelos/previa3d.js', () => ({ criarPrevia: () => ({ mostrar: vi.fn(), colorir: vi.fn(), enquadrar: vi.fn(), verBase: estado.verBase, extras: vi.fn(), realcarExtra: vi.fn() }) }));
 vi.mock('../src/renderer/logo-tela.js', () => ({ abrirLogoNoCopo: vi.fn() }));
 vi.mock('../src/renderer/modelos/logo-copo.js', () => ({ medirTubo: () => ({ centro: [0, 0], z0: 30, z1: 120, raios: [40] }), limitarNoCopo: (z) => z, passaDoTubo: () => false, anguloDaNovaCopia: vi.fn(), caixaDaLogo: vi.fn(), logoMaiorQueOTubo: vi.fn(), logoNaCurva: vi.fn(), logosNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), raioEm: vi.fn() }));
-vi.mock('../src/renderer/modelos-ui.js', () => ({ abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn() }));
+vi.mock('../src/renderer/modelos-ui.js', () => ({ abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn(), perguntarMaterial: vi.fn(async () => ({ material: 'PLA' })) }));
 vi.mock('../src/renderer/modelos-acoes.js', () => ({ salvarArquivoModelo: vi.fn(), salvarModeloComo: vi.fn(), enviarModeloAoFatiador: vi.fn(), densidadeDoModelo: vi.fn() }));
 vi.mock('../src/renderer/modelos/copos-exportar.js', () => ({ colorir3mf: vi.fn(), gerarStlNativoCopo: vi.fn(), colorir3mfMultipartes: vi.fn(() => new Uint8Array([7])), stlComLogos: vi.fn() }));
 vi.mock('../src/renderer/calculadora-tela.js', () => ({ preencherDoModelo: vi.fn() }));
@@ -59,13 +59,13 @@ it('exporta multipartes dos três copos, com as cores atuais', async()=>{
  const cor=document.querySelector('#cp-cores input');cor.value='#123456';cor.dispatchEvent(new Event('input'));
  document.getElementById('cp-multipartes').click();expect(document.getElementById('cp-multipartes').disabled).toBe(true);
  await vi.waitFor(()=>expect(lerCopoMultipartes).toHaveBeenCalledWith(1));
- const {colorir3mfMultipartes}=await import('../src/renderer/modelos/copos-exportar.js');expect(colorir3mfMultipartes).toHaveBeenCalledWith(new Uint8Array([77]),['#123456','#ffffff'],{nome:'Copo 1 - multipartes'});
- const {salvarArquivoModelo}=await import('../src/renderer/modelos-acoes.js');expect(salvarArquivoModelo).toHaveBeenCalledWith(new Uint8Array([7]),'Copo 1 - multipartes','3mf');
+ const {colorir3mfMultipartes}=await import('../src/renderer/modelos/copos-exportar.js');await vi.waitFor(()=>expect(colorir3mfMultipartes).toHaveBeenCalledWith(new Uint8Array([77]),['#123456','#ffffff'],{nome:'Copo 1 - multipartes',material:'PLA',logos:[]}));
+ const {salvarArquivoModelo}=await import('../src/renderer/modelos-acoes.js');expect(salvarArquivoModelo).toHaveBeenCalledWith(new Uint8Array([7]),'Copo 1 - multipartes','3mf','');
  await vi.waitFor(()=>expect(document.getElementById('cp-multipartes').disabled).toBe(false));
  document.querySelector('#cp-catalogo [data-id="2"]').click();await vi.waitFor(()=>expect(document.getElementById('cp-salvar').disabled).toBe(false));
  expect(document.getElementById('cp-multipartes').disabled).toBe(false);expect(document.getElementById('cp-multipartes').textContent).not.toContain('Em breve');
  document.getElementById('cp-multipartes').click();await vi.waitFor(()=>expect(lerCopoMultipartes).toHaveBeenCalledWith(2));
- await vi.waitFor(()=>expect(salvarArquivoModelo).toHaveBeenCalledWith(new Uint8Array([7]),'Copo 1 - multipartes','3mf'));
+ await vi.waitFor(()=>expect(salvarArquivoModelo).toHaveBeenCalledWith(new Uint8Array([7]),'Copo 1 - multipartes','3mf',''));
  await vi.waitFor(()=>expect(document.getElementById('cp-multipartes').disabled).toBe(false));
  document.querySelector('#cp-catalogo [data-id="3"]').click();await vi.waitFor(()=>expect(document.getElementById('cp-salvar').disabled).toBe(false));
  expect(document.getElementById('cp-multipartes').disabled).toBe(false);expect(document.getElementById('cp-multipartes').textContent).not.toContain('Em breve');

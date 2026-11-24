@@ -8,29 +8,47 @@ import { trocarNoZip } from './zip-troca.js';
 const escaparXml = texto => String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // O projeto multiparte nativo conserva placas, encaixes e texto editável.
-export function colorir3mfMultipartes(bytes, cores, { nome } = {}) {
+// logos: como em colorir3mf, já no lugar da mesa da placa 1 (a da base); vão nessa placa.
+export function colorir3mfMultipartes(bytes, cores, { nome, material, logos } = {}) {
   if (cores.length !== 2 || cores.some(cor => !/^#[\da-f]{6}$/i.test(cor))) throw Error('Escolha as duas cores do copo.');
-  const chave = 'Metadata/project_settings.config';
+  const chave = 'Metadata/project_settings.config', chaveModelo = '3D/3dmodel.model', chaveConfig = 'Metadata/model_settings.config';
   const mapa = new Map([['#000000', cores[0]], ['#ffffff', cores[1]]]);
-  let temPerfil = false;
-  // As malhas (3D/Objects) não guardam cor: são copiadas sem descompactar.
+  const extras = logos?.length ? { modelo: null, config: null } : null;
+  let temPerfil = false, filamentos = [...cores];
+  // As malhas (3D/Objects) não guardam cor: são copiadas sem descompactar. Com logos, o modelo principal e a
+  // configuração (pequenos) são lidos antes, para saber os filamentos novos antes de gravar o perfil.
+  const textos = extras ? unzipSync(bytes, { filter: f => f.name === chaveModelo || f.name === chaveConfig }) : null;
+  if (extras) {
+    const r = montarLogos(strFromU8(textos[chaveModelo]), strFromU8(textos[chaveConfig]), filamentos, logos);
+    filamentos = r.cores;
+    const instancias = r.ids.map((id, k) => `<model_instance><metadata key="object_id" value="${id}"/><metadata key="instance_id" value="0"/><metadata key="identify_id" value="${9000 + k}"/></model_instance>`).join('');
+    let naPlaca = false;
+    extras.config = r.config.replace(/<plate>[\s\S]*?<\/plate>/, placa => {
+      if (naPlaca || !/key="plater_id" value="1"/.test(placa)) return placa;
+      naPlaca = true;
+      return placa.replace(/<\/plate>$/, `${instancias}</plate>`);
+    });
+    if (!naPlaca) throw Error('O projeto multiparte está sem a placa da base.');
+    extras.modelo = r.modelo;
+  }
   const saida = trocarNoZip(bytes, (caminho, ler) => {
     if (caminho === chave) {
       temPerfil = true;
+      if (material || extras) return JSON.stringify(perfilCopo(filamentos, material));
       const perfil = JSON.parse(strFromU8(ler()));
       perfil.filament_colour = [...cores];
       return JSON.stringify(perfil);
     }
     if (caminho.startsWith('3D/Objects/') || !/\.(model|config)$/i.test(caminho)) return undefined;
-    let texto = strFromU8(ler()).replace(/#[\da-f]{6}(?:[\da-f]{2})?\b/gi, cor => (mapa.get(cor.slice(0, 7).toLowerCase()) ?? cor.slice(0, 7)) + cor.slice(7));
-    if (nome && caminho === '3D/3dmodel.model') texto = texto.replace(/(<metadata\b[^>]*name="Title"[^>]*>)[\s\S]*?(<\/metadata>)/g, (_m, abre, fecha) => abre + escaparXml(nome) + fecha);
+    let texto = extras && caminho === chaveModelo ? extras.modelo : extras && caminho === chaveConfig ? extras.config : strFromU8(ler());
+    texto = texto.replace(/#[\da-f]{6}(?:[\da-f]{2})?\b/gi, cor => (mapa.get(cor.slice(0, 7).toLowerCase()) ?? cor.slice(0, 7)) + cor.slice(7));
+    if (nome && caminho === chaveModelo) texto = texto.replace(/(<metadata\b[^>]*name="Title"[^>]*>)[\s\S]*?(<\/metadata>)/g, (_m, abre, fecha) => abre + escaparXml(nome) + fecha);
     return texto;
   });
   if (!temPerfil) throw Error('O projeto multiparte está sem perfil.');
   return saida;
 }
 
-// Conserva a superfície completa e a subdivisão original da pintura.
 export function gerarStlCopo(partes) {
   const grupo = new Group();
   const materiais = [];
@@ -71,7 +89,7 @@ export function gerarStlNativoCopo(bytes) {
 }
 
 // Troca as cores sem reconstruir ou separar a malha pintada do arquivo original.
-export function colorir3mf(bytes, originais, cores, { nome: nomeModelo, logos } = {}) {
+export function colorir3mf(bytes, originais, cores, { nome: nomeModelo, logos, material } = {}) {
   const mapa = new Map(originais.map((cor, i) => [cor.toLowerCase(), cores[i]]));
   const zip = unzipSync(bytes);
   const modelosUsados = prepararEstrutura3mf(zip);
@@ -83,7 +101,7 @@ export function colorir3mf(bytes, originais, cores, { nome: nomeModelo, logos } 
     if (!(/\.(model|rels)$/i.test(nome) || nome === '[Content_Types].xml' || ['Metadata/model_settings.config', 'Metadata/project_settings.config'].includes(nome))) continue;
     if (!/\.(model|config)$/i.test(nome)) { arquivos[nome] = conteudo; continue; }
     let texto = strFromU8(conteudo);
-    if (nome === 'Metadata/project_settings.config') texto = JSON.stringify(perfilCopo(JSON.parse(texto).filament_colour));
+    if (nome === 'Metadata/project_settings.config') texto = JSON.stringify(perfilCopo(JSON.parse(texto).filament_colour, material));
     if (nome.endsWith('.model')) texto = texto
       .replace(/(<metadata\b[^>]*name="Application"[^>]*>)[\s\S]*?(<\/metadata>)/g, '$1Programa Ferramentas 3D$2')
       .replace(/<metadata\b[^>]*name="(?:BambuStudio|slic3rpe):3mfVersion"[^>]*>[\s\S]*?<\/metadata>/g, '');
@@ -113,7 +131,7 @@ export function colorir3mf(bytes, originais, cores, { nome: nomeModelo, logos } 
       .replace(/<Override\b[^>]*\/>/g, tipo => existe(tipo.match(/PartName="([^"]+)"/)?.[1]) ? tipo : '');
     arquivos[nome] = strToU8(texto);
   }
-  juntarLogos(arquivos, logos);
+  juntarLogos(arquivos, logos, material);
   return zipSync(arquivos, { level: 6 });
 }
 
@@ -128,13 +146,21 @@ export function comLogos(bytes, logos) {
 }
 
 // Mesmo que comLogos, direto nos arquivos já abertos do 3MF (sem compactar de novo).
-function juntarLogos(zip, logos) {
+function juntarLogos(zip, logos, material) {
   if (!logos?.length) return;
   const chaveModelo = '3D/3dmodel.model', chaveConfig = 'Metadata/model_settings.config', chavePerfil = 'Metadata/project_settings.config';
-  let modelo = strFromU8(zip[chaveModelo]);
-  let config = zip[chaveConfig] ? strFromU8(zip[chaveConfig]) : '<?xml version="1.0" encoding="UTF-8"?><config></config>';
+  const config = zip[chaveConfig] ? strFromU8(zip[chaveConfig]) : '<?xml version="1.0" encoding="UTF-8"?><config></config>';
   const perfil = zip[chavePerfil] ? JSON.parse(strFromU8(zip[chavePerfil])) : { filament_colour: ['#000000'] };
-  const cores = [...perfil.filament_colour].map(c => c.slice(0, 7).toUpperCase());
+  const r = montarLogos(strFromU8(zip[chaveModelo]), config, perfil.filament_colour, logos);
+  zip[chaveModelo] = strToU8(r.modelo);
+  zip[chaveConfig] = strToU8(r.config);
+  zip[chavePerfil] = strToU8(JSON.stringify(perfilCopo(r.cores, material)));
+}
+
+// Põe as logos no modelo (objetos e itens da mesa) e na configuração. Devolve o texto novo, as cores dos
+// filamentos (as da logo entram no fim, se não forem quase iguais às do copo) e os ids dos objetos das logos.
+function montarLogos(modelo, config, coresDoCopo, logos) {
+  const cores = [...coresDoCopo].map(c => c.slice(0, 7).toUpperCase());
   // cor quase igual (ex.: o preto da logo #1B1B1B e o preto do copo #000000) usa o mesmo filamento
   const rgb = c => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16));
   const perto = (a, b) => Math.hypot(...rgb(a).map((v, k) => v - rgb(b)[k])) < 48;
@@ -146,7 +172,7 @@ function juntarLogos(zip, logos) {
   };
   let proximo = Math.max(0, ...[...modelo.matchAll(/<(?:\w+:)?object\b[^>]*\bid="(\d+)"/g)].map(m => Number(m[1]))) + 1;
   const num = n => String(Math.round(n * 1e4) / 1e4);
-  const objetos = [], itens = [], configs = [];
+  const objetos = [], itens = [], configs = [], conjuntos = [];
   logos.forEach((logo, k) => {
     let minX = Infinity, minY = Infinity;
     for (const m of logo.malhas) for (let i = 0; i < m.vertices.length; i += 3) { minX = Math.min(minX, m.vertices[i]); minY = Math.min(minY, m.vertices[i + 1]); }
@@ -160,6 +186,7 @@ function juntarLogos(zip, logos) {
       return id;
     });
     const conjunto = proximo++;
+    conjuntos.push(conjunto);
     const nome = escaparXml(`Logo ${k + 1}`);
     objetos.push(`<object id="${conjunto}" type="model" name="${nome}"><components>${ids.map(id => `<component objectid="${id}"/>`).join('')}</components></object>`);
     itens.push(`<item objectid="${conjunto}" transform="1 0 0 0 1 0 0 0 1 ${num(logo.x)} ${num(logo.y)} 0" printable="1"/>`);
@@ -168,9 +195,7 @@ function juntarLogos(zip, logos) {
   });
   modelo = modelo.replace(/(<\/(?:\w+:)?resources>)/, `${objetos.join('')}$1`).replace(/(<\/(?:\w+:)?build>)/, `${itens.join('')}$1`);
   config = config.replace(/(<\/config>)/, `${configs.join('')}$1`);
-  zip[chaveModelo] = strToU8(modelo);
-  zip[chaveConfig] = strToU8(config);
-  zip[chavePerfil] = strToU8(JSON.stringify(perfilCopo(cores)));
+  return { modelo, config, cores, ids: conjuntos };
 }
 
 // STL do copo com as logos ao lado (mesmo lugar do 3MF). copoNaMesa: centro do copo na mesa do 3MF; o STL

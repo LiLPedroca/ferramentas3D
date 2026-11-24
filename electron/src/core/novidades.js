@@ -544,6 +544,16 @@ export const NOVIDADES = [
     itens: ["Orçamentos, recibos e etiquetas", "Aparecem nas pastas do programa nos outros PCs", "Nada é refeito: é o mesmo arquivo"],
     botao: "Ver orçamentos",
   },
+  {
+    id: "copos-material-logo",
+    versao: "0.75.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Copos em PLA ou PETG",
+    texto: "Antes de exportar o copo, você escolhe o material.",
+    itens: ["O arquivo já sai com o perfil do material", "A logo agora vai junto no multipartes", "Ela fica na mesa da base, com filamento próprio"],
+    botao: "Abrir os copos",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

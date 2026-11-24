@@ -3,7 +3,8 @@ import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo, stlComLogos } fr
 import { anguloDaNovaCopia, caixaDaLogo, limitarNoCopo, logoNaCurva, logosNaMesa, medirTubo, passaDoTubo, raioEm } from './modelos/logo-copo.js';
 import { abrirLogoNoCopo } from './logo-tela.js';
 import { criarPrevia } from './modelos/previa3d.js';
-import { abridorDe, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
+import { abridorDe, perguntarMaterial, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
+import { materialAtual } from './modelos/projeto-fatiador.js';
 import { registrarAoAbrir, irPara, mostrarAviso, confirmar } from './shell.js';
 import { salvarArquivoModelo, salvarModeloComo, enviarModeloAoFatiador, densidadeDoModelo } from './modelos-acoes.js';
 import { preencherDoModelo } from './calculadora-tela.js';
@@ -67,12 +68,17 @@ function volume() {
   }
   return Math.abs(soma / 6);
 }
-async function nativo() {
+async function nativo(material) {
   const escolhidas = [...cores];
   const nome = $('cp-nome').value || `Copo ${id}`;
   const r = await window.modelos.lerCopo(id, true);
   if (!r.ok) throw Error(r.erro);
-  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas, { nome, logos: logosParaMesa() }), aviso: avisoDaMesa() };
+  return { bytes: colorir3mf(r.dados, pacote.partes.map(p => p.cor), escolhidas, { nome, material, logos: logosParaMesa() }), aviso: avisoDaMesa() };
+}
+// Pergunta o material (PLA ou PETG) e só então monta o arquivo; null = cancelou.
+async function comMaterial(fazer) {
+  const escolha = await perguntarMaterial();
+  if (escolha) await fazer(escolha.material);
 }
 
 // ---------- Logo personalizada (2D para 3D no tubo do copo) ----------
@@ -80,13 +86,21 @@ async function nativo() {
 let logo = null, tubo = null, selecionada = null, arrasto = null;
 
 const copoNaMesa = () => COPO_NA_MESA[id] ?? COPO_NA_MESA[1];
-function logosParaMesa() {
+// Multipartes: a base fica na placa 1, e as logos vão ao lado dela (medido nos arquivos <id>-multipartes.3mf).
+const BASE_NA_PLACA = {
+  1: { min: [78.51, 87.19], max: [165.94, 174.51] },
+  2: { min: [88.07, 88.11], max: [171.92, 171.97] },
+  3: { min: [82.3, 82.3], max: [177.7, 177.7] },
+  4: { min: [82.25, 82.25], max: [177.75, 177.75] },
+};
+const baseNaPlaca = () => BASE_NA_PLACA[id] ?? copoNaMesa();
+function logosParaMesa(ocupado = copoNaMesa()) {
   if (!logo) return [];
-  const { lugares } = logosNaMesa(logo.copias.length, logo.caixa, copoNaMesa());
+  const { lugares } = logosNaMesa(logo.copias.length, logo.caixa, ocupado);
   return lugares.map(l => ({ x: l.x, y: l.y, malhas: logo.malhas }));
 }
-function avisoDaMesa() {
-  if (!logo || logosNaMesa(logo.copias.length, logo.caixa, copoNaMesa()).cabem) return '';
+function avisoDaMesa(ocupado = copoNaMesa()) {
+  if (!logo || logosNaMesa(logo.copias.length, logo.caixa, ocupado).cabem) return '';
   return ' Nem todas as logos couberam ao lado do copo: arrume na mesa do fatiador.';
 }
 function centroNaMesa() {
@@ -252,7 +266,7 @@ export function iniciarCopos() {
   $('cp-menos').addEventListener('click', () => previa?.zoom(1.18));
   $('cp-ajustar').addEventListener('click', () => previa?.enquadrar());
   $('cp-base').addEventListener('click', () => previa?.verBase());
-  $('cp-custo').addEventListener('click', () => executar(() => preencherDoModelo({ nome: $('cp-nome').value || `Copo ${id}`, pesoG: volume() / 1000 * densidadeDoModelo('PETG'), detalhe: 'Estimativa maciça; confira o peso no fatiador.' })));
+  $('cp-custo').addEventListener('click', () => executar(() => preencherDoModelo({ nome: $('cp-nome').value || `Copo ${id}`, pesoG: volume() / 1000 * densidadeDoModelo(materialAtual()), detalhe: 'Estimativa maciça; confira o peso no fatiador.' })));
   $('cp-salvar').addEventListener('click', () => executar(async () => {
     const canvas = $('cp-3d').querySelector('canvas'); const thumb = document.createElement('canvas'); thumb.width = 320; thumb.height = 240; thumb.getContext('2d').drawImage(canvas, 0, 0, 320, 240);
     atual = await salvarEmMeusModelos({ tipo: 'caneca', atual, nomePadrao: $('cp-nome').value || `Copo ${id}`, montar: () => ({
@@ -273,16 +287,16 @@ export function iniciarCopos() {
   $('cp-logo-remover').addEventListener('click', removerLogo);
   $('cp-logo-remover-esta').addEventListener('click', removerEsta);
   ligarArrasto();
-  $('cp-3mf').addEventListener('click', () => executar(() => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
-  $('cp-multipartes').addEventListener('click', () => executar(async () => {
+  $('cp-3mf').addEventListener('click', () => executar(() => comMaterial(material => salvarModeloComo('3mf', aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, () => nativo(material)))));
+  $('cp-multipartes').addEventListener('click', () => executar(() => comMaterial(async material => {
     if (!COPOS_MULTIPARTES.includes(id)) return;
-    if (logo) mostrarAviso('A logo não vai no arquivo em multipartes. Para levar a logo, use Salvar 3MF.');
     const escolhidas = [...cores], nome = ($('cp-nome').value || `Copo ${id}`) + ' - multipartes';
     const r = await window.modelos.lerCopoMultipartes(id);
     if (!r.ok) throw Error(r.erro);
-    await salvarArquivoModelo(colorir3mfMultipartes(r.dados, escolhidas, { nome }), nome, '3mf');
-  }));
-  $('cp-fatiador').addEventListener('click', () => executar(() => enviarModeloAoFatiador(aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, nativo)));
+    const logos = logosParaMesa(baseNaPlaca());
+    await salvarArquivoModelo(colorir3mfMultipartes(r.dados, escolhidas, { nome, material, logos }), nome, '3mf', avisoDaMesa(baseNaPlaca()));
+  })));
+  $('cp-fatiador').addEventListener('click', () => executar(() => comMaterial(material => enviarModeloAoFatiador(aplicarCores(pacote.partes, cores), $('cp-nome').value || `Copo ${id}`, () => nativo(material)))));
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });
   window.__coposTeste = { logo: () => logo, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p) };
   registrarAbridor('caneca', async p => {

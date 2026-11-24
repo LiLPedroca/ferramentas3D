@@ -107,9 +107,10 @@ export function mostrarFonte(botao, id) {
 // ---------- Com ou sem AMS ----------
 let responderImpressao = null;
 let calcularTroca = null;
+let soMaterial = false; // copos: só o material (as cores são pintadas, sem pausas)
 
 function resumoImpressao() {
-  const manual = document.querySelector('input[name="imp-modo"]:checked')?.value === "manual";
+  const manual = !soMaterial && document.querySelector('input[name="imp-modo"]:checked')?.value === "manual";
   $("imp-camadas").hidden = !manual;
   $("erro-impressao").textContent = "";
   if (!manual) return null;
@@ -152,8 +153,19 @@ function responder(valor) {
 // Pergunta se a impressão é com AMS. calcular(camada, primeira) → { z, numero } da troca.
 // Devolve { ams: true } | { ams: false, z, numero, camada, primeira } | null (cancelado).
 export function perguntarImpressao(calcular) {
+  return abrirImpressao(calcular, false);
+}
+
+// Só o material (PLA ou PETG). Devolve { material } | null (cancelado).
+export function perguntarMaterial() {
+  return abrirImpressao(null, true);
+}
+
+function abrirImpressao(calcular, apenasMaterial) {
   responder(null);
   calcularTroca = calcular;
+  soMaterial = apenasMaterial;
+  $("dialogo-impressao").classList.toggle("so-material", apenasMaterial);
   marcarMaterial(materialAtual());
   resumoImpressao();
   $("dialogo-impressao").showModal();

@@ -6150,6 +6150,17 @@ textarea:focus {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
+/* Copos: a janela pergunta só o material */
+#dialogo-impressao.so-material .imp-modo-ajuda,
+#dialogo-impressao.so-material .fatiador-lista,
+#dialogo-impressao.so-material #imp-camadas {
+  display: none;
+}
+
+#dialogo-impressao.so-material .imp-material {
+  margin-top: 0;
+}
+
 .lg-abas {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
