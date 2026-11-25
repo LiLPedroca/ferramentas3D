@@ -1022,4 +1022,4 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
   - fatiar o Copo 3 e os multipartes (a geometria e o teste passam);
   - as prévias `1–3.bin.gz` não foram refeitas (a diferença é de 0,2 mm no fundo);
   - nada impresso.
-- **Versão 0.76.0** (local, sem push nem release no GitHub, como pede a regra): leva o Copo 4 e esta correção. A novidade `copo-4`, aprovada pelo Pedro, junta as duas coisas. 580 testes passando. Instalador `electron/release/ProgramaFerramentas3D-Setup-0.76.0.exe` gerado; falta o Pedro instalar e aprovar a publicação.
+- **Versão 0.76.0** (publicada no GitHub em 25/11/2026, com a aprovação do Pedro): leva o Copo 4 e esta correção. A novidade `copo-4`, aprovada pelo Pedro, junta as duas coisas. 580 testes passando. Instalador `electron/release/ProgramaFerramentas3D-Setup-0.76.0.exe` gerado; release v0.76.0 com os 3 arquivos.
