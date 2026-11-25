@@ -554,6 +554,16 @@ export const NOVIDADES = [
     itens: ["O arquivo já sai com o perfil do material", "A logo agora vai junto no multipartes", "Ela fica na mesa da base, com filamento próprio"],
     botao: "Abrir os copos",
   },
+  {
+    id: "copo-4",
+    versao: "0.76.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Copo 4 no catálogo",
+    texto: "Um copo novo para personalizar, e as logos do fundo saindo certinhas.",
+    itens: ["Copo 4 com as mesmas opções dos outros", "Copo inteiro ou em peças (multipartes)", "Nos copos 1 a 3, a logo do fundo já sai na 1ª camada"],
+    botao: "Abrir os copos",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

@@ -971,3 +971,55 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
   `arquivoDeIcone()` (`main/fatiador.cjs`) aponta `resources/images/AnycubicSlicer.ico`; o canal
   `fatiador:icone` lê esse .ico com `nativeImage` (32 px) e só cai no ícone do .exe se ele não existir.
 - Conferido no modo de captura no PC do Pedro. Instalador gerado, sem release no GitHub.
+
+## Trabalho do Claude Code (23/11/2026) — Copo 4 no catálogo (em andamento, ainda sem versão)
+
+- **Origem:** projetos do Pedro em `Downloads/copo 4 final/`. `copo 4.3mf` é o multipartes que ele salvou no Anycubic às 15:12, com o corpo do tubo preto e a argola de cima branca. `copo 4 - copo inteiro.3mf` é o copo montado numa peça só.
+- **Assinatura:** padrão novo, válido para todos os copos. A logo, o site e o Instagram ficam **fundidos na malha** da argola de baixo (nunca uma parte separada). São faces do fundo pintadas de branco, com o site em r 37,5 mm e o Instagram em r 42 mm. O objeto da base leva `bottom_shell_layers = 2`, para o branco sair só nas camadas 1 e 2, e `brim_type = no_brim`.
+- **Copo inteiro:**
+  - O tubo foi posto em pé sobre a base: o degrau dele (z 12,2) apoia no topo da base (z 33,4). Altura total 145 mm.
+  - As folgas da baioneta viraram um anel maciço de r 40,7 a 43,1, com chanfro de 45° por baixo.
+  - O trecho do tubo dentro da argola de cima da base é pintado da cor da argola, para não trocar de cor em toda camada.
+  - Por dentro: Ø 81,4 do tubo para cima; na base, Ø 84,9.
+  - Scripts de geração no scratchpad da sessão (`copo_inteiro.py`, `logo_fundida.py`), não versionados.
+- **Assets:**
+  - `scripts/preparar_copo4.py --inteiro ... --multipartes ...` grava `assets/copos/4.3mf` (malha única no centro da mesa, 128/128) e `4-multipartes.3mf` (base e tubo em placas separadas, com os nomes "base copo 4" e "tubo copo 4").
+  - Os filamentos 2/3 de origem viram 1 = principal (preto) e 2 = detalhes (branco). Pintura `8`→`4`, `0C`→`8`. Perfil `perfil-petg.json`.
+  - `scripts/preparar-copo.mjs 4` gera a prévia `4.bin.gz`.
+  - Miniatura `4.png` tirada da própria tela, no modo de captura, com o tema claro e o fundo transparente.
+- **Código:** `CATALOGO_COPOS`, `COPOS_MULTIPARTES` e `COPO_NA_MESA` com o 4; IPC `copos:ler` e `copos:multipartes` aceitam o 4. Teste novo: `tests/copos-catalogo.test.js`. 569 testes passando.
+- **Conferido:**
+  - No modo de captura, o Copo 4 carrega (145 mm, Ø interno 81,4) e exporta 3MF, multipartes e STL.
+  - Os dois 3MF exportados fatiam sem erro (linha de comando, Kobra X 0.4, 2 filamentos):
+    - completo: branco em 0,2/0,4, 15,2–21,2 e de 133,2 mm até a boca;
+    - multipartes: base com as mesmas trocas, tubo branco a partir de 12,2 mm.
+- **Não conferido:** impressão real do copo inteiro de pé (argola da boca e chanfro interno), e abrir pela janela do Anycubic.
+- **Impresso (24/11):** o encaixe base/tubo do multipartes serviu perfeitamente. Os 3 canais de entrada da baioneta aparecem por fora no topo da base (canal até r 43,45, borda da base em r 43,1). O Pedro quer escondê-los e escolheu a saia no tubo.
+  - **Saia (teste, 24/11):** anel de 45° no tubo, logo acima do degrau. Ele desce por fora do chanfro da base até z 32 da base (r 44,9 a 46,2 na ponta). A folga radial sobre o chanfro é de 0,4 mm, com folga mínima real de 0,27 mm. É simétrica, então não atrapalha o giro da baioneta. Sem sobreposição com a base, e cobre os canais de todos os ângulos de visão.
+  - Só o tubo muda; a base é a mesma. O tubo continua impresso de cabeça para baixo, e a saia cresce em 45° sem suporte (fatiado: 0 suporte).
+  - Arquivo de teste: `Downloads/copo 4 final/copo 4 - com saia (teste).3mf`. Scripts no scratchpad da sessão (`saia4.py`, `tubo_saia.py`), ainda fora do programa.
+  - Falta: o Pedro imprimir o tubo e aprovar. Depois, levar a saia para o `4-multipartes.3mf` do catálogo. O `4.3mf` (copo inteiro) não tem os canais, porque é maciço.
+- **Pendente:** novidade (já aprovada: "Copo 4 no catálogo"), versão **0.76.0** (a 0.75.0 já saiu, ver abaixo), instalador local, sem release no GitHub até o Pedro pedir.
+
+## Trabalho do Claude Code (24/11/2026) — v0.75.0 publicada: material e logo no multipartes dos copos
+
+- **Release v0.75.0 no GitHub**, a pedido do Pedro, só com esta correção (e o ícone do fatiador da v0.74.2, que já estava commitado). O Copo 4 ficou de fora: o instalador foi gerado num worktree limpo, no commit `e071d02`.
+- **Material:** antes de salvar o 3MF, exportar o multipartes ou abrir no fatiador, os copos abrem a janela "Como você vai imprimir?" só com o material (`perguntarMaterial()` em `modelos-ui.js`, classe `so-material`). `perfilCopo(cores, material)` troca os ajustes por filamento (`porFilamento` de `assets/fatiador/projeto-kobra-x.json`) pelos do PLA; o padrão continua PETG. Calcular custo usa `materialAtual()`.
+- **Logo no multipartes:** `colorir3mfMultipartes(..., { material, logos })` põe as logos na placa 1 (a da base), ao lado dela. As medidas da base em cada placa estão em `BASE_NA_PLACA`, em `copos-tela.js` (o 4 já está lá).
+- **Conferido:** testes novos em `tests/copos-material-logos.test.js`, 569 testes passando no commit da release. O multipartes do Copo 2 com uma logo e PLA fatia pela linha de comando, com a logo na placa 1 (`T2`). No modo de captura, a janela mostra só PLA/PETG.
+
+## Trabalho do Claude Code (25/11/2026) — v0.76.0 local: Copo 4 e assinatura dos copos 1 a 3 na 1ª camada
+
+- **Bug (relatado pelo Pedro):** nos copos 1 a 3, a logo do fundo só começava na 2ª camada. Causa: a assinatura do método antigo (Codex, v0.38) é um **rebaixo de 0,2 mm** com o teto pintado. Na camada 1 ficava um buraco no lugar da marca. O Copo 4 já usa o fundo plano pintado e saía certo.
+- **Correção nos assets:** `1.3mf`, `2.3mf`, `3.3mf`, `1-multipartes.3mf` e `2-multipartes.3mf` agora têm o fundo plano. A marca continua com a mesma pintura e o mesmo lugar (site em r 30 e Instagram em r 35, o padrão antigo; o raio novo, 37,5/42, **não** foi aplicado). O `3-multipartes.3mf` já tinha a logo pintada em z0.
+- **Script:** `electron/scripts/tapar_rebaixo_assinatura.py <entrada> <saída> <modelo> <objeto> [--refazer-fundo]`.
+  - Padrão: os triângulos do teto descem para z0 e as paredes saem. Também costura as junções em T.
+  - `--refazer-fundo`: usado só no `2.3mf`, que tem folhas internas de espessura zero nas letras. Tira a laje do fundo (z0 a z0+0,2) e triangula o disco de novo, com o mesmo contorno de fora.
+  - Confere: malha fechada e orientada, e volume ganho igual à área da marca × 0,2 (+149,4814 mm³ nos 5 arquivos). O resto da malha não muda. Uma união booleana com o Manifold foi testada e descartada: ela mexe em faces e na pintura longe do fundo.
+- **Teste:** `tests/copos-assinatura-fundo.test.js` cobre os 8 arquivos dos copos. Ele exige teto de rebaixo menor que 0,01 mm² (no Copo 1 sobram lascas de área zero no r 38, da borda do drapeado) e 2 cores no fundo. Suíte: 580 testes; o `encaixes.test.js` só estoura o tempo com a máquina carregada e passa sozinho.
+- **Conferido:** o 3MF exportado pelo programa e fatiado na linha de comando tem as duas cores em z 0,2 nos copos 1 e 2. Antes, só o fundo saía em z 0,2.
+- **Não conferido:**
+  - fatiar o Copo 3 e os multipartes (a geometria e o teste passam);
+  - as prévias `1–3.bin.gz` não foram refeitas (a diferença é de 0,2 mm no fundo);
+  - nada impresso.
+- **Versão 0.76.0** (local, sem push nem release no GitHub, como pede a regra): leva o Copo 4 e esta correção. A novidade `copo-4`, aprovada pelo Pedro, junta as duas coisas. 580 testes passando. Instalador `electron/release/ProgramaFerramentas3D-Setup-0.76.0.exe` gerado; falta o Pedro instalar e aprovar a publicação.
