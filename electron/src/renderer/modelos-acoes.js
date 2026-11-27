@@ -7,8 +7,9 @@ import { carregarFilamentos, estoquePorCor, listaDeRolos } from "./filamentos-te
 import { densidadeDoMaterial, pesoDasMalhas, textoDoPeso, volumeDaGeometria } from "./modelos/estimativa.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { materialAtual } from "./modelos/projeto-fatiador.js";
+import { marcar3mf, marcarArquivo, nomeComMarca } from "./modelos/marca.js";
 import { criarPrevia } from "./modelos/previa3d.js";
-import { mostrarAviso } from "./shell.js";
+import { avisoArquivoSalvo, mostrarAviso } from "./shell.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -52,10 +53,91 @@ export function ajustarPrevia(modo, previa2d, previa3d) {
   else previa2d?.ajustar();
 }
 
+// ---------- Exportar: caixinha do nome, marca Criae3D e gravação direta na pasta Modelos 3D ----------
+let responderNome = null;
+
+function fecharNome(valor) {
+  // pega a resposta antes de fechar: o evento "close" chama fecharNome(null) de novo
+  const r = responderNome;
+  responderNome = null;
+  if ($("dialogo-nome-arquivo")?.open) $("dialogo-nome-arquivo").close();
+  r?.(valor);
+}
+
+function confirmarNome() {
+  const nome = $("na-nome").value.replace(/\s+/g, " ").trim();
+  if (!nome) {
+    $("erro-nome-arquivo").textContent = "Digite o nome do arquivo.";
+    $("na-nome").focus();
+    return;
+  }
+  fecharNome(nome);
+}
+
+// Pergunta o nome do arquivo (só o nome: a marca entra sozinha). Devolve o nome ou null (cancelou).
+export function pedirNomeArquivo(padrao = "") {
+  fecharNome(null);
+  $("na-nome").value = String(padrao ?? "").replace(/\s+-\s+Criae3D$/i, "");
+  $("erro-nome-arquivo").textContent = "";
+  $("dialogo-nome-arquivo").showModal();
+  $("na-nome").select();
+  return new Promise((r) => {
+    responderNome = r;
+  });
+}
+
+export function iniciarNomeArquivo() {
+  $("na-salvar").addEventListener("click", confirmarNome);
+  $("na-cancelar").addEventListener("click", () => fecharNome(null));
+  $("dialogo-nome-arquivo").addEventListener("close", () => fecharNome(null));
+  $("na-nome").addEventListener("input", () => {
+    $("erro-nome-arquivo").textContent = "";
+  });
+  $("na-nome").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      confirmarNome();
+    }
+  });
+}
+
+// Grava o arquivo já marcado na pasta Modelos 3D e mostra o aviso no meio da tela.
+async function gravarModelo(bytes, nomeFinal, extensao, aviso = "") {
+  const resposta = await window.modelos.gravar(marcarArquivo(bytes, nomeFinal, extensao), nomeFinal, extensao);
+  if (!resposta.ok) {
+    mostrarAviso(resposta.erro);
+    return null;
+  }
+  avisoArquivoSalvo(resposta.dados.caminho);
+  if (aviso?.trim()) setTimeout(() => mostrarAviso(aviso.trim(), { duracao: 6000 }), 3400);
+  return resposta.dados.caminho;
+}
+
+// bytes já prontos: pergunta o nome e grava.
 export async function salvarArquivoModelo(bytes, nome, extensao, aviso = "") {
-  const resposta = await window.modelos.salvar(bytes, nome, extensao);
-  if (!resposta.ok) mostrarAviso(resposta.erro);
-  else if (resposta.dados) mostrarAviso(`${extensao.toUpperCase()} salvo.${aviso}`);
+  const escolhido = await pedirNomeArquivo(nome);
+  if (!escolhido) return null;
+  return gravarModelo(bytes, nomeComMarca(escolhido), extensao, aviso);
+}
+
+// Pergunta o nome antes e depois monta: montar(nomeFinal) → { bytes, aviso } | null.
+export async function salvarMontando(nome, extensao, montar) {
+  const escolhido = await pedirNomeArquivo(nome);
+  if (!escolhido) return null;
+  const final = nomeComMarca(escolhido);
+  const arquivo = await montar(final);
+  if (!arquivo) return null;
+  return gravarModelo(arquivo.bytes, final, extensao, arquivo.aviso);
+}
+
+// Abre bytes de 3MF prontos no fatiador, com o nome escolhido e a marca.
+export async function enviarArquivoAoFatiador(bytes, nome, aviso = "") {
+  const escolhido = await pedirNomeArquivo(nome);
+  if (!escolhido) return false;
+  const final = nomeComMarca(escolhido);
+  await abrirNoFatiador(marcar3mf(bytes, final), final, "3mf");
+  if (aviso?.trim()) mostrarAviso(aviso.trim(), { duracao: 6000 });
+  return true;
 }
 
 // Filamento de cada parte no 3MF = posição do rolo daquela cor na impressora (Estoque > Na impressora).
@@ -91,19 +173,24 @@ export async function comSlotsDaImpressora(partes) {
   return slotsDaImpressora(partes);
 }
 
+// montar3mf(nomeFinal) → { bytes, aviso } | null (null = cancelou, ex.: na pergunta do AMS).
 export async function salvarModeloComo(extensao, partes, nome, montar3mf) {
   if (!partes) return;
-  const arquivo = extensao === "3mf"
-    ? await (montar3mf ? montar3mf() : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: nome }) })
-    : { bytes: gerarStl(partes) };
-  if (arquivo) await salvarArquivoModelo(arquivo.bytes, nome, extensao, arquivo.aviso);
+  await salvarMontando(nome, extensao, async (final) =>
+    extensao === "3mf"
+      ? await (montar3mf ? montar3mf(final) : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: final }) })
+      : { bytes: gerarStl(partes) },
+  );
 }
 
 export async function enviarModeloAoFatiador(partes, nome, montar3mf) {
   if (!partes) return;
-  const arquivo = await (montar3mf ? montar3mf() : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: nome }) });
+  const escolhido = await pedirNomeArquivo(nome);
+  if (!escolhido) return;
+  const final = nomeComMarca(escolhido);
+  const arquivo = await (montar3mf ? montar3mf(final) : { bytes: gerar3mf(await comSlotsDaImpressora(partes), { titulo: final }) });
   if (!arquivo) return;
-  await abrirNoFatiador(arquivo.bytes, nome, "3mf");
+  await abrirNoFatiador(marcar3mf(arquivo.bytes, final), final, "3mf");
   const falta = await faltaDeFilamento(partes);
   const aviso = [arquivo.aviso?.trim(), falta].filter(Boolean).join(" ");
   if (aviso) mostrarAviso(aviso, { duracao: falta ? 8000 : 2600 });

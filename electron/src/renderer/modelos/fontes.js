@@ -14,6 +14,10 @@ const nomeDaFonte = (id) => id.replace(/([a-z])([A-Z0-9])/g, "$1 $2");
 
 export const FONTES = CATEGORIAS_FONTES.flatMap((c) => c.fontes.map((id) => ({ id, nome: nomeDaFonte(id), categoria: c.nome })));
 
+// Número mostrado na escolha ("Fonte 12"), para o cliente pedir pelo número. Fonte nova entra no fim
+// da sua categoria: confira em tests/fontes-numeros.test.js que os números antigos não mudaram.
+export const numeroDaFonte = (id) => FONTES.findIndex((f) => f.id === id) + 1;
+
 const cache = new Map();
 
 export async function carregarFonte(id) {

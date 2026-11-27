@@ -564,6 +564,16 @@ export const NOVIDADES = [
     itens: ["Copo 4 com as mesmas opções dos outros", "Copo inteiro ou em peças (multipartes)", "Nos copos 1 a 3, a logo do fundo já sai na 1ª camada"],
     botao: "Abrir os copos",
   },
+  {
+    id: "copos-nome",
+    versao: "0.77.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Nome do cliente no copo",
+    texto: "Em Personalização, junto da logo: o nome sobre uma base, com prévia no copo.",
+    itens: ["11 bases e duas cores à escolha", "Fontes e bases numeradas: o cliente escolhe pelo número", "Exportar pede só o nome e salva direto na pasta Modelos 3D"],
+    botao: "Abrir os copos",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

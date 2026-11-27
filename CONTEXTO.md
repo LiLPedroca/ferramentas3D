@@ -1023,3 +1023,36 @@ Designs em `docs/superpowers/specs/2026-11-16-logo-nos-copos-design.md` e `...-r
   - as prévias `1–3.bin.gz` não foram refeitas (a diferença é de 0,2 mm no fundo);
   - nada impresso.
 - **Versão 0.76.0** (publicada no GitHub em 25/11/2026, com a aprovação do Pedro): leva o Copo 4 e esta correção. A novidade `copo-4`, aprovada pelo Pedro, junta as duas coisas. 580 testes passando. Instalador `electron/release/ProgramaFerramentas3D-Setup-0.76.0.exe` gerado; release v0.76.0 com os 3 arquivos.
+
+## Trabalho do Claude Code (27/11/2026) — v0.77.0 local: nome no copo, fontes e bases numeradas, exportar com nome + Criae3D
+
+Combinado com o Pedro (só local; ele aprova no fim do dia para lançar no GitHub).
+
+- **Página de Copos (`copos-tela.js`, `#tela-caneca`):**
+  - saíram a aba "Ajustes" (a grade fica sempre ligada) e o campo "Nome do projeto";
+  - os arquivos usam o nome de Meus modelos ou "Copo N" (`nomeDoCopo()`);
+  - "Personalização" (`#cp-personalizar`) junta "Restaurar preto e branco", o bloco **Logo** (o mesmo de antes) e o bloco **Nome**.
+- **Nome no copo:**
+  - Geometria em `modelos/nome-copo.js` (`gerarNomeCopo`), sem argola. Malhas "Base do nome" e "Letras", base 1,6 mm e relevo 1 mm, largura total de 25 a 140 mm.
+  - 11 bases em `BASES_NOME`, numeradas pela ordem: contorno, cápsula, placa com moldura, faixa, medalhão oval, etiqueta, nuvem, corações, bico, ondas e sombra. **Não mude a ordem.**
+  - Moldura, medalhão e sombra têm detalhes na cor das letras; a sombra fica na altura da base.
+  - A janela fica em `nome-copo-tela.js` (`#dialogo-nome-copo`): nome, fonte, base, largura e as duas cores (14 cores prontas).
+  - No copo, o nome funciona como a logo: dobrado na prévia, arrastar, clonar, remover a cópia.
+  - Na prévia, as cópias da logo têm ids 0, 1, 2… e as do nome 1000, 1001…
+  - Na mesa, logos e nomes vão ao lado do copo (`pecasNaMesa`). No 3MF, os objetos se chamam "Logo N" e "Nome N".
+  - Meus modelos guarda `opcoes.nome = { opcoes, copias }`; ao reabrir, o nome é refeito (`refazerNome`).
+- **Fontes numeradas:** `numeroDaFonte()` em `modelos/fontes.js`. A janela de fontes (compartilhada) mostra "Fonte N", e a busca aceita o número. O teste `tests/fontes-numeros.test.js` trava a ordem das 29 fontes.
+- **Prévia sem a assinatura do fundo:** `semAssinaturaNoFundo()` em `modelos/copos.js` passa as faces do fundo (até 0,25 mm) da cor menor para a maior.
+  - Copos 1 a 3: fundo branco e logo preta. Copo 4: o contrário.
+  - Os arquivos exportados não mudam. No "Ver base" do Copo 1 sobra um contorno bem fraco (sombreamento).
+- **Exportar (todos os modelos):**
+  - `modelos-acoes.js` abre a caixinha "Nome do arquivo" (`#dialogo-nome-arquivo`), e o arquivo sai `<nome> - Criae3D.<ext>` (`modelos/marca.js`).
+  - No 3MF, Title, Designer, Copyright e Description levam Criae3D; no STL, o cabeçalho leva a marca.
+  - O arquivo é gravado **direto** na pasta "Modelos 3D" (IPC `modelos:gravar`, `main/arquivo-modelo.cjs`), **sem sobrescrever**: o seguinte vira "(2)", "(3)"… O nome mantém os acentos.
+  - "Abrir no fatiador" também pergunta o nome e marca o 3MF.
+  - O aviso "Arquivo salvo" aparece no meio da tela, com animação (círculo e check se desenham) e o botão "Abrir pasta" (`modelos:mostrar`, só para arquivos que o programa gravou).
+  - O Visualizador continua com a janela "Salvar como" de antes.
+- **Testes:** `nome-copo`, `fontes-numeros`, `copos-previa-sem-assinatura`, `marca` e `arquivo-modelo` são novos; `modelos-acoes` e `copos-tela` foram ajustados. 607 testes.
+  - Com o Anycubic Slicer aberto, `vetorizar` (imagem grande) e `copos-material-logos` estouram o tempo, mas passam sozinhos.
+- **Conferido no modo de captura:** janela do nome, nome dobrado no copo, clonar, exportar 3MF (arquivo `João Pedro - Criae3D.3mf` com a marca e "Nome 1"), aviso animado, "Ver base" liso nos copos 1 e 4, e salvar e reabrir de Meus modelos com 2 cópias.
+- **Não conferido:** fatiar um copo com nome, imprimir o nome e moldá-lo no copo, e o aviso no programa instalado.

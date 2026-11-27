@@ -1,4 +1,4 @@
-import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo } from "./modelos-acoes.js";
+import { conferirMedidas, densidadeDoModelo, calcularCustoModelo, salvarModeloComo, enviarModeloAoFatiador, mudarPrevia, zoomPrevia, ajustarPrevia, arquivoDeTexto, imagemComoTexto, salvarArquivoModelo, enviarArquivoAoFatiador } from "./modelos-acoes.js";
 // Tela do Chaveiro de nome: opções à esquerda, prévia 2D (argola e símbolo arrastáveis) ou 3D à direita.
 // Símbolo: imagem vetorizada por cores ao lado do nome. Vários nomes: um 3MF com todos, em placas.
 import { pesoCurto, pesoDasMalhas } from "./modelos/estimativa.js";
@@ -6,7 +6,6 @@ import { camadaDaTroca, gerarChaveiro, gerarChaveiroComLarguraDoTexto, larguraNa
 import { arrumarNaMesa, gerar3mf, gerar3mfVarios } from "./modelos/exportar.js";
 import { coresDoSvg } from "./modelos/logo.js";
 import { vetorizar } from "./vetorizar.js";
-import { abrirNoFatiador } from "./fatiador-ui.js";
 import { el } from "./util-tela.js";
 import { carregarFonte, familiaCss } from "./modelos/fontes.js";
 import { criarPaleta, escolherFonte, marcarPaleta, mostrarFonte, perguntarImpressao, registrarAbridor, salvarEmMeusModelos } from "./modelos-ui.js";
@@ -757,9 +756,7 @@ export function iniciarChaveiro() {
   });
   $("ch-lote-fatiador").addEventListener("click", async () => {
     const a = await arquivoDoLote();
-    if (!a) return;
-    await abrirNoFatiador(a.bytes, a.titulo, "3mf");
-    if (a.aviso) mostrarAviso(a.aviso.trim());
+    if (a) await enviarArquivoAoFatiador(a.bytes, a.titulo, a.aviso);
   });
   for (const b of document.querySelectorAll("#tela-chaveiro .ch-abas button")) {
     b.addEventListener("click", () => $(b.dataset.alvo).scrollIntoView({ behavior: "smooth", block: "start" }));

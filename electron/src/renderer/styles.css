@@ -2604,6 +2604,116 @@ kbd {
   transform: translate(-50%, 0);
 }
 
+/* Aviso "Arquivo salvo" no meio da tela: entra com um pulinho, o círculo e o check se desenham, sai subindo */
+.salvo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.salvo[hidden] {
+  display: none;
+}
+
+.salvo-cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  padding: 24px 32px 20px;
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  box-shadow: var(--sombra);
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.salvo-cartao p {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.salvo-circulo,
+.salvo-check {
+  fill: none;
+  stroke: #1d9e75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.salvo-circulo {
+  stroke-width: 3;
+}
+
+.salvo-check {
+  stroke-width: 3.5;
+}
+
+.salvo.entrando .salvo-cartao {
+  animation: salvo-entra 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+}
+
+.salvo.entrando .salvo-circulo {
+  animation: salvo-traca 0.5s 0.3s ease-out forwards;
+}
+
+.salvo.entrando .salvo-check {
+  animation: salvo-traca 0.3s 0.75s ease-out forwards;
+}
+
+.salvo.saindo .salvo-cartao {
+  opacity: 1;
+  animation: salvo-sai 0.4s ease-in forwards;
+}
+
+.salvo.saindo .salvo-circulo,
+.salvo.saindo .salvo-check {
+  stroke-dashoffset: 0;
+}
+
+@keyframes salvo-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes salvo-traca {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes salvo-sai {
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(-14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salvo.entrando .salvo-cartao,
+  .salvo.entrando .salvo-circulo,
+  .salvo.entrando .salvo-check,
+  .salvo.saindo .salvo-cartao {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+}
+
 /* ---------- Botões gerais ---------- */
 .botao-secundario {
   display: inline-flex;
@@ -3877,7 +3987,9 @@ textarea:focus {
 }
 
 .fontes-item {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   width: 100%;
   padding: 7px 10px;
   border: 0;
@@ -3887,6 +3999,14 @@ textarea:focus {
   font-size: 21px;
   text-align: left;
   cursor: pointer;
+}
+
+.fontes-numero {
+  flex: none;
+  min-width: 62px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .fontes-item:hover {

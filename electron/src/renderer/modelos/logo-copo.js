@@ -156,23 +156,25 @@ export function logoNaCurva(malha, caixa, pos, tubo, { folga = 0.25, passo = 2 }
 // Na mesa: as logos retas, deitadas, numa coluna à direita do copo (e depois à esquerda).
 // copo: { min:[x,y], max:[x,y] } na mesa. Devolve [{ x, y }] (canto de baixo à esquerda de cada logo) e
 // se todas couberam na mesa.
-export function logosNaMesa(n, caixa, copo, { mesa = [260, 260], folga = 6, margem = 5 } = {}) {
-  const colunas = [
-    { x: copo.max[0] + folga, livre: mesa[0] - margem - (copo.max[0] + folga) },
-    { x: copo.min[0] - folga - caixa.largura, livre: copo.min[0] - folga - margem },
-  ];
+export function logosNaMesa(n, caixa, copo, opcoes = {}) {
+  return pecasNaMesa(Array.from({ length: n }, () => caixa), copo, opcoes);
+}
+
+// Mesmo arranjo, com peças de tamanhos diferentes (logos e nomes juntos). caixas: [{ largura, altura }].
+export function pecasNaMesa(caixas, copo, { mesa = [260, 260], folga = 6, margem = 5 } = {}) {
   const lugares = [];
   let cabem = true;
-  let coluna = 0;
+  let coluna = 0; // 0 = à direita do copo, 1 = à esquerda
   let y = margem;
-  for (let i = 0; i < n; i++) {
-    if (y + caixa.altura > mesa[1] - margem && coluna < colunas.length - 1) {
+  for (const caixa of caixas) {
+    if (y + caixa.altura > mesa[1] - margem && coluna < 1) {
       coluna++;
       y = margem;
     }
-    const c = colunas[coluna];
-    if (c.livre < caixa.largura || y + caixa.altura > mesa[1] - margem) cabem = false;
-    lugares.push({ x: c.x, y });
+    const x = coluna === 0 ? copo.max[0] + folga : copo.min[0] - folga - caixa.largura;
+    const livre = coluna === 0 ? mesa[0] - margem - (copo.max[0] + folga) : copo.min[0] - folga - margem;
+    if (livre < caixa.largura || y + caixa.altura > mesa[1] - margem) cabem = false;
+    lugares.push({ x, y });
     y += caixa.altura + folga;
   }
   return { lugares, cabem };

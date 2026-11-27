@@ -187,7 +187,7 @@ function montarLogos(modelo, config, coresDoCopo, logos) {
     });
     const conjunto = proximo++;
     conjuntos.push(conjunto);
-    const nome = escaparXml(`Logo ${k + 1}`);
+    const nome = escaparXml(logo.nome ?? `Logo ${k + 1}`);
     objetos.push(`<object id="${conjunto}" type="model" name="${nome}"><components>${ids.map(id => `<component objectid="${id}"/>`).join('')}</components></object>`);
     itens.push(`<item objectid="${conjunto}" transform="1 0 0 0 1 0 0 0 1 ${num(logo.x)} ${num(logo.y)} 0" printable="1"/>`);
     const partes = logo.malhas.map((m, i) => `<part id="${ids[i]}" subtype="normal_part"><metadata key="name" value="${escaparXml(m.nome ?? `Cor ${i + 1}`)}"/><metadata key="extruder" value="${slotDa(m.cor)}"/></part>`).join('');

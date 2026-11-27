@@ -647,6 +647,17 @@
       </div>
     </dialog>
 
+    <dialog class="dialogo dialogo-pequeno" id="dialogo-nome-arquivo" aria-labelledby="na-titulo">
+      <h2 id="na-titulo">Nome do arquivo</h2>
+      <label class="campo"><div class="entrada"><input id="na-nome" maxlength="70" autocomplete="off" spellcheck="false" aria-labelledby="na-titulo" /></div></label>
+      <p class="erro" id="erro-nome-arquivo" role="alert"></p>
+      <div class="dialogo-rodape">
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="na-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="na-salvar">Salvar</button>
+      </div>
+    </dialog>
+
     <!-- Tela: encaixes -->
 
     <main class="tela oculta pagina" id="tela-encaixes">
@@ -2162,26 +2173,40 @@
         <aside class="copos-painel">
           <section><h2>Modelo</h2><div class="copos-catalogo" id="cp-catalogo"></div></section>
           <section><h2>Cores</h2><div class="copos-cores" id="cp-cores"></div></section>
-          <details><summary>Personalização</summary><label class="copos-campo">Nome do projeto<input id="cp-nome" maxlength="80" value="Copo 1" /></label><button type="button" id="cp-restaurar">Restaurar preto e branco</button></details>
-          <details class="cp-logo" id="cp-logo-secao">
-            <summary><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="15" height="14" rx="2.5"/><path d="m3 15 4.5-4.5 4 4 2.5-2.5 4 4"/><circle cx="9" cy="9" r="1.6"/><path d="M19 2v6M16 5h6"/></svg>Logo personalizada</summary>
-            <div class="cp-logo-vazio" id="cp-logo-vazio">
-              <p>Coloque uma logo no tubo do copo. Ela sai reta na mesa, para você moldar.</p>
-              <button type="button" class="cp-logo-adicionar" id="cp-logo-adicionar" disabled>Adicionar logo</button>
-              <button type="button" id="cp-logo-meus" disabled>Usar de Meus modelos</button>
-              <div class="cp-logo-salvos" id="cp-logo-salvos" role="list" aria-label="Logos salvas" hidden></div>
+          <details class="cp-personalizar" id="cp-personalizar">
+            <summary>Personalização</summary>
+            <button type="button" id="cp-restaurar">Restaurar preto e branco</button>
+            <div class="cp-peca cp-logo" id="cp-logo-secao">
+              <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="15" height="14" rx="2.5"/><path d="m3 15 4.5-4.5 4 4 2.5-2.5 4 4"/><circle cx="9" cy="9" r="1.6"/><path d="M19 2v6M16 5h6"/></svg>Logo</h3>
+              <div class="cp-logo-vazio" id="cp-logo-vazio">
+                <button type="button" class="cp-logo-adicionar" id="cp-logo-adicionar" disabled>Adicionar logo</button>
+                <button type="button" id="cp-logo-meus" disabled>Usar de Meus modelos</button>
+                <div class="cp-logo-salvos" id="cp-logo-salvos" role="list" aria-label="Logos salvas" hidden></div>
+              </div>
+              <div class="cp-logo-com" id="cp-logo-com" hidden>
+                <div class="cp-logo-cartao"><img id="cp-logo-miniatura" alt="Logo" /><span id="cp-logo-info"></span></div>
+                <button type="button" id="cp-logo-editar">Editar logo</button>
+                <button type="button" id="cp-logo-clonar">Clonar logo</button>
+                <button type="button" id="cp-logo-remover-esta" hidden>Remover esta cópia</button>
+                <button type="button" id="cp-logo-remover">Remover logo</button>
+                <p class="cp-logo-aviso" id="cp-logo-aviso" role="status"></p>
+              </div>
             </div>
-            <div class="cp-logo-com" id="cp-logo-com" hidden>
-              <div class="cp-logo-cartao"><img id="cp-logo-miniatura" alt="Logo" /><span id="cp-logo-info"></span></div>
-              <button type="button" id="cp-logo-editar">Editar logo</button>
-              <p class="cp-logo-nota">Ao editar, as cópias mudam juntas.</p>
-              <button type="button" id="cp-logo-clonar">Clonar logo</button>
-              <button type="button" id="cp-logo-remover-esta" hidden>Remover esta cópia</button>
-              <button type="button" id="cp-logo-remover">Remover logo</button>
-              <p class="cp-logo-aviso" id="cp-logo-aviso" role="status"></p>
+            <div class="cp-peca cp-logo" id="cp-nome-secao">
+              <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 9 5l5 13M5.8 13.5h6.4"/><path d="M15 18h5"/></svg>Nome</h3>
+              <div class="cp-logo-vazio" id="cp-nome-vazio">
+                <button type="button" class="cp-logo-adicionar" id="cp-nome-adicionar" disabled>Adicionar nome</button>
+              </div>
+              <div class="cp-logo-com" id="cp-nome-com" hidden>
+                <div class="cp-logo-cartao"><img id="cp-nome-miniatura" alt="Nome" /><span id="cp-nome-info"></span></div>
+                <button type="button" id="cp-nome-editar">Editar nome</button>
+                <button type="button" id="cp-nome-clonar">Clonar nome</button>
+                <button type="button" id="cp-nome-remover-esta" hidden>Remover esta cópia</button>
+                <button type="button" id="cp-nome-remover">Remover nome</button>
+                <p class="cp-logo-aviso" id="cp-nome-aviso" role="status"></p>
+              </div>
             </div>
           </details>
-          <details><summary>Ajustes</summary><p>Encaixe para copo de alumínio</p><p>Ø interno 81,4 mm · altura 145 mm</p><label><input type="checkbox" id="cp-grade" checked /> Mostrar grade</label></details>
         </aside>
         <section class="copos-cena" aria-label="Prévia do copo">
           <span class="copos-capacidade">Capacidade 500ml</span>
@@ -2628,6 +2653,34 @@
       <div class="lg-copo-corpo" id="lg-copo-corpo"></div>
     </dialog>
 
+    <!-- Diálogo: nome no copo (nome do cliente sobre uma base, sem argola) -->
+    <dialog class="dialogo dialogo-nome-copo" id="dialogo-nome-copo" aria-labelledby="titulo-nome-copo">
+      <header class="dialogo-topo">
+        <h2 id="titulo-nome-copo">Nome no copo</h2>
+        <button type="button" class="fechar" id="nc-fechar" aria-label="Cancelar">×</button>
+      </header>
+      <div class="nc-corpo">
+        <div class="nc-opcoes">
+          <label class="campo"><span>Nome</span><div class="entrada"><input id="nc-texto" maxlength="24" autocomplete="off" spellcheck="false" /></div></label>
+          <div class="campo"><span>Fonte</span><button type="button" class="nc-fonte" id="nc-fonte"><small id="nc-fonte-numero"></small><span id="nc-fonte-nome"></span></button></div>
+          <div class="campo"><span>Base</span><div class="nc-bases" id="nc-bases" role="radiogroup" aria-label="Base"></div></div>
+          <label class="campo"><span>Largura</span><div class="entrada"><input id="nc-largura" inputmode="decimal" autocomplete="off" /><em>mm</em></div></label>
+          <div class="campo"><span>Cor da base</span><div class="nc-cores" id="nc-cor-base"></div></div>
+          <div class="campo"><span>Cor das letras</span><div class="nc-cores" id="nc-cor-texto"></div></div>
+        </div>
+        <div class="nc-previa">
+          <svg id="nc-svg" role="img" aria-label="Prévia do nome"></svg>
+          <p class="nc-estado" id="nc-estado" role="status"></p>
+        </div>
+      </div>
+      <footer class="dialogo-rodape">
+        <span class="nc-medidas" id="nc-medidas"></span>
+        <span class="espaco"></span>
+        <button type="button" class="botao-secundario" id="nc-cancelar">Cancelar</button>
+        <button type="button" class="botao-primario" id="nc-usar" disabled>Usar no copo</button>
+      </footer>
+    </dialog>
+
     <dialog class="dialogo dialogo-novidades" id="dialogo-novidades" aria-labelledby="novidades-titulo">
       <h2 id="novidades-titulo">Novidades</h2>
       <ul class="novidades-lista" id="novidades-lista"></ul>
@@ -2652,6 +2705,16 @@
     </dialog>
 
     <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+    <div class="salvo" id="aviso-salvo" role="status" aria-live="polite" hidden>
+      <div class="salvo-cartao">
+        <svg class="salvo-icone" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true">
+          <circle class="salvo-circulo" cx="28" cy="28" r="25" pathLength="100" transform="rotate(-90 28 28)" />
+          <path class="salvo-check" d="M17 29 l7 7 l15 -16" pathLength="100" />
+        </svg>
+        <p>Arquivo salvo</p>
+        <button type="button" class="botao-secundario" id="aviso-salvo-pasta">Abrir pasta</button>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>

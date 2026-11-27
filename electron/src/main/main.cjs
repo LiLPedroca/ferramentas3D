@@ -431,6 +431,30 @@ function registrarDados() {
     }),
   );
 
+  // Exportar modelos (chaveiros, logo, palavras, copos, encaixes): grava direto na pasta "Modelos 3D",
+  // sem janela e sem sobrescrever. FERRAMENTAS_SALVAR_DESTINO (testes) troca a pasta.
+  const arquivoModelo = require("./arquivo-modelo.cjs");
+  const modelosGravados = new Set();
+  ipcMain.handle(
+    "modelos:gravar",
+    comTela(async (_e, bytes, nome, extensao) => {
+      conferirModelo(bytes, extensao);
+      const pastaDestino = process.env.FERRAMENTAS_SALVAR_DESTINO || (await pastasUsuario.garantir("modelos"));
+      const destino = await arquivoModelo.gravarSemSobrescrever(pastaDestino, arquivoModelo.nomeLimpo(nome), extensao, bytes);
+      modelosGravados.add(destino);
+      return { caminho: destino, arquivo: path.basename(destino) };
+    }),
+  );
+  // "Abrir pasta" do aviso: só arquivos que o programa acabou de gravar.
+  ipcMain.handle(
+    "modelos:mostrar",
+    comTela(async (_e, caminho) => {
+      if (typeof caminho !== "string" || !modelosGravados.has(caminho)) throw new ErroValidacao("Arquivo desconhecido.");
+      shell.showItemInFolder(caminho);
+      return true;
+    }),
+  );
+
   ipcMain.handle("fatiador:detectar", comTela(() => detectarFatiadores()));
   ipcMain.handle("fatiador:nomes", comTela(() => [...new Set(CANDIDATOS.map((c) => c.nome))]));
   // Ícone do programa (para o cartão do fatiador). Só caminhos .exe absolutos.
@@ -469,7 +493,7 @@ function registrarDados() {
         conferirModelo(bytes, extensao);
         const pastaTemp = path.join(app.getPath("temp"), "ProgramaFerramentas3D");
         await require("node:fs/promises").mkdir(pastaTemp, { recursive: true });
-        arquivo = path.join(pastaTemp, nomeModelo(nome, extensao));
+        arquivo = path.join(pastaTemp, `${arquivoModelo.nomeLimpo(nome)}.${extensao}`);
         await require("node:fs/promises").writeFile(arquivo, bytes);
       }
       await abrirFatiador(fatiador.caminho, arquivo);

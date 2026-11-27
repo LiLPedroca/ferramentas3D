@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { carregarFilamentos } from "../src/renderer/filamentos-tela.js";
-import { arquivoDeTexto, calcularCustoModelo, densidadeDoModelo, imagemComoTexto, mudarPrevia, salvarArquivoModelo, salvarModeloComo } from "../src/renderer/modelos-acoes.js";
+import { arquivoDeTexto, calcularCustoModelo, densidadeDoModelo, imagemComoTexto, iniciarNomeArquivo, mudarPrevia, salvarArquivoModelo, salvarModeloComo } from "../src/renderer/modelos-acoes.js";
 
 describe("ações comuns dos modelos", () => {
   beforeEach(() => { document.body.innerHTML = '<button id="x-ver-2d"></button><button id="x-ver-3d"></button><div id="x-3d"></div>'; });
@@ -31,18 +31,71 @@ describe("ações comuns dos modelos", () => {
     expect(document.getElementById("x-3d").hidden).toBe(true);
   });
 
-  it("cancelar a pergunta de impressão não salva arquivo", async () => {
-    const salvos = [];
-    window.modelos = { salvar: async (...args) => { salvos.push(args); return { ok: true, dados: null }; } };
-    await salvarModeloComo("3mf", [{}], "Peça", async () => null);
-    expect(salvos).toEqual([]);
+  // caixinha do nome + aviso "Arquivo salvo" (o resto do index.html não importa aqui)
+  const montarDialogo = () => {
+    document.body.innerHTML += '<dialog id="dialogo-nome-arquivo"><input id="na-nome"><p id="erro-nome-arquivo"></p><button id="na-cancelar"></button><button id="na-salvar"></button></dialog><div id="aviso" ></div><div id="aviso-salvo" hidden><div class="salvo-cartao"></div><button id="aviso-salvo-pasta"></button></div>';
+    iniciarNomeArquivo();
+  };
+  const responder = async (nome) => {
+    await vi.waitFor(() => expect(document.getElementById("dialogo-nome-arquivo").open).toBe(true));
+    if (nome === null) document.getElementById("na-cancelar").click();
+    else {
+      document.getElementById("na-nome").value = nome;
+      document.getElementById("na-salvar").click();
+    }
+  };
+
+  it("pergunta o nome antes de montar; cancelar a pergunta de impressão não salva arquivo", async () => {
+    montarDialogo();
+    const gravados = [];
+    window.modelos = { gravar: async (...args) => { gravados.push(args); return { ok: true, dados: { caminho: "C:/x.3mf" } }; } };
+    let recebido = null;
+    const fim = salvarModeloComo("3mf", [{}], "Peça", async (nome) => { recebido = nome; return null; });
+    await responder("Maria");
+    await fim;
+    expect(recebido).toBe("Maria - Criae3D");
+    expect(gravados).toEqual([]);
   });
 
-  it("encaminha os bytes e o nome do arquivo sem modificar o conteúdo", async () => {
-    const salvos = [];
-    window.modelos = { salvar: async (...args) => { salvos.push(args); return { ok: true, dados: null }; } };
-    await salvarArquivoModelo(new Uint8Array([1, 2, 3]), "Peça com acento", "3mf");
-    expect(salvos).toEqual([[new Uint8Array([1, 2, 3]), "Peça com acento", "3mf"]]);
+  it("cancelar a caixinha do nome não monta nem salva", async () => {
+    montarDialogo();
+    const gravados = [];
+    window.modelos = { gravar: async (...args) => { gravados.push(args); return { ok: true, dados: { caminho: "C:/x.stl" } }; } };
+    let montou = false;
+    const fim = salvarModeloComo("3mf", [{}], "Peça", async () => { montou = true; return { bytes: new Uint8Array([1]) }; });
+    await responder(null);
+    await fim;
+    expect(montou).toBe(false);
+    expect(gravados).toEqual([]);
+  });
+
+  it("grava com o nome digitado + Criae3D e marca o STL por dentro", async () => {
+    montarDialogo();
+    const gravados = [];
+    window.modelos = { gravar: async (...args) => { gravados.push(args); return { ok: true, dados: { caminho: "C:/Peça com acento - Criae3D.stl" } }; } };
+    const stl = new Uint8Array(84 + 50);
+    const fim = salvarArquivoModelo(stl, "Chaveiro", "stl");
+    await responder("Peça com acento");
+    await fim;
+    expect(gravados).toHaveLength(1);
+    const [bytes, nome, extensao] = gravados[0];
+    expect(nome).toBe("Peça com acento - Criae3D");
+    expect(extensao).toBe("stl");
+    expect(new TextDecoder().decode(bytes.subarray(0, 7))).toBe("Criae3D");
+    expect(bytes.length).toBe(stl.length);
+    expect(document.getElementById("aviso-salvo").hidden).toBe(false);
+  });
+
+  it("nome vazio não fecha a caixinha", async () => {
+    montarDialogo();
+    window.modelos = { gravar: vi.fn() };
+    const fim = salvarArquivoModelo(new Uint8Array(134), "X", "stl");
+    await responder("   ");
+    expect(document.getElementById("erro-nome-arquivo").textContent).toBe("Digite o nome do arquivo.");
+    expect(document.getElementById("dialogo-nome-arquivo").open).toBe(true);
+    document.getElementById("na-cancelar").click();
+    await fim;
+    expect(window.modelos.gravar).not.toHaveBeenCalled();
   });
 
   it("peso enviado à calculadora usa o material do rolo selecionado", async () => {

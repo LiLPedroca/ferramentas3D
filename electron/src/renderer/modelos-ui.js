@@ -1,6 +1,6 @@
 // Peças de tela comuns aos modelos personalizados (chaveiros e palavras): paleta de cores e
 // janela de escolha de fonte.
-import { CATEGORIAS_FONTES, familiaCss, FONTES } from "./modelos/fontes.js";
+import { CATEGORIAS_FONTES, familiaCss, FONTES, numeroDaFonte } from "./modelos/fontes.js";
 import { guardarMaterial, materialAtual } from "./modelos/projeto-fatiador.js";
 import { el } from "./util-tela.js";
 
@@ -62,13 +62,15 @@ function listarFontes() {
   const busca = $("fontes-busca").value.trim().toLowerCase();
   const grupos = [];
   for (const categoria of CATEGORIAS_FONTES) {
-    const itens = FONTES.filter((f) => f.categoria === categoria.nome && (!busca || f.nome.toLowerCase().includes(busca)));
+    const itens = FONTES.filter((f) => f.categoria === categoria.nome && (!busca || f.nome.toLowerCase().includes(busca) || String(numeroDaFonte(f.id)) === busca.replace(/\D/g, "")));
     if (!itens.length) continue;
     grupos.push(el("h3", "fontes-categoria", categoria.nome));
     for (const f of itens) {
-      const b = el("button", "fontes-item", f.nome);
+      const b = el("button", "fontes-item");
       b.type = "button";
-      b.style.fontFamily = familiaCss(f.id);
+      const nome = el("span", "fontes-nome", f.nome);
+      nome.style.fontFamily = familiaCss(f.id);
+      b.append(el("span", "fontes-numero", `Fonte ${numeroDaFonte(f.id)}`), nome);
       b.setAttribute("aria-pressed", String(f.id === atual));
       b.addEventListener("click", () => fechar(f.id));
       grupos.push(b);

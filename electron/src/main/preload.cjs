@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld("modelos", {
   lerFonte: (nome) => ipcRenderer.invoke("fontes:ler", nome),
   lerMotor: () => ipcRenderer.invoke("modelos:wasm"),
   salvar: (bytes, nome, extensao) => ipcRenderer.invoke("modelos:salvar", bytes, nome, extensao),
+  gravar: (bytes, nome, extensao) => ipcRenderer.invoke("modelos:gravar", bytes, nome, extensao),
+  mostrar: (caminho) => ipcRenderer.invoke("modelos:mostrar", caminho),
 });
 
 contextBridge.exposeInMainWorld("fatiador", {

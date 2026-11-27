@@ -299,6 +299,51 @@ export function mostrarAviso(texto, { duracao = 2600, acao = null } = {}) {
   temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), duracao);
 }
 
+// ---------- Aviso "Arquivo salvo" no meio da tela ----------
+// Fica uns 3 s (parado enquanto o mouse está em cima) e sai sozinho. "Abrir pasta" mostra o arquivo.
+let salvoAtual = null;
+let temporizadorSalvo = null;
+function esconderSalvo() {
+  const caixa = $("aviso-salvo");
+  caixa.classList.remove("entrando");
+  caixa.classList.add("saindo");
+  clearTimeout(temporizadorSalvo);
+  temporizadorSalvo = setTimeout(() => {
+    caixa.hidden = true;
+    caixa.classList.remove("saindo");
+  }, 420);
+}
+function agendarSaida(ms = 3200) {
+  clearTimeout(temporizadorSalvo);
+  temporizadorSalvo = setTimeout(esconderSalvo, ms);
+}
+export function avisoArquivoSalvo(caminho) {
+  const caixa = $("aviso-salvo");
+  salvoAtual = caminho;
+  clearTimeout(temporizadorSalvo);
+  caixa.hidden = false;
+  caixa.classList.remove("entrando", "saindo");
+  void caixa.offsetWidth; // reinicia a animação
+  caixa.classList.add("entrando");
+  agendarSaida();
+}
+function iniciarAvisoSalvo() {
+  const caixa = $("aviso-salvo");
+  const cartao = caixa.querySelector(".salvo-cartao");
+  cartao.addEventListener("mouseenter", () => {
+    if (caixa.classList.contains("entrando")) clearTimeout(temporizadorSalvo);
+  });
+  cartao.addEventListener("mouseleave", () => {
+    if (caixa.classList.contains("entrando")) agendarSaida(1500);
+  });
+  $("aviso-salvo-pasta").addEventListener("click", async () => {
+    if (!salvoAtual) return;
+    const r = await window.modelos.mostrar(salvoAtual);
+    if (!r.ok) mostrarAviso(r.erro);
+    esconderSalvo();
+  });
+}
+
 // ---------- Confirmação genérica ----------
 // Abre a janela de confirmação e devolve true (confirmou) ou false (cancelou).
 // botaoNao: texto do outro botão (padrão "Cancelar"); fechar com Esc também conta como ele.
@@ -456,6 +501,7 @@ export async function carregarConfig() {
 // ---------- Início ----------
 export function iniciarShell() {
   $("versao").textContent = `Versão ${__VERSAO__}`;
+  iniciarAvisoSalvo();
   aplicarTema(temaSalvo() ?? (matchMedia("(prefers-color-scheme: light)").matches ? "claro" : "escuro"));
 
   const menu = $("menu-lateral");
