@@ -1086,3 +1086,12 @@ Combinado com o Pedro (só local; ele aprova no fim do dia para lançar no GitHu
   - os dois 3MF exportados pelo programa, com um nome no copo, também fatiam. O nome vai na placa 1 do multipartes.
   - Atenção: passar 4 filamentos no `--load-filaments` para um projeto de 2 faz o fatiador fechar.
 - **Não conferido:** imprimir e montar as 3 peças (encaixes), e abrir pela janela do Anycubic.
+
+## Trabalho do Claude Code (27/11/2026) — v0.79.0 publicada: cores prontas em todos os modelos
+
+- Publicada no GitHub com a aprovação do Pedro. Leva as 0.77.0, 0.77.1 e 0.78.0, que só estavam no PC dele.
+- `modelos/cores-prontas.js`: `CORES_PRONTAS` (as 13 de `CORES` em `core/impressao.cjs` com tinta) e `corPronta(hex, padrao)` (a cor da lista mais parecida, pela distância redmean).
+- `criarPaleta`/`marcarPaleta` (`modelos-ui.js`) só têm os botões das 13 cores; saiu a "Cor personalizada". Usados em Chaveiro, Palavras, Caneca, Copos (uma fileira por parte, no lugar dos `input type=color`) e no Visualizar 3D (`#vz-cor`, que começa em Azul).
+- Os normalizadores de chaveiro, palavras, caneca, nome-copo, logo e `coresIniciais` dos copos passam a cor por `corPronta`: um projeto antigo abre com a cor mais parecida. Padrões: Branco `#f4f4f4`, Azul `#2463d8`, Preto `#1b1b1b`.
+- NOVIDADES: as entradas de 0.77.0 e 0.78.0 passaram para `versao: "0.79.0"`, porque o botão só mostra as da versão em uso.
+- Pendentes, aguardando o "comece": tirar "Restaurar preto e branco", deixar o aviso "Arquivo salvo" uns 6 s na tela e o aviso ao clicar no Copo 4 em ajustes.
