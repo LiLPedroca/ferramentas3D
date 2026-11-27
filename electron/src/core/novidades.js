@@ -574,6 +574,16 @@ export const NOVIDADES = [
     itens: ["11 bases e duas cores à escolha", "Fontes e bases numeradas: o cliente escolhe pelo número", "Exportar pede só o nome e salva direto na pasta Modelos 3D"],
     botao: "Abrir os copos",
   },
+  {
+    id: "copo-4-liso",
+    versao: "0.78.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Copo 4 novo",
+    texto: "O Copo 4 agora é liso, com faixas brancas na base e na boca.",
+    itens: ["Copo inteiro ou em 3 peças: base, tubo e argola", "Logo, site e Instagram no fundo, na 1ª camada"],
+    botao: "Abrir os copos",
+  },
 ];
 
 // "0.41.0" < "0.42.0"

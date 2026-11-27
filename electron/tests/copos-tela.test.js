@@ -72,13 +72,16 @@ it('exporta multipartes dos três copos, com as cores atuais', async()=>{
  document.getElementById('cp-multipartes').click();await vi.waitFor(()=>expect(lerCopoMultipartes).toHaveBeenCalledWith(3));
 });
 
-it('Copo 4 em ajustes: fica apagado e só avisa no meio da tela', async () => {
+it('copo em ajustes: fica apagado e só avisa no meio da tela', async () => {
   const ids = ['catalogo', 'cores', '3d', 'status', 'medidas', 'mais', 'menos', 'ajustar', 'base', 'custo', 'salvar', 'stl', '3mf', 'fatiador', 'exportar', 'multipartes', 'logo-secao', 'logo-vazio', 'logo-com', 'logo-adicionar', 'logo-meus', 'logo-salvos', 'logo-editar', 'logo-clonar', 'logo-remover', 'logo-remover-esta', 'logo-miniatura', 'logo-info', 'logo-aviso', 'nome-secao', 'nome-vazio', 'nome-com', 'nome-adicionar', 'nome-editar', 'nome-clonar', 'nome-remover', 'nome-remover-esta', 'nome-miniatura', 'nome-info', 'nome-aviso', 'personalizar'];
   document.body.innerHTML = ids.map(id => `<button id="cp-${id}"></button>`).join('');
   const lerCopo = vi.fn().mockResolvedValue({ ok: false, erro: 'x' });
   window.modelos = { lerCopo };
+  const { COPOS_EM_AJUSTE } = await import('../src/renderer/modelos/copos.js');
+  COPOS_EM_AJUSTE.push(4); // hoje nenhum copo está em ajustes
   const { iniciarCopos } = await import('../src/renderer/copos-tela.js');
   iniciarCopos();
+  COPOS_EM_AJUSTE.length = 0;
   const b = document.querySelector('#cp-catalogo [data-id="4"]');
   expect(b.classList.contains('em-ajuste')).toBe(true);
   expect(b.getAttribute('aria-disabled')).toBe('true');

@@ -34,7 +34,7 @@ const casos = [
   ['1-multipartes.3mf', '3D/Objects/base drapeado com trava_2.model'],
   ['2-multipartes.3mf', '3D/Objects/base 2.model'],
   ['3-multipartes.3mf', '3D/Objects/base 3.model'],
-  ['4-multipartes.3mf', '3D/Objects/base copo 4_4.model'],
+  ['4-multipartes.3mf', '3D/3dmodel.model'],
 ];
 
 describe('assinatura no fundo dos copos', () => {

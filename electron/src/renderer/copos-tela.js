@@ -102,7 +102,7 @@ const BASE_NA_PLACA = {
   1: { min: [78.51, 87.19], max: [165.94, 174.51] },
   2: { min: [88.07, 88.11], max: [171.92, 171.97] },
   3: { min: [82.3, 82.3], max: [177.7, 177.7] },
-  4: { min: [82.25, 82.25], max: [177.75, 177.75] },
+  4: { min: [86.8, 86.8], max: [173.2, 173.2] },
 };
 const baseNaPlaca = () => BASE_NA_PLACA[id] ?? copoNaMesa();
 // Todas as cópias (logos primeiro, depois nomes), cada uma com a sua caixa.
@@ -365,7 +365,7 @@ export function iniciarCopos() {
   }
   ligarArrasto();
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });
-  window.__coposTeste = { logo: () => pecas.logo, nome: () => pecas.nome, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p), usarNome: r => usarPeca('nome', r), redesenhar: () => mostrarPecas() };
+  window.__coposTeste = { logo: () => pecas.logo, nome: () => pecas.nome, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p), usarNome: r => usarPeca('nome', r), redesenhar: () => mostrarPecas(), previa: () => previa };
   registrarAbridor('caneca', async p => {
     if (!p.opcoes.catalogo) { irPara('caneca-legado'); return legado(p); }
     if (COPOS_EM_AJUSTE.includes(p.opcoes.catalogo)) { avisarEmAjuste(p.opcoes.catalogo); return; }

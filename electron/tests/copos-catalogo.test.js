@@ -34,15 +34,16 @@ describe('catálogo de copos', () => {
     expect(JSON.parse(strFromU8(saida['Metadata/project_settings.config'])).filament_colour).toEqual(['#112233', '#ffffff']);
   });
 
-  it('Copo 4 em multipartes: base e tubo em placas separadas, com 2 filamentos', () => {
+  it('Copo 4 em multipartes: base, tubo e argola em 3 placas, com 2 filamentos', () => {
     const saida = unzipSync(colorir3mfMultipartes(ler('4-multipartes.3mf'), ['#112233', '#ffffff'], { nome: 'Copo 4 - multipartes' }));
     const config = strFromU8(saida['Metadata/model_settings.config']);
-    expect([...config.matchAll(/<plate>/g)]).toHaveLength(2);
-    expect(config).toContain('value="base copo 4"');
-    expect(config).toContain('value="tubo copo 4"');
+    expect([...config.matchAll(/<plate>/g)]).toHaveLength(3);
+    for (const nome of ['base copo 4', 'tubo copo 4', 'argola copo 4']) expect(config).toContain(`value="${nome}"`);
     expect(new Set([...config.matchAll(/key="extruder" value="(\d+)"/g)].map(m => m[1]))).toEqual(new Set(['1', '2']));
-    const base = Object.keys(saida).find(n => /^3D\/Objects\/base/.test(n));
-    expect(new Set(strFromU8(saida[base]).match(/paint_color="[^"]+"/g))).toEqual(new Set(['paint_color="8"']));
+    // base branca (filamento 2) com a assinatura pintada na cor principal (filamento 1 = "4")
+    const modelo = strFromU8(saida['3D/3dmodel.model']);
+    const base = /<object id="1"[\s\S]*?<\/object>/.exec(modelo)[0];
+    expect(new Set(base.match(/paint_color="[^"]+"/g))).toEqual(new Set(['paint_color="4"']));
     expect(strFromU8(saida['3D/3dmodel.model'])).toContain('<metadata name="Title">Copo 4 - multipartes</metadata>');
   });
 });

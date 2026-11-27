@@ -1067,3 +1067,22 @@ Combinado com o Pedro (só local; ele aprova no fim do dia para lançar no GitHu
 - O aviso no meio da tela fica 6 s e virou genérico (`avisoNoMeio` no `shell.js`, tipo "ok" ou "espera").
 - **Copo 4 em ajustes:** `COPOS_EM_AJUSTE = [4]` em `modelos/copos.js`. O cartão fica apagado. Clicar nele, ou abrir um Copo 4 de Meus modelos, mostra o aviso "Copo 4 em ajustes – Ele será liberado assim que possível." Para liberar, é só tirar o 4 da lista.
 - Testes novos em `logo-copo.test.js` (cilindro único, sem frestas, normais) e em `copos-tela.test.js` (Copo 4). O `modelos-tela.test.js` (Chaveiro) às vezes estoura o tempo com o processador carregado e passa sozinho.
+
+### v0.78.0 local (27/11/2026, noite): Copo 4 novo (liso)
+
+- O Pedro mandou o Copo 4 novo e pediu para substituir o antigo (o "de bolinhas", com baioneta).
+  - **Inteiro:** `Downloads\copo 4.3mf`, com 5 partes: base de 0,2 mm, argola inferior de 15 mm, chanfro de 7 mm, corpo preto e argola da boca de 15 mm.
+  - **Multipartes:** `Downloads\Copo-com-encaixes\Copo-tres-pecas.3mf`, com base de 26 mm, tubo de 112 mm e argola de 15 mm, já na posição de imprimir.
+- **Script novo:** `scripts/preparar_copo4_liso.py --inteiro … --multipartes …` grava `assets/copos/4.3mf` e `4-multipartes.3mf`.
+  - **Inteiro:** as partes viram uma malha única pintada (sem pintura = filamento 1, principal; `8` = detalhes).
+  - **Multipartes:** base, tubo e argola nas placas 1, 2 e 3. Com as metas do BambuStudio no `3dmodel.model`: sem elas, o fatiador junta tudo na placa 1.
+  - **Assinatura:** logo + site + Instagram fundidos no fundo e pintados na cor principal, com `bottom_shell_layers` = 2 e sem brim.
+  - O fundo deste copo tem raio 43,2 mm, então o site vai no raio **34** e o Instagram no **38,5** (até r 40,1).
+- `node scripts/preparar-copo.mjs 4` refaz a prévia. A miniatura `4.png` foi tirada do canvas da prévia, no tema claro.
+- `COPO_NA_MESA[4]` = 84,4–171,6; `BASE_NA_PLACA[4]` = 86,8–173,2. `COPOS_EM_AJUSTE` ficou vazio.
+- **Conferido (linha de comando, Kobra X 0.4):**
+  - inteiro: duas cores em z 0,2/0,4, branco até 22 mm, preto até 130 mm, branco até 145 mm;
+  - multipartes: placa 1 com a assinatura em 0,2/0,4, placa 2 só preto, placa 3 só branco;
+  - os dois 3MF exportados pelo programa, com um nome no copo, também fatiam. O nome vai na placa 1 do multipartes.
+  - Atenção: passar 4 filamentos no `--load-filaments` para um projeto de 2 faz o fatiador fechar.
+- **Não conferido:** imprimir e montar as 3 peças (encaixes), e abrir pela janela do Anycubic.

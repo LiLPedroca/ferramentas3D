@@ -4,18 +4,18 @@ export const CATALOGO_COPOS = [{ id: 1, nome: "Copo 1" }, { id: 2, nome: "Copo 2
 // Copos que já têm o projeto em peças separadas (assets/copos/<id>-multipartes.3mf).
 export const COPOS_MULTIPARTES = [1, 2, 3, 4];
 // Copos que aparecem no catálogo mas ainda não podem ser usados (passando por ajustes).
-export const COPOS_EM_AJUSTE = [4];
+export const COPOS_EM_AJUSTE = [];
 const CORES_PADRAO = ["#000000", "#ffffff"];
 // Onde cada copo fica na mesa do 3MF original (mm): as logos vão ao lado.
 export const COPO_NA_MESA = {
   1: { min: [86.4, 86.4], max: [173.6, 174.1] },
   2: { min: [92.6, 93.1], max: [183.0, 183.3] },
   3: { min: [79.3, 79.6], max: [176.8, 176.4] },
-  4: { min: [80.25, 80.25], max: [175.75, 175.75] },
+  4: { min: [84.4, 84.4], max: [171.6, 171.6] },
 };
 export const coresIniciais = (partes, salvas = []) => partes.map((_p, i) => /^#[0-9a-f]{6}$/i.test(salvas[i]) ? salvas[i] : CORES_PADRAO[i % CORES_PADRAO.length]);
 // Prévia sem a assinatura Criae3D do fundo: ela é só pintura nas faces de baixo (z = 0), em duas cores
-// (copos 1 a 3: fundo na cor de detalhes e logo na principal; copo 4: o contrário). Na prévia o fundo
+// (fundo na cor de detalhes e logo na principal). Na prévia o fundo
 // inteiro fica na cor que mais aparece nele; o arquivo exportado continua com a assinatura.
 export function semAssinaturaNoFundo(posicoes) {
   if (posicoes.length < 2) return posicoes;
