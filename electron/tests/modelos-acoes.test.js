@@ -33,7 +33,7 @@ describe("ações comuns dos modelos", () => {
 
   // caixinha do nome + aviso "Arquivo salvo" (o resto do index.html não importa aqui)
   const montarDialogo = () => {
-    document.body.innerHTML += '<dialog id="dialogo-nome-arquivo"><input id="na-nome"><p id="erro-nome-arquivo"></p><button id="na-cancelar"></button><button id="na-salvar"></button></dialog><div id="aviso" ></div><div id="aviso-salvo" hidden><div class="salvo-cartao"></div><button id="aviso-salvo-pasta"></button></div>';
+    document.body.innerHTML += '<dialog id="dialogo-nome-arquivo"><input id="na-nome"><p id="erro-nome-arquivo"></p><button id="na-cancelar"></button><button id="na-salvar"></button></dialog><div id="aviso" ></div><div id="aviso-salvo" hidden><div class="salvo-cartao"></div><p id="aviso-salvo-titulo"></p><span id="aviso-salvo-texto"></span><button id="aviso-salvo-pasta"></button></div>';
     iniciarNomeArquivo();
   };
   const responder = async (nome) => {

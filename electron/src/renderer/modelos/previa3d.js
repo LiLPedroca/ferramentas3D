@@ -195,7 +195,7 @@ export function criarPrevia(container, opcoes = {}) {
       return 1 / Math.max(1e-6, Math.hypot(b[0] - a[0], b[1] - a[1]));
     },
     // Peças a mais por cima da principal (ex.: logos no copo), sem mexer no enquadramento.
-    // lista: [{ id, cor, posicoes (Float32Array, triângulos soltos) }]
+    // lista: [{ id, cor, posicoes (Float32Array, triângulos soltos), normais? (uma por vértice) }]
     extras(lista) {
       for (const m of extras) {
         cena.remove(m);
@@ -205,7 +205,8 @@ export function criarPrevia(container, opcoes = {}) {
       extras = lista.map((e) => {
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(e.posicoes, 3));
-        g.computeVertexNormals();
+        if (e.normais?.length === e.posicoes.length) g.setAttribute("normal", new THREE.BufferAttribute(e.normais, 3));
+        else g.computeVertexNormals();
         const malha = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: e.cor, roughness: 0.5, metalness: 0.05, emissive: 0x000000 }));
         malha.userData.id = e.id;
         cena.add(malha);

@@ -81,7 +81,7 @@ body:has(#tela-caneca:not(.oculta)) .interruptor-tema .bolinha-tema { transform:
 
 
 /* Personalização: logo e nome, cada um com o seu bloco */
-.copos-painel .cp-personalizar > button { margin-top:14px; }
+.cp-personalizar > .cp-peca:first-of-type { border-top:0; margin-top:14px; padding-top:0; }
 .cp-peca { margin-top:18px; padding-top:16px; border-top:1px solid var(--borda); }
 .cp-peca h3 { display:flex; align-items:center; gap:8px; margin:0 0 4px; font-size:15px; font-weight:600; }
 
@@ -112,3 +112,5 @@ body:has(#tela-caneca:not(.oculta)) .interruptor-tema .bolinha-tema { transform:
 .nc-estado.erro { color:var(--perigo, #e5484d); }
 .nc-medidas { color:var(--texto-suave); font-size:13px; }
 .nc-base svg .s { fill:var(--texto); }
+.copos-catalogo button.em-ajuste { opacity:.45; cursor:default; }
+.copos-catalogo button.em-ajuste:hover { border-color:var(--borda); }

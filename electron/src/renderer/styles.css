@@ -2666,8 +2666,39 @@ kbd {
   animation: salvo-traca 0.5s 0.3s ease-out forwards;
 }
 
-.salvo.entrando .salvo-check {
+.salvo.entrando .salvo-check,
+.salvo.entrando .salvo-ponteiros {
   animation: salvo-traca 0.3s 0.75s ease-out forwards;
+}
+
+.salvo-texto {
+  max-width: 260px;
+  color: var(--texto-suave);
+  font-size: 14px;
+  text-align: center;
+}
+
+.salvo-ponteiros {
+  display: none;
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.salvo[data-tipo="espera"] .salvo-check {
+  display: none;
+}
+
+.salvo[data-tipo="espera"] .salvo-ponteiros {
+  display: inline;
+}
+
+.salvo[data-tipo="espera"] .salvo-circulo,
+.salvo[data-tipo="espera"] .salvo-ponteiros {
+  stroke: #e5a23d;
 }
 
 .salvo.saindo .salvo-cartao {
@@ -2676,7 +2707,8 @@ kbd {
 }
 
 .salvo.saindo .salvo-circulo,
-.salvo.saindo .salvo-check {
+.salvo.saindo .salvo-check,
+.salvo.saindo .salvo-ponteiros {
   stroke-dashoffset: 0;
 }
 
@@ -2708,6 +2740,7 @@ kbd {
   .salvo.entrando .salvo-cartao,
   .salvo.entrando .salvo-circulo,
   .salvo.entrando .salvo-check,
+  .salvo.entrando .salvo-ponteiros,
   .salvo.saindo .salvo-cartao {
     animation-duration: 0.01s;
     animation-delay: 0s;

@@ -299,10 +299,12 @@ export function mostrarAviso(texto, { duracao = 2600, acao = null } = {}) {
   temporizadorAviso = setTimeout(() => aviso.classList.remove("visivel"), duracao);
 }
 
-// ---------- Aviso "Arquivo salvo" no meio da tela ----------
-// Fica uns 3 s (parado enquanto o mouse está em cima) e sai sozinho. "Abrir pasta" mostra o arquivo.
-let salvoAtual = null;
+// ---------- Aviso no meio da tela ("Arquivo salvo", "Copo em ajustes") ----------
+// Fica uns 6 s (parado enquanto o mouse está em cima) e sai sozinho.
+// tipo: "ok" (círculo verde com check) ou "espera" (relógio). botao: { rotulo, aoClicar } (opcional).
+let acaoDoMeio = null;
 let temporizadorSalvo = null;
+const TEMPO_NO_MEIO = 6000;
 function esconderSalvo() {
   const caixa = $("aviso-salvo");
   caixa.classList.remove("entrando");
@@ -313,19 +315,37 @@ function esconderSalvo() {
     caixa.classList.remove("saindo");
   }, 420);
 }
-function agendarSaida(ms = 3200) {
+function agendarSaida(ms = TEMPO_NO_MEIO) {
   clearTimeout(temporizadorSalvo);
   temporizadorSalvo = setTimeout(esconderSalvo, ms);
 }
-export function avisoArquivoSalvo(caminho) {
+export function avisoNoMeio({ titulo, texto = "", tipo = "ok", botao = null }) {
   const caixa = $("aviso-salvo");
-  salvoAtual = caminho;
+  acaoDoMeio = botao?.aoClicar ?? null;
+  $("aviso-salvo-titulo").textContent = titulo;
+  $("aviso-salvo-texto").textContent = texto;
+  $("aviso-salvo-texto").hidden = !texto;
+  $("aviso-salvo-pasta").textContent = botao?.rotulo ?? "";
+  $("aviso-salvo-pasta").hidden = !botao;
+  caixa.dataset.tipo = tipo;
   clearTimeout(temporizadorSalvo);
   caixa.hidden = false;
   caixa.classList.remove("entrando", "saindo");
   void caixa.offsetWidth; // reinicia a animação
   caixa.classList.add("entrando");
   agendarSaida();
+}
+export function avisoArquivoSalvo(caminho) {
+  avisoNoMeio({
+    titulo: "Arquivo salvo",
+    botao: {
+      rotulo: "Abrir pasta",
+      aoClicar: async () => {
+        const r = await window.modelos.mostrar(caminho);
+        if (!r.ok) mostrarAviso(r.erro);
+      },
+    },
+  });
 }
 function iniciarAvisoSalvo() {
   const caixa = $("aviso-salvo");
@@ -334,13 +354,12 @@ function iniciarAvisoSalvo() {
     if (caixa.classList.contains("entrando")) clearTimeout(temporizadorSalvo);
   });
   cartao.addEventListener("mouseleave", () => {
-    if (caixa.classList.contains("entrando")) agendarSaida(1500);
+    if (caixa.classList.contains("entrando")) agendarSaida(2000);
   });
   $("aviso-salvo-pasta").addEventListener("click", async () => {
-    if (!salvoAtual) return;
-    const r = await window.modelos.mostrar(salvoAtual);
-    if (!r.ok) mostrarAviso(r.erro);
+    const acao = acaoDoMeio;
     esconderSalvo();
+    await acao?.();
   });
 }
 

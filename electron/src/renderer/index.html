@@ -2175,7 +2175,6 @@
           <section><h2>Cores</h2><div class="copos-cores" id="cp-cores"></div></section>
           <details class="cp-personalizar" id="cp-personalizar">
             <summary>Personalização</summary>
-            <button type="button" id="cp-restaurar">Restaurar preto e branco</button>
             <div class="cp-peca cp-logo" id="cp-logo-secao">
               <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="15" height="14" rx="2.5"/><path d="m3 15 4.5-4.5 4 4 2.5-2.5 4 4"/><circle cx="9" cy="9" r="1.6"/><path d="M19 2v6M16 5h6"/></svg>Logo</h3>
               <div class="cp-logo-vazio" id="cp-logo-vazio">
@@ -2710,8 +2709,10 @@
         <svg class="salvo-icone" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true">
           <circle class="salvo-circulo" cx="28" cy="28" r="25" pathLength="100" transform="rotate(-90 28 28)" />
           <path class="salvo-check" d="M17 29 l7 7 l15 -16" pathLength="100" />
+          <path class="salvo-ponteiros" d="M28 14 V28 L37 33" pathLength="100" />
         </svg>
-        <p>Arquivo salvo</p>
+        <p id="aviso-salvo-titulo">Arquivo salvo</p>
+        <span class="salvo-texto" id="aviso-salvo-texto" hidden></span>
         <button type="button" class="botao-secundario" id="aviso-salvo-pasta">Abrir pasta</button>
       </div>
     </div>

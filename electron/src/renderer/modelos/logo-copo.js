@@ -24,13 +24,19 @@ export function medirTubo(partes) {
   const n = Math.ceil(altura) + 1;
   const raio = new Float64Array(n); // maior raio em cada faixa de 1 mm
   const raioDe = partes.map(() => new Float64Array(n));
+  // maior raio em cada faixa de 1 mm e cada fatia de ângulo (o drapeado e os relevos não são redondos)
+  const mapa = new Float32Array(n * ANGULOS);
   partes.forEach((p, k) => {
     const a = p.geometria.attributes.position.array;
     for (let i = 0; i < a.length; i += 3) {
       const b = Math.min(n - 1, Math.max(0, Math.floor(a[i + 2])));
-      const r = Math.hypot(a[i] - cx, a[i + 1] - cy);
+      const dx = a[i] - cx;
+      const dy = a[i + 1] - cy;
+      const r = Math.hypot(dx, dy);
       if (r > raioDe[k][b]) raioDe[k][b] = r;
       if (r > raio[b]) raio[b] = r;
+      const c = b * ANGULOS + fatiaDoAngulo(Math.atan2(dx, -dy));
+      if (r > mapa[c]) mapa[c] = r;
     }
   });
   // faixa do tubo: a parte principal está na superfície de fora (até 1,5 mm do maior raio) e as outras não
@@ -49,7 +55,33 @@ export function medirTubo(partes) {
   // 1 mm de folga em cada ponta
   // fora do tubo (borda, base, detalhes) vale o maior raio de todas as partes: a logo fica por cima delas
   const raios = Array.from(raio, (r, b) => (b >= melhor[0] && b <= melhor[1] && raioDe[0][b] ? raioDe[0][b] : r));
-  return { centro: [cx, cy], altura, z0: melhor[0] + 1, z1: melhor[1], raios };
+  return { centro: [cx, cy], altura, z0: melhor[0] + 1, z1: melhor[1], raios, mapa };
+}
+
+// Fatias de ângulo do mapa de raios (4° cada). Ângulo 0 = frente (-Y), como em logoNaCurva.
+const ANGULOS = 90;
+const voltaToda = 2 * Math.PI;
+const fatiaDoAngulo = (teta) => Math.floor(((((teta % voltaToda) + voltaToda) % voltaToda) / voltaToda) * ANGULOS) % ANGULOS;
+
+// Raio do cilindro onde a peça fica: o ponto mais saliente do copo embaixo dela (todas as alturas e ângulos
+// que ela cobre). A peça inteira fica nesse cilindro, sem abrir para fora nas partes onduladas do copo.
+export function raioDaPeca(tubo, caixa, pos) {
+  const meio = raioEm(tubo, pos.z);
+  if (!tubo.mapa) return meio;
+  const n = tubo.raios.length;
+  const de = Math.max(0, Math.floor(pos.z - caixa.altura / 2));
+  const ate = Math.min(n - 1, Math.floor(pos.z + caixa.altura / 2));
+  const meiaVolta = Math.min(Math.PI, caixa.largura / 2 / Math.max(1, meio) + voltaToda / ANGULOS);
+  const fatias = Math.ceil((meiaVolta / voltaToda) * ANGULOS);
+  const centro = fatiaDoAngulo(pos.angulo);
+  let maior = 0;
+  for (let b = de; b <= ate; b++) {
+    for (let k = -fatias; k <= fatias; k++) {
+      const r = tubo.mapa[b * ANGULOS + ((centro + k + ANGULOS) % ANGULOS)];
+      if (r > maior) maior = r;
+    }
+  }
+  return maior || meio;
 }
 
 // Raio do tubo na altura z (mm), entre as faixas de 1 mm.
@@ -116,10 +148,14 @@ export function anguloDaNovaCopia(angulos, largura) {
 
 // Prévia: a logo dobrada na superfície do tubo. pos: { angulo (rad, 0 = frente), z (centro, mm) }.
 // Triângulos compridos são divididos antes (senão cortariam a curva por dentro do copo).
-export function logoNaCurva(malha, caixa, pos, tubo, { folga = 0.25, passo = 2 } = {}) {
+// normais (opcional): lista que recebe a normal de cada vértice, já curvada. Sem elas, a luz calculada
+// triângulo a triângulo riscava a prévia (os pedaços finos da divisão ficavam com sombras diferentes).
+export function logoNaCurva(malha, caixa, pos, tubo, { folga = 0.25, passo = 2, normais = null } = {}) {
   const lcx = (caixa.min[0] + caixa.max[0]) / 2;
   const lcy = (caixa.min[1] + caixa.max[1]) / 2;
-  const raioMeio = raioEm(tubo, pos.z);
+  // um cilindro só por cópia: com o raio mudando por altura, a peça abria nas partes onduladas e as camadas
+  // dela (base, letras, cores) se atravessavam, riscando a prévia
+  const raioMeio = raioDaPeca(tubo, caixa, pos);
   const [cx, cy] = tubo.centro;
   const v = malha.vertices;
   const t = malha.triangulos;
@@ -127,29 +163,69 @@ export function logoNaCurva(malha, caixa, pos, tubo, { folga = 0.25, passo = 2 }
   const ponto = (i) => [v[i * 3] - lcx, v[i * 3 + 1] - lcy, v[i * 3 + 2]];
   const curvar = ([u, w, h]) => {
     const z = pos.z + w;
-    const r = raioEm(tubo, z) + folga + h;
+    const r = raioMeio + folga + h;
     const teta = pos.angulo + u / raioMeio;
     return [cx + r * Math.sin(teta), cy - r * Math.cos(teta), z];
   };
-  const meio = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
-  const dividir = (a, b, c, nivel) => {
-    const lado = Math.max(Math.abs(a[0] - b[0]), Math.abs(b[0] - c[0]), Math.abs(c[0] - a[0]));
-    if (lado <= passo || nivel > 8) {
-      for (const p of [a, b, c]) saida.push(...curvar(p));
-      return;
-    }
-    // divide a maior aresta em u (mantém o triângulo bem formado)
-    const arestas = [
-      [a, b, c],
-      [b, c, a],
-      [c, a, b],
-    ].sort((x, y) => Math.abs(y[0][0] - y[1][0]) - Math.abs(x[0][0] - x[1][0]));
-    const [p, q, r] = arestas[0];
-    const m = meio(p, q);
-    dividir(p, m, r, nivel + 1);
-    dividir(m, q, r, nivel + 1);
+  // normal da peça plana (nu, nw, nh) levada para a curva no ângulo do ponto
+  let normal = [0, 0, 1];
+  const normalCurvada = (u) => {
+    const teta = pos.angulo + u / raioMeio;
+    const c = Math.cos(teta);
+    const s = Math.sin(teta);
+    const [nu, nw, nh] = normal;
+    return [nu * c + nh * s, nu * s - nh * c, nw];
   };
-  for (let i = 0; i < t.length; i += 3) dividir(ponto(t[i]), ponto(t[i + 1]), ponto(t[i + 2]), 0);
+  // Corta cada triângulo nas mesmas linhas verticais (u = k · passo) para todos: vizinhos são divididos nos
+  // mesmos pontos da aresta comum. Dividir cada um pelo meio deixava frestas finas entre eles (riscos).
+  const emitir = (p) => {
+    saida.push(...curvar(p));
+    if (normais) normais.push(...normalCurvada(p[0]));
+  };
+  const cortar = (poligono, u, manterMaior) => {
+    const fora = [];
+    for (let k = 0; k < poligono.length; k++) {
+      const p = poligono[k];
+      const q = poligono[(k + 1) % poligono.length];
+      const pDentro = manterMaior ? p[0] >= u : p[0] <= u;
+      const qDentro = manterMaior ? q[0] >= u : q[0] <= u;
+      if (pDentro) fora.push(p);
+      if (pDentro !== qDentro) {
+        const f = (u - p[0]) / (q[0] - p[0]);
+        fora.push([u, p[1] + f * (q[1] - p[1]), p[2] + f * (q[2] - p[2])]);
+      }
+    }
+    return fora;
+  };
+  const dividir = (a, b, c) => {
+    const umin = Math.min(a[0], b[0], c[0]);
+    const umax = Math.max(a[0], b[0], c[0]);
+    const primeira = Math.floor(umin / passo);
+    const ultima = Math.max(primeira + 1, Math.ceil(umax / passo)); // parede vertical (u constante) também sai
+    for (let k = primeira; k < ultima; k++) {
+      let fatia = [a, b, c];
+      if (k * passo > umin) fatia = cortar(fatia, k * passo, true);
+      if ((k + 1) * passo < umax) fatia = cortar(fatia, (k + 1) * passo, false);
+      for (let j = 1; j + 1 < fatia.length; j++) {
+        emitir(fatia[0]);
+        emitir(fatia[j]);
+        emitir(fatia[j + 1]);
+      }
+    }
+  };
+  for (let i = 0; i < t.length; i += 3) {
+    const a = ponto(t[i]);
+    const b = ponto(t[i + 1]);
+    const c = ponto(t[i + 2]);
+    if (normais) {
+      const e = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const f = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      const n = [e[1] * f[2] - e[2] * f[1], e[2] * f[0] - e[0] * f[2], e[0] * f[1] - e[1] * f[0]];
+      const l = Math.hypot(...n) || 1;
+      normal = [n[0] / l, n[1] / l, n[2] / l];
+    }
+    dividir(a, b, c);
+  }
   return new Float32Array(saida);
 }
 

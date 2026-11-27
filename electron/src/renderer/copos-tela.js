@@ -1,4 +1,4 @@
-import { CATALOGO_COPOS, COPOS_MULTIPARTES, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
+import { CATALOGO_COPOS, COPOS_EM_AJUSTE, COPOS_MULTIPARTES, COPO_NA_MESA, lerPacoteCopo, aplicarCores, coresIniciais } from './modelos/copos.js';
 import { colorir3mf, colorir3mfMultipartes, gerarStlNativoCopo, stlComLogos } from './modelos/copos-exportar.js';
 import { anguloDaNovaCopia, caixaDaLogo, limitarNoCopo, logoNaCurva, pecasNaMesa, medirTubo, passaDoTubo, raioEm } from './modelos/logo-copo.js';
 import { abrirLogoNoCopo } from './logo-tela.js';
@@ -6,7 +6,7 @@ import { abrirNomeNoCopo, refazerNome, resumoDoNome } from './nome-copo-tela.js'
 import { criarPrevia } from './modelos/previa3d.js';
 import { abridorDe, perguntarMaterial, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
 import { materialAtual } from './modelos/projeto-fatiador.js';
-import { registrarAoAbrir, irPara, mostrarAviso, confirmar } from './shell.js';
+import { registrarAoAbrir, irPara, mostrarAviso, confirmar, avisoNoMeio } from './shell.js';
 import { salvarMontando, enviarModeloAoFatiador, densidadeDoModelo } from './modelos-acoes.js';
 import { preencherDoModelo } from './calculadora-tela.js';
 
@@ -15,7 +15,7 @@ let pacote, cores = [], previa, id = 1, pedido = 0, atual = null, ocupado = fals
 const acoes = ['cp-salvar', 'cp-custo', 'cp-stl', 'cp-3mf', 'cp-fatiador', 'cp-base', 'cp-logo-adicionar', 'cp-logo-meus', 'cp-logo-editar', 'cp-logo-clonar', 'cp-logo-remover', 'cp-logo-remover-esta', 'cp-nome-adicionar', 'cp-nome-editar', 'cp-nome-clonar', 'cp-nome-remover', 'cp-nome-remover-esta'];
 function bloquear(sim) {
   ocupado = sim;
-  [...acoes, 'cp-restaurar'].forEach(id => { const b = $(id); if (b) b.disabled = sim || !pronto; });
+  acoes.forEach(id => { const b = $(id); if (b) b.disabled = sim || !pronto; });
   const multipartes = COPOS_MULTIPARTES.includes(id);
   $('cp-multipartes').disabled = sim || !pronto || !multipartes;
   $('cp-multipartes').hidden = !multipartes;
@@ -155,7 +155,11 @@ function mostrarPecas() {
     const peca = pecas[tipo];
     if (!peca) continue;
     peca.copias.forEach((c, i) => {
-      for (const m of peca.malhas) lista.push({ id: idDa(tipo, i), cor: m.cor, posicoes: logoNaCurva(m, peca.caixa, c, tubo) });
+      for (const m of peca.malhas) {
+        const normais = [];
+        const posicoes = logoNaCurva(m, peca.caixa, c, tubo, { normais });
+        lista.push({ id: idDa(tipo, i), cor: m.cor, posicoes, normais: new Float32Array(normais) });
+      }
     });
   }
   previa.extras(lista);
@@ -295,6 +299,8 @@ async function executar(fn) {
   try { await new Promise(r => setTimeout(r, 50)); await fn(); } catch (e) { mostrarAviso(e.message); } finally { bloquear(false); $('cp-status').textContent = ''; }
 }
 
+const avisarEmAjuste = n => avisoNoMeio({ titulo: `Copo ${n} em ajustes`, texto: 'Ele será liberado assim que possível.', tipo: 'espera' });
+
 // O que vai para Meus modelos (e volta ao reabrir).
 function opcoesParaGuardar() {
   return {
@@ -311,9 +317,13 @@ export function iniciarCopos() {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.id = modelo.id; b.setAttribute('aria-pressed', 'false');
     const img = document.createElement('img'); img.src = `assets/copos/${modelo.id}.png`; img.alt = '';
     const label = document.createElement('span'); label.textContent = modelo.nome; b.append(img, label);
-    b.addEventListener('click', () => { if (!ocupado) { atual = null; carregar(modelo.id); } }); $('cp-catalogo').append(b);
+    if (COPOS_EM_AJUSTE.includes(modelo.id)) {
+      b.classList.add('em-ajuste');
+      b.setAttribute('aria-disabled', 'true');
+      b.addEventListener('click', () => avisarEmAjuste(modelo.id));
+    } else b.addEventListener('click', () => { if (!ocupado) { atual = null; carregar(modelo.id); } });
+    $('cp-catalogo').append(b);
   }
-  $('cp-restaurar').addEventListener('click', () => { if (!pacote || ocupado) return; cores = coresIniciais(pacote.partes); controles(); pintar(); });
   $('cp-mais').addEventListener('click', () => previa?.zoom(0.85));
   $('cp-menos').addEventListener('click', () => previa?.zoom(1.18));
   $('cp-ajustar').addEventListener('click', () => previa?.enquadrar());
@@ -355,9 +365,10 @@ export function iniciarCopos() {
   }
   ligarArrasto();
   registrarAoAbrir('caneca', () => { if (!pronto && !ocupado) carregar(id); });
-  window.__coposTeste = { logo: () => pecas.logo, nome: () => pecas.nome, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p), usarNome: r => usarPeca('nome', r) };
+  window.__coposTeste = { logo: () => pecas.logo, nome: () => pecas.nome, tubo: () => tubo, abrirSalvo: p => abridorDe('caneca')(p), usarNome: r => usarPeca('nome', r), redesenhar: () => mostrarPecas() };
   registrarAbridor('caneca', async p => {
     if (!p.opcoes.catalogo) { irPara('caneca-legado'); return legado(p); }
+    if (COPOS_EM_AJUSTE.includes(p.opcoes.catalogo)) { avisarEmAjuste(p.opcoes.catalogo); return; }
     atual = { id: p.id, nome: p.nome };
     pecas.logo = null;
     pecas.nome = null;

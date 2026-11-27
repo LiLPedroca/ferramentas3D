@@ -1056,3 +1056,14 @@ Combinado com o Pedro (só local; ele aprova no fim do dia para lançar no GitHu
   - Com o Anycubic Slicer aberto, `vetorizar` (imagem grande) e `copos-material-logos` estouram o tempo, mas passam sozinhos.
 - **Conferido no modo de captura:** janela do nome, nome dobrado no copo, clonar, exportar 3MF (arquivo `João Pedro - Criae3D.3mf` com a marca e "Nome 1"), aviso animado, "Ver base" liso nos copos 1 e 4, e salvar e reabrir de Meus modelos com 2 cópias.
 - **Não conferido:** fatiar um copo com nome, imprimir o nome e moldá-lo no copo, e o aviso no programa instalado.
+
+### v0.77.1 local (27/11/2026, mesma tarde): correções pedidas pelo Pedro depois de testar a 0.77.0
+
+- **Prévia da logo e do nome no copo:** a textura aparecia "bugada" e o nome abria para fora no drapeado. Três causas, todas em `modelos/logo-copo.js`:
+  - O raio mudava a cada altura (`raioEm`). Agora cada cópia usa um cilindro só, o `raioDaPeca`: o ponto mais saliente do copo embaixo dela, calculado pelo mapa de raios por altura × fatias de 4° que o `medirTubo` passa a devolver (`mapa`).
+  - Os triângulos vizinhos eram divididos em pontos diferentes, o que deixava frestas finas (riscos). Agora todos são cortados nas mesmas linhas verticais, u = k · 2 mm.
+  - A luz era calculada triângulo a triângulo. Agora as normais vêm da curva (`logoNaCurva(..., { normais })`, que o `previa3d.extras` usa).
+- Saiu o botão "Restaurar preto e branco".
+- O aviso no meio da tela fica 6 s e virou genérico (`avisoNoMeio` no `shell.js`, tipo "ok" ou "espera").
+- **Copo 4 em ajustes:** `COPOS_EM_AJUSTE = [4]` em `modelos/copos.js`. O cartão fica apagado. Clicar nele, ou abrir um Copo 4 de Meus modelos, mostra o aviso "Copo 4 em ajustes – Ele será liberado assim que possível." Para liberar, é só tirar o 4 da lista.
+- Testes novos em `logo-copo.test.js` (cilindro único, sem frestas, normais) e em `copos-tela.test.js` (Copo 4). O `modelos-tela.test.js` (Chaveiro) às vezes estoura o tempo com o processador carregado e passa sozinho.
