@@ -1,11 +1,12 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
+import { corPronta } from "./cores-prontas.js";
 
 export const CATALOGO_COPOS = [{ id: 1, nome: "Copo 1" }, { id: 2, nome: "Copo 2" }, { id: 3, nome: "Copo 3" }, { id: 4, nome: "Copo 4" }];
 // Copos que já têm o projeto em peças separadas (assets/copos/<id>-multipartes.3mf).
 export const COPOS_MULTIPARTES = [1, 2, 3, 4];
 // Copos que aparecem no catálogo mas ainda não podem ser usados (passando por ajustes).
 export const COPOS_EM_AJUSTE = [];
-const CORES_PADRAO = ["#000000", "#ffffff"];
+const CORES_PADRAO = ["#1b1b1b", "#f4f4f4"]; // Preto e Branco das cores prontas
 // Onde cada copo fica na mesa do 3MF original (mm): as logos vão ao lado.
 export const COPO_NA_MESA = {
   1: { min: [86.4, 86.4], max: [173.6, 174.1] },
@@ -13,7 +14,7 @@ export const COPO_NA_MESA = {
   3: { min: [79.3, 79.6], max: [176.8, 176.4] },
   4: { min: [84.4, 84.4], max: [171.6, 171.6] },
 };
-export const coresIniciais = (partes, salvas = []) => partes.map((_p, i) => /^#[0-9a-f]{6}$/i.test(salvas[i]) ? salvas[i] : CORES_PADRAO[i % CORES_PADRAO.length]);
+export const coresIniciais = (partes, salvas = []) => partes.map((_p, i) => corPronta(salvas[i], CORES_PADRAO[i % CORES_PADRAO.length]));
 // Prévia sem a assinatura Criae3D do fundo: ela é só pintura nas faces de baixo (z = 0), em duas cores
 // (fundo na cor de detalhes e logo na principal). Na prévia o fundo
 // inteiro fica na cor que mais aparece nele; o arquivo exportado continua com a assinatura.

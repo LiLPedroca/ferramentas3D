@@ -8,7 +8,7 @@ vi.mock('../src/renderer/modelos/previa3d.js', () => ({ criarPrevia: () => ({ mo
 vi.mock('../src/renderer/logo-tela.js', () => ({ abrirLogoNoCopo: vi.fn() }));
 vi.mock('../src/renderer/modelos/logo-copo.js', () => ({ medirTubo: () => ({ centro: [0, 0], z0: 30, z1: 120, raios: [40] }), limitarNoCopo: (z) => z, passaDoTubo: () => false, anguloDaNovaCopia: vi.fn(), caixaDaLogo: vi.fn(), logoMaiorQueOTubo: vi.fn(), logoNaCurva: vi.fn(), logosNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), pecasNaMesa: vi.fn(() => ({ lugares: [], cabem: true })), raioEm: vi.fn() }));
 vi.mock('../src/renderer/nome-copo-tela.js', () => ({ abrirNomeNoCopo: vi.fn(), refazerNome: vi.fn(), resumoDoNome: vi.fn(() => '') }));
-vi.mock('../src/renderer/modelos-ui.js', () => ({ abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn(), perguntarMaterial: vi.fn(async () => ({ material: 'PLA' })) }));
+vi.mock('../src/renderer/modelos-ui.js', () => ({ criarPaleta: (caixa, aoEscolher) => { for (const cor of ['#1b1b1b', '#f4f4f4', '#d6322f']) { const b = document.createElement('button'); b.dataset.cor = cor; b.addEventListener('click', () => aoEscolher(cor, true)); caixa.append(b); } }, marcarPaleta: vi.fn(), abridorDe: vi.fn(), registrarAbridor: vi.fn(), salvarEmMeusModelos: vi.fn(), perguntarMaterial: vi.fn(async () => ({ material: 'PLA' })) }));
 vi.mock('../src/renderer/modelos-acoes.js', () => ({ salvarMontando: vi.fn(async (nome, ext, montar) => { const a = await montar(nome); return a; }), enviarModeloAoFatiador: vi.fn(), densidadeDoModelo: vi.fn() }));
 vi.mock('../src/renderer/modelos/copos-exportar.js', () => ({ colorir3mf: vi.fn(), gerarStlNativoCopo: vi.fn(), colorir3mfMultipartes: vi.fn(() => new Uint8Array([7])), stlComLogos: vi.fn() }));
 vi.mock('../src/renderer/calculadora-tela.js', () => ({ preencherDoModelo: vi.fn() }));
@@ -56,10 +56,10 @@ it('exporta multipartes dos três copos, com as cores atuais', async()=>{
  const n=Math.ceil(texto.length/4)*4,bytes=new Uint8Array(4+n+72);bytes.fill(32,4,4+n);new DataView(bytes.buffer).setUint32(0,n,true);bytes.set(new TextEncoder().encode(texto),4);
  const lerCopoMultipartes=vi.fn().mockResolvedValue({ok:true,dados:new Uint8Array([77])});window.modelos={lerCopo:vi.fn().mockResolvedValue({ok:true,dados:bytes}),lerCopoMultipartes};
  const {iniciarCopos}=await import('../src/renderer/copos-tela.js');iniciarCopos();estado.abrir();await vi.waitFor(()=>expect(document.getElementById('cp-salvar').disabled).toBe(false));
- const cor=document.querySelector('#cp-cores input');cor.value='#123456';cor.dispatchEvent(new Event('input'));
+ document.querySelector('#cp-cores [data-cor="#d6322f"]').click();
  document.getElementById('cp-multipartes').click();expect(document.getElementById('cp-multipartes').disabled).toBe(true);
  await vi.waitFor(()=>expect(lerCopoMultipartes).toHaveBeenCalledWith(1));
- const {colorir3mfMultipartes}=await import('../src/renderer/modelos/copos-exportar.js');await vi.waitFor(()=>expect(colorir3mfMultipartes).toHaveBeenCalledWith(new Uint8Array([77]),['#123456','#ffffff'],{nome:'Copo 1 - multipartes',material:'PLA',logos:[]}));
+ const {colorir3mfMultipartes}=await import('../src/renderer/modelos/copos-exportar.js');await vi.waitFor(()=>expect(colorir3mfMultipartes).toHaveBeenCalledWith(new Uint8Array([77]),['#d6322f','#f4f4f4'],{nome:'Copo 1 - multipartes',material:'PLA',logos:[]}));
  const {salvarMontando}=await import('../src/renderer/modelos-acoes.js');expect(salvarMontando).toHaveBeenCalledWith('Copo 1 - multipartes','3mf',expect.any(Function));
  await vi.waitFor(()=>expect(document.getElementById('cp-multipartes').disabled).toBe(false));
  document.querySelector('#cp-catalogo [data-id="2"]').click();await vi.waitFor(()=>expect(document.getElementById('cp-salvar').disabled).toBe(false));

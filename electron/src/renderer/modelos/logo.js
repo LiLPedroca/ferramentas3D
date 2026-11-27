@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { simplificarContorno } from "./geometria.js";
 import { areaComSinal, comEscopo, malhaDoSolido, prenderArgola, resolverLargura, unirIlhas } from "./manifold.js";
+import { corPronta } from "./cores-prontas.js";
 
 export const ESTILOS_LOGO = ["contorno", "circulo", "retangular"];
 
@@ -37,7 +38,7 @@ export function validarOpcoesLogo(entrada = {}) {
   if (!ESTILOS_LOGO.includes(o.estilo)) throw new Error("Estilo de base inválido.");
   const argola = o.argola === null || o.argola === undefined || o.argola === "" ? null : Number(o.argola);
   if (argola !== null && !(argola >= 0 && argola <= 1)) throw new Error("Posição da argola inválida.");
-  const opcoes = { estilo: o.estilo, argola, comArgola: o.comArgola !== false, corBase: /^#[0-9a-f]{6}$/i.test(o.corBase) ? o.corBase.toLowerCase() : PADRAO_LOGO.corBase };
+  const opcoes = { estilo: o.estilo, argola, comArgola: o.comArgola !== false, corBase: corPronta(o.corBase, PADRAO_LOGO.corBase) };
   for (const chave of Object.keys(LIMITES_LOGO)) opcoes[chave] = numero(o[chave], chave);
   return opcoes;
 }

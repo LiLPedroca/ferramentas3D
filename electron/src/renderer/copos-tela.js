@@ -4,7 +4,7 @@ import { anguloDaNovaCopia, caixaDaLogo, limitarNoCopo, logoNaCurva, pecasNaMesa
 import { abrirLogoNoCopo } from './logo-tela.js';
 import { abrirNomeNoCopo, refazerNome, resumoDoNome } from './nome-copo-tela.js';
 import { criarPrevia } from './modelos/previa3d.js';
-import { abridorDe, perguntarMaterial, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
+import { abridorDe, criarPaleta, marcarPaleta, perguntarMaterial, registrarAbridor, salvarEmMeusModelos } from './modelos-ui.js';
 import { materialAtual } from './modelos/projeto-fatiador.js';
 import { registrarAoAbrir, irPara, mostrarAviso, confirmar, avisoNoMeio } from './shell.js';
 import { salvarMontando, enviarModeloAoFatiador, densidadeDoModelo } from './modelos-acoes.js';
@@ -19,16 +19,17 @@ function bloquear(sim) {
   const multipartes = COPOS_MULTIPARTES.includes(id);
   $('cp-multipartes').disabled = sim || !pronto || !multipartes;
   $('cp-multipartes').hidden = !multipartes;
-  document.querySelectorAll('#cp-cores input').forEach(input => { input.disabled = sim || !pronto; });
+  document.querySelectorAll('#cp-cores button').forEach(input => { input.disabled = sim || !pronto; });
 }
 function pintar() { previa?.colorir(cores); }
 function controles() {
   $('cp-cores').replaceChildren(...pacote.partes.map((p, i) => {
-    const label = document.createElement('label');
+    const linha = document.createElement('div'); linha.className = 'copos-cor';
     const span = document.createElement('span'); span.textContent = p.nome;
-    const input = document.createElement('input'); input.type = 'color'; input.value = cores[i]; input.setAttribute('aria-label', `Cor ${p.nome.toLowerCase()}`);
-    input.addEventListener('input', () => { cores[i] = input.value; pintar(); });
-    label.append(span, input); return label;
+    const paleta = document.createElement('div'); paleta.className = 'ch-paleta'; paleta.setAttribute('aria-label', `Cor ${p.nome.toLowerCase()}`);
+    criarPaleta(paleta, cor => { cores[i] = cor; marcarPaleta(paleta, cor); pintar(); });
+    marcarPaleta(paleta, cores[i]);
+    linha.append(span, paleta); return linha;
   }));
 }
 // Nome do copo nos arquivos: o de Meus modelos, ou "Copo N".

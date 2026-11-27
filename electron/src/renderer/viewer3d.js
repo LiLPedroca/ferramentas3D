@@ -15,6 +15,7 @@ import { densidadeDoModelo, materialDoModelo } from "./modelos-acoes.js";
 import { gerar3mf, gerarStl } from "./modelos/exportar.js";
 import { ler3mf } from "./modelos/ler3mf.js";
 import { formatarMedida } from "./modelos/medidas.js";
+import { criarPaleta, marcarPaleta } from "./modelos-ui.js";
 import { criarPaquimetro } from "./paquimetro.js";
 import { SEM_3D, criarRenderizador, mostrarSem3d } from "./modelos/webgl.js";
 import { estado as app, mostrarAviso, salvarConfig } from "./shell.js";
@@ -30,7 +31,8 @@ const DICAS = {
 };
 
 const $ = (id) => document.getElementById(id);
-const COR_PADRAO = "#7aa5ff";
+const COR_PADRAO = "#2463d8"; // Azul das cores prontas
+let corEscolhida = COR_PADRAO;
 const EXTENSOES = ["stl", "3mf", "obj", "ply"];
 
 // Mesas (largura X × profundidade Y × altura Z, em mm)
@@ -385,7 +387,7 @@ function limparPeca() {
 // ---------- Aparência ----------
 function pintar() {
   const usarArquivo = estado.temCores && $("vz-cores-arquivo").checked;
-  const escolhida = $("vz-cor").value || COR_PADRAO;
+  const escolhida = corEscolhida;
   const aramado = $("vz-aramado").checked;
   for (const m of estado.peca.children) {
     const { corOriginal, temCorVertice } = m.userData;
@@ -726,7 +728,12 @@ function ligarControles() {
   $("vz-restaurar").addEventListener("click", restaurar);
   $("vz-escala").addEventListener("change", () => definirEscala(Number(String($("vz-escala").value).replace(",", ".")) / 100));
   $("vz-polegadas").addEventListener("click", () => definirEscala(estado.escala * 25.4));
-  $("vz-cor").addEventListener("input", pintar);
+  criarPaleta($("vz-cor"), (cor) => {
+    corEscolhida = cor;
+    marcarPaleta($("vz-cor"), cor);
+    pintar();
+  });
+  marcarPaleta($("vz-cor"), corEscolhida);
   $("vz-cores-arquivo").addEventListener("change", pintar);
   $("vz-aramado").addEventListener("change", pintar);
   $("vz-salvar-stl").addEventListener("click", () => salvar("stl"));

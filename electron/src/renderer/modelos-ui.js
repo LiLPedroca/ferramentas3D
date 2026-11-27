@@ -3,25 +3,13 @@
 import { CATEGORIAS_FONTES, familiaCss, FONTES, numeroDaFonte } from "./modelos/fontes.js";
 import { guardarMaterial, materialAtual } from "./modelos/projeto-fatiador.js";
 import { el } from "./util-tela.js";
+import { CORES_PRONTAS, corPronta } from "./modelos/cores-prontas.js";
 
 const $ = (id) => document.getElementById(id);
 
-export const PALETA = [
-  ["#2563eb", "Azul"],
-  ["#dc2626", "Vermelho"],
-  ["#facc15", "Amarelo"],
-  ["#f472b6", "Rosa"],
-  ["#7e22ce", "Roxo"],
-  ["#15803d", "Verde"],
-  ["#f59e0b", "Laranja"],
-  ["#ffffff", "Branco"],
-  ["#111111", "Preto"],
-  ["#8a8f98", "Cinza"],
-  ["#8b4513", "Marrom"],
-];
+export const PALETA = CORES_PRONTAS.map((c) => [c.hex, c.nome]);
 
-// Bolinhas de cor + "Cor personalizada". aoEscolher(cor, final): final = false enquanto arrasta
-// no seletor de cor personalizada.
+// Bolinhas das cores prontas (sem cor livre). aoEscolher(cor, final): final é sempre true.
 export function criarPaleta(caixa, aoEscolher) {
   const botoes = PALETA.map(([cor, nome]) => {
     const b = el("button", "ch-cor");
@@ -33,25 +21,13 @@ export function criarPaleta(caixa, aoEscolher) {
     b.addEventListener("click", () => aoEscolher(cor, true));
     return b;
   });
-  const personalizada = el("label", "ch-cor-personalizada");
-  const seletor = el("input");
-  seletor.type = "color";
-  seletor.addEventListener("input", () => aoEscolher(seletor.value, false));
-  seletor.addEventListener("change", () => aoEscolher(seletor.value, true));
-  personalizada.append(seletor, el("span", "", "Cor personalizada"));
-  caixa.replaceChildren(...botoes, personalizada);
+  caixa.replaceChildren(...botoes);
 }
 
+// Marca a cor pronta mais parecida com a cor dada.
 export function marcarPaleta(caixa, cor) {
-  let achou = false;
-  for (const b of caixa.querySelectorAll(".ch-cor")) {
-    const igual = b.dataset.cor === cor;
-    achou ||= igual;
-    b.setAttribute("aria-pressed", String(igual));
-  }
-  const personalizada = caixa.querySelector(".ch-cor-personalizada");
-  personalizada.classList.toggle("ativa", !achou);
-  personalizada.querySelector("input").value = cor;
+  const pronta = corPronta(cor);
+  for (const b of caixa.querySelectorAll(".ch-cor")) b.setAttribute("aria-pressed", String(b.dataset.cor === pronta));
 }
 
 // ---------- Escolha de fonte ----------

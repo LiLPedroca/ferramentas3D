@@ -566,7 +566,7 @@ export const NOVIDADES = [
   },
   {
     id: "copos-nome",
-    versao: "0.77.0",
+    versao: "0.79.0", // era 0.77.0: vai para todos junto com a 0.79.0
     tela: "caneca",
     icone: "caneca",
     titulo: "Nome do cliente no copo",
@@ -576,12 +576,22 @@ export const NOVIDADES = [
   },
   {
     id: "copo-4-liso",
-    versao: "0.78.0",
+    versao: "0.79.0", // era 0.78.0: vai para todos junto com a 0.79.0
     tela: "caneca",
     icone: "caneca",
     titulo: "Copo 4 novo",
     texto: "O Copo 4 agora é liso, com faixas brancas na base e na boca.",
     itens: ["Copo inteiro ou em 3 peças: base, tubo e argola", "Logo, site e Instagram no fundo, na 1ª camada"],
+    botao: "Abrir os copos",
+  },
+  {
+    id: "cores-prontas",
+    versao: "0.79.0",
+    tela: "caneca",
+    icone: "caneca",
+    titulo: "Cores prontas em todos os modelos",
+    texto: "A cor agora é escolhida num botão, entre as 13 cores de filamento.",
+    itens: ["Copos, chaveiros, palavras, caneca e Visualizar 3D", "Projetos antigos abrem com a cor mais parecida"],
     botao: "Abrir os copos",
   },
 ];

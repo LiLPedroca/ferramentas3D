@@ -4,6 +4,7 @@
 // Símbolo opcional (v0.47): uma imagem vetorizada por cores ao lado do nome. As cores marcadas
 // "em relevo" sobem junto com o texto (na cor do texto); as outras ficam só na base.
 import { comEscopo, malhaDoSolido, prenderArgolas, resolverLargura, unirIlhas } from "./manifold.js";
+import { corPronta } from "./cores-prontas.js";
 
 export const ESTILOS_BASE = ["contorno", "capsula", "retangular"];
 
@@ -21,8 +22,8 @@ export const PADRAO_CHAVEIRO = {
   // posição de cada argola ao longo da borda (0 a 1): [t ou null, ...]; null = automática
   // (1ª no meio do lado esquerdo, 2ª no lado direito, 3ª em cima). Um número só vale para a 1ª.
   argola: null,
-  corBase: "#ffffff",
-  corTexto: "#2563eb",
+  corBase: "#f4f4f4",
+  corTexto: "#2463d8",
   // null = sem símbolo. { lado, dx, dy, tamanho, relevo }:
   //   lado: de que lado do nome ("esquerda", "direita", "acima", "abaixo");
   //   dx, dy: deslocamento a partir dessa posição, em alturas do nome (arrastar na prévia);
@@ -77,7 +78,7 @@ export function validarOpcoesChaveiro(entrada = {}) {
   };
   const lista = Array.isArray(o.argola) ? o.argola : [o.argola];
   const argola = Array.from({ length: argolas }, (_v, i) => posicao(lista[i]));
-  const cor = (c, padrao) => (/^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : padrao);
+  const cor = (c, padrao) => corPronta(c, padrao);
   let simbolo = null;
   if (o.simbolo) {
     const s = o.simbolo;

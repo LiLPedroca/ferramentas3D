@@ -3865,33 +3865,11 @@ textarea:focus {
   cursor: pointer;
 }
 
-.ch-cor[aria-pressed="true"],
-.ch-cor-personalizada.ativa {
+.ch-cor[aria-pressed="true"] {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
 }
 
-.ch-cor-personalizada {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 4px;
-  border: 1px solid var(--borda);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.ch-cor-personalizada input {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-}
 
 .ch-estilos {
   display: grid;
@@ -4660,6 +4638,18 @@ textarea:focus {
 
 .vz-opcoes .md-opcao {
   margin: 0;
+}
+
+.vz-cor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  font-size: 13px;
+}
+
+.vz-cor .ch-paleta {
+  margin-bottom: 0;
 }
 
 .vz-painel .vz-acoes {

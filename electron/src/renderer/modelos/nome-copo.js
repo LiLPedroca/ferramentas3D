@@ -3,6 +3,7 @@
 // Detalhes decorativos (moldura, sombra) saem na cor das letras.
 import { secaoDoTexto } from "./chaveiro.js";
 import { comEscopo, malhaDoSolido, resolverLargura, unirIlhas } from "./manifold.js";
+import { corPronta } from "./cores-prontas.js";
 
 // A ordem é a numeração mostrada na escolha ("Base 1", "Base 2"...): não mudar a ordem, só acrescentar no fim.
 export const BASES_NOME = [
@@ -44,7 +45,7 @@ export function validarOpcoesNomeCopo(entrada = {}) {
   const largura = Number(String(o.largura).replace(",", "."));
   const [min, max] = LIMITES_NOME_COPO.largura;
   if (!(largura >= min && largura <= max)) throw new Error(`Largura: use de ${min} a ${max} mm.`);
-  const cor = (c, padrao) => (/^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : padrao);
+  const cor = (c, padrao) => corPronta(c, padrao);
   return {
     texto,
     fonte: String(o.fonte),

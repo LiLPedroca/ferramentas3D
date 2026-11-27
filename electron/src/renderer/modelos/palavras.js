@@ -4,6 +4,7 @@
 // Geometria com o Manifold (união real, pontes entre partes soltas) e largura total exata.
 import { secaoDoTexto } from "./chaveiro.js";
 import { comEscopo, malhaDoSolido, resolverLargura, unirIlhas } from "./manifold.js";
+import { corPronta } from "./cores-prontas.js";
 
 export const ESTILOS_PLACA = ["contorno", "retangular", "capsula"];
 
@@ -20,8 +21,8 @@ export const PADRAO_PALAVRAS = {
   espessura: 3,
   relevo: 1.6,
   ligacao: 2.4,
-  corBase: "#ffffff",
-  corTexto: "#2563eb",
+  corBase: "#f4f4f4",
+  corTexto: "#2463d8",
 };
 
 export const LIMITES_PALAVRAS = {
@@ -52,7 +53,7 @@ function numero(valor, nome, [minimo, maximo], unidade = "mm") {
   return n;
 }
 
-const cor = (c, padrao) => (/^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : padrao);
+const cor = (c, padrao) => corPronta(c, padrao);
 
 export function validarOpcoesPalavras(entrada = {}) {
   const o = { ...PADRAO_PALAVRAS, ...entrada };

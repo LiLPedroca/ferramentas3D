@@ -202,7 +202,7 @@ describe("impressão sem AMS (pausa para troca manual)", () => {
 describe("exportação", () => {
   let partes;
   beforeAll(() => {
-    const r = gerarChaveiro(M, carregar("Fredoka"), { texto: "ABg eao", corBase: "#112233", corTexto: "#ffffff" });
+    const r = gerarChaveiro(M, carregar("Fredoka"), { texto: "ABg eao", corBase: "#112233", corTexto: "#ffffff" /* viram Preto e Branco das cores prontas */ });
     partes = r.malhas.map((m) => ({ nome: m.nome, cor: m.cor, geometria: geometriaDaMalha(m) }));
   });
 
@@ -224,7 +224,7 @@ describe("exportação", () => {
     expect(Object.keys(arquivos).sort()).toEqual(["3D/3dmodel.model", "Metadata/model_settings.config", "Metadata/project_settings.config", "[Content_Types].xml", "_rels/.rels"]);
     const xml = strFromU8(arquivos["3D/3dmodel.model"]);
     expect(xml.match(/<object /g)).toHaveLength(3);
-    expect(xml).toContain('displaycolor="#112233FF"');
+    expect(xml).toContain('displaycolor="#1B1B1BFF"');
     expect(xml.match(/<item /g)).toHaveLength(1);
     const config = strFromU8(arquivos["Metadata/model_settings.config"]);
     expect(config).toContain('<object id="4">');

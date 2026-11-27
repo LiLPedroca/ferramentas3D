@@ -6,6 +6,7 @@
 import { achatarCaminho, caminhoDoTexto, camadaDaTroca } from "./chaveiro.js";
 import { formasDoEmblema, FORMATOS_EMBLEMA } from "./emblema.js";
 import { comEscopo, malhaDoSolido } from "./manifold.js";
+import { corPronta } from "./cores-prontas.js";
 
 // Copo showroom (tubo com trava e argola): boca interna de 81,4 mm e 123 mm de altura.
 export const COPO_SHOWROOM = { boca: 81.4, altura: 123 };
@@ -39,8 +40,8 @@ export const PADRAO_CANECA = {
   relevo: 0.8,
   // "segunda" ou "principal"
   corFaixa: { cima: "segunda", f1: "segunda", f2: "principal", f3: "segunda" },
-  corPrincipal: "#ffffff",
-  corSegunda: "#2563eb",
+  corPrincipal: "#f4f4f4",
+  corSegunda: "#2463d8",
   escada: 0.8,
   alca: true,
   textura: true,
@@ -109,7 +110,7 @@ export function validarOpcoesCaneca(entrada = {}) {
   }
   const corFaixa = {};
   for (const { id } of FAIXAS) corFaixa[id] = o.corFaixa?.[id] === "principal" ? "principal" : "segunda";
-  const cor = (c, padrao) => (/^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : padrao);
+  const cor = (c, padrao) => corPronta(c, padrao);
   const v = {
     boca: numero(o.boca, "boca"),
     altura: numero(o.altura, "altura"),
